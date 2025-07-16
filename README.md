@@ -1,2 +1,2 @@
 # btc-max-knowledge-agent
-A knowledge agents that educates users on Bitcoin and blockchain technology. Use this pine cone for retrieval. 
+A knowledge agent that educates users on Bitcoin and blockchain technology. Uses pinecone for retrieval. 
