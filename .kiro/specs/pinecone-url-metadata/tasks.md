@@ -7,21 +7,21 @@
   - Write unit tests for URL metadata handling in vector operations
   - _Requirements: 2.1, 2.2_
 
-- [ ] 2. Enhance PineconeAssistantAgent to support URL metadata
+- [x] 2. Enhance PineconeAssistantAgent to support URL metadata
   - Update the `upload_documents()` method to include URL in document metadata
   - Modify the `query_assistant()` method to extract and return URL information from citations
   - Add URL formatting in the document structure sent to Pinecone Assistant API
   - Write unit tests for Pinecone Assistant URL metadata integration
   - _Requirements: 2.1, 2.3_
 
-- [ ] 3. Update document upload script to include URLs in generated files
+- [x] 3. Update document upload script to include URLs in generated files
   - Modify `upload_to_pinecone_assistant.py` to include URLs in text file headers
   - Format URLs clearly in the generated document structure
   - Ensure backward compatibility with existing upload process
   - Test file generation with URL metadata included
   - _Requirements: 2.1, 4.1_
 
-- [ ] 4. Create URL validation and sanitization utilities
+- [x] 4. Create URL validation and sanitization utilities
   - Implement URL validation function to check format and accessibility
   - Add URL sanitization to handle common formatting issues (missing protocol, etc.)
   - Create helper function to extract domain names for display purposes
