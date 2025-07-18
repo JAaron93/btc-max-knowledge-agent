@@ -205,3 +205,51 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# AI/ML specific
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pb
+*.pth
+*.pt
+*.safetensors
+model/
+models/
+checkpoints/
+data/
+datasets/
+embeddings/
+vectordb/
+*.faiss
+*.index
+
+# API Keys and Secrets
+.env.local
+.env.production
+.env.development
+*.key
+*.pem
+api_keys.txt
+config.ini
+secrets.json
+
+# Vector Database
+pinecone/
+vectorstore/
+*.vecdb
+
+# Logs
+logs/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store
+.DS_Store?
