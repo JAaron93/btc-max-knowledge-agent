@@ -79,7 +79,8 @@ class BitcoinDataCollector:
             'title': 'Bitcoin: A Peer-to-Peer Electronic Cash System',
             'content': """Bitcoin is a peer-to-peer electronic cash system that allows online payments to be sent directly from one party to another without going through a financial institution. Digital signatures provide part of the solution, but the main benefits are lost if a trusted third party is still required to prevent double-spending. We propose a solution to the double-spending problem using a peer-to-peer network. The network timestamps transactions by hashing them into an ongoing chain of hash-based proof-of-work, forming a record that cannot be changed without redoing the proof-of-work. The longest chain not only serves as proof of the sequence of events witnessed, but proof that it came from the largest pool of CPU power.""",
             'source': 'bitcoin.org',
-            'category': 'fundamentals'
+            'category': 'fundamentals',
+            'url': 'https://bitcoin.org/bitcoin.pdf'
         }
         documents.append(bitcoin_whitepaper)
         
@@ -89,7 +90,8 @@ class BitcoinDataCollector:
             'title': 'Lightning Network Overview',
             'content': """The Lightning Network is a "Layer 2" payment protocol layered on top of Bitcoin. It enables fast transactions between participating nodes and has been proposed as a solution to the bitcoin scalability problem. It features a peer-to-peer system for making micropayments of cryptocurrency through a network of bidirectional payment channels without delegating custody of funds. Normal use of the Lightning Network consists of opening a payment channel by committing a funding transaction to the relevant base blockchain, followed by making any number of Lightning Network transactions that update the tentative distribution of the channel's funds without broadcasting those to the blockchain, optionally followed by closing the payment channel by broadcasting the final version of the settlement transaction to distribute the channel's funds.""",
             'source': 'lightning.network',
-            'category': 'layer2'
+            'category': 'layer2',
+            'url': 'https://lightning.network/lightning-network-paper.pdf'
         }
         documents.append(lightning_basics)
         
@@ -99,7 +101,8 @@ class BitcoinDataCollector:
             'title': 'Understanding Blockchain Technology',
             'content': """A blockchain is a distributed ledger with growing lists of records, called blocks, that are linked and secured using cryptography. Each block contains a cryptographic hash of the previous block, a timestamp, and transaction data. By design, a blockchain is resistant to modification of its data. This is because once recorded, the data in any given block cannot be altered retroactively without altering all subsequent blocks. For use as a distributed ledger, a blockchain is typically managed by a peer-to-peer network for use as a publicly distributed ledger, where nodes collectively adhere to a protocol to communicate and validate new blocks.""",
             'source': 'educational',
-            'category': 'fundamentals'
+            'category': 'fundamentals',
+            'url': 'https://en.bitcoin.it/wiki/Block_chain'
         }
         documents.append(blockchain_basics)
         
@@ -114,7 +117,8 @@ class BitcoinDataCollector:
             'title': 'GENIUS Act - Blockchain Innovation',
             'content': """The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) is legislation aimed at promoting blockchain technology innovation and cryptocurrency adoption in the United States. The act focuses on creating regulatory clarity for blockchain businesses, supporting research and development in distributed ledger technologies, and fostering innovation in the digital asset space. It aims to position the United States as a leader in blockchain technology while ensuring consumer protection and maintaining financial stability.""",
             'source': 'legislative',
-            'category': 'regulation'
+            'category': 'regulation',
+            'url': 'https://www.congress.gov/bill/118th-congress/house-bill/6572'
         }
         documents.append(genius_act_overview)
         
@@ -129,7 +133,8 @@ class BitcoinDataCollector:
             'title': 'Decentralized Applications (dApps) Overview',
             'content': """Decentralized applications (dApps) are digital applications that run on a blockchain or peer-to-peer network of computers instead of a single computer. dApps are outside the purview and control of a single authority. dApps can be developed for a variety of purposes including gaming, finance, and social media. The key characteristics of dApps include: decentralization (no single point of failure), open source code, cryptographic security, and token incentives. Popular dApp categories include DeFi (Decentralized Finance), NFT marketplaces, gaming platforms, and social networks.""",
             'source': 'educational',
-            'category': 'dapps'
+            'category': 'dapps',
+            'url': 'https://ethereum.org/en/dapps/'
         }
         documents.append(dapp_basics)
         

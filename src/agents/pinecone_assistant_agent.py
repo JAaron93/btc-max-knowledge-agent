@@ -3,6 +3,8 @@ import json
 from typing import List, Dict, Any, Optional
 from src.utils.config import Config
 import os
+import re
+from urllib.parse import urlparse
 
 class PineconeAssistantAgent:
     def __init__(self):
@@ -19,6 +21,54 @@ class PineconeAssistantAgent:
         
         # Remove trailing slash if present
         self.host = self.host.rstrip('/')
+    
+    def _validate_and_sanitize_url(self, url: str) -> Optional[str]:
+        """Validate and sanitize URL, return None if invalid"""
+        if not url or not isinstance(url, str):
+            return None
+        
+        url = url.strip()
+        if not url:
+            return None
+        
+        # Add protocol if missing
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        try:
+            parsed = urlparse(url)
+            # Check if URL has valid scheme and netloc
+            if parsed.scheme in ('http', 'https') and parsed.netloc:
+                # Basic domain validation
+                if '.' in parsed.netloc and len(parsed.netloc) > 3:
+                    return url
+        except Exception:
+            pass
+        
+        return None
+    
+    def _format_sources_with_urls(self, citations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Format citations to include URL information in a structured way"""
+        formatted_sources = []
+        
+        for citation in citations:
+            # Extract metadata from citation
+            metadata = citation.get('metadata', {})
+            
+            formatted_source = {
+                'id': citation.get('id', ''),
+                'title': metadata.get('title', ''),
+                'source': metadata.get('source', ''),
+                'category': metadata.get('category', ''),
+                'content': citation.get('text', ''),
+                'url': metadata.get('url', ''),
+                'published': metadata.get('published', ''),
+                'score': citation.get('score', 0.0)
+            }
+            
+            formatted_sources.append(formatted_source)
+        
+        return formatted_sources
     
     def create_assistant(self, name: str = "Bitcoin Knowledge Assistant") -> Dict[str, Any]:
         """Create a new Pinecone Assistant for Bitcoin knowledge"""
@@ -91,6 +141,9 @@ class PineconeAssistantAgent:
         # Convert our document format to Pinecone Assistant format
         formatted_docs = []
         for doc in documents:
+            # Validate and sanitize URL
+            url = self._validate_and_sanitize_url(doc.get('url', ''))
+            
             formatted_doc = {
                 "id": doc.get('id', ''),
                 "text": doc.get('content', ''),
@@ -98,7 +151,8 @@ class PineconeAssistantAgent:
                     "title": doc.get('title', ''),
                     "source": doc.get('source', ''),
                     "category": doc.get('category', ''),
-                    "url": doc.get('url', '')
+                    "url": url or '',
+                    "published": doc.get('published', '')
                 }
             }
             formatted_docs.append(formatted_doc)
@@ -150,9 +204,13 @@ class PineconeAssistantAgent:
             
             if response.status_code == 200:
                 result = response.json()
+                
+                # Extract and format sources with URL information
+                formatted_sources = self._format_sources_with_urls(result.get('citations', []))
+                
                 return {
                     'answer': result.get('message', ''),
-                    'sources': result.get('citations', []),
+                    'sources': formatted_sources,
                     'metadata': result.get('metadata', {})
                 }
             else:
