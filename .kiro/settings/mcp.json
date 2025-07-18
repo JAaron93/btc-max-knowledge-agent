@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "pinecone-assistant": {
+      "url": "https://prod-1-data.ke.pinecone.io/mcp/assistants/genius",
+      "transport": "http",
+      "headers": {
+        "Authorization": "Bearer pcsk_gp3jB_9ad5F6tcNAcfi6CmGs7SoPnSw43CWcuPNsEsNEtwYHSAB7odkuCk2hnBzGi5HL2",
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream"
+      },
+      "disabled": false,
+      "autoApprove": ["query_assistant", "list_assistants", "create_assistant", "upload_documents"]
+    }
+  }
+}
