@@ -1,7 +1,8 @@
 from pinecone import Pinecone, ServerlessSpec
-import google.generativeai as genai
 import time
-from typing import List, Dict, Any
+import re
+from urllib.parse import urlparse
+from typing import List, Dict, Any, Optional
 from src.utils.config import Config
 
 class PineconeClient:
@@ -10,10 +11,6 @@ class PineconeClient:
         
         # Initialize Pinecone
         self.pc = Pinecone(api_key=Config.PINECONE_API_KEY)
-        
-        # Initialize Gemini for embeddings
-        print("Initializing Gemini for embeddings...")
-        genai.configure(api_key=Config.GEMINI_API_KEY)
         
         self.index_name = Config.PINECONE_INDEX_NAME
         self.dimension = Config.EMBEDDING_DIMENSION
@@ -43,34 +40,63 @@ class PineconeClient:
         """Get the Pinecone index"""
         return self.pc.Index(self.index_name)
     
-    def create_embedding(self, text: str) -> List[float]:
-        """Create embedding using Gemini"""
-        result = genai.embed_content(
-            model=Config.EMBEDDING_MODEL,
-            content=text,
-            task_type="retrieval_document"
-        )
-        return result['embedding']
+    def validate_and_sanitize_url(self, url: Optional[str]) -> Optional[str]:
+        """Validate and sanitize URL, return None if invalid"""
+        if not url or not isinstance(url, str):
+            return None
+        
+        # Strip whitespace
+        url = url.strip()
+        if not url:
+            return None
+        
+        # Add protocol if missing
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        try:
+            # Parse URL to validate structure
+            parsed = urlparse(url)
+            
+            # Check if URL has valid scheme and netloc
+            if not parsed.scheme or not parsed.netloc:
+                return None
+            
+            # Basic domain validation
+            if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', parsed.netloc):
+                return None
+            
+            return url
+        except Exception:
+            return None
     
     def upsert_documents(self, documents: List[Dict[str, Any]]):
-        """Upsert documents to Pinecone index"""
+        """Upsert documents to Pinecone index with URL metadata support"""
         index = self.get_index()
         
         vectors = []
         for i, doc in enumerate(documents):
-            # Create embedding for the document content
-            embedding = self.create_embedding(doc['content'])
+            # Validate and sanitize URL if provided
+            url = self.validate_and_sanitize_url(doc.get('url'))
+            
+            # Prepare metadata with URL field
+            metadata = {
+                'title': doc.get('title', ''),
+                'source': doc.get('source', ''),
+                'category': doc.get('category', ''),
+                'content': doc['content'][:1000],  # Store first 1000 chars in metadata
+                'url': url or ''  # Include URL field, empty string if None
+            }
+            
+            # Add published date if available
+            if doc.get('published'):
+                metadata['published'] = doc['published']
             
             # Prepare vector for upsert
             vector = {
                 'id': doc.get('id', f"doc_{i}"),
-                'values': embedding,
-                'metadata': {
-                    'title': doc.get('title', ''),
-                    'source': doc.get('source', ''),
-                    'category': doc.get('category', ''),
-                    'content': doc['content'][:1000]  # Store first 1000 chars in metadata
-                }
+                'values': doc.get('embedding', []),  # Use provided embedding
+                'metadata': metadata
             }
             vectors.append(vector)
         
@@ -81,12 +107,9 @@ class PineconeClient:
             index.upsert(vectors=batch)
             print(f"Upserted batch {i//batch_size + 1}/{(len(vectors)-1)//batch_size + 1}")
     
-    def query_similar(self, query: str, top_k: int = 5) -> List[Dict]:
-        """Query for similar documents"""
+    def query_similar(self, query_embedding: List[float], top_k: int = 5) -> List[Dict]:
+        """Query for similar documents with URL metadata support"""
         index = self.get_index()
-        
-        # Create embedding for query (using query task type)
-        query_embedding = self.create_query_embedding(query)
         
         # Query Pinecone
         results = index.query(
@@ -102,19 +125,12 @@ class PineconeClient:
                 'title': match['metadata'].get('title', ''),
                 'source': match['metadata'].get('source', ''),
                 'category': match['metadata'].get('category', ''),
-                'content': match['metadata'].get('content', '')
+                'content': match['metadata'].get('content', ''),
+                'url': match['metadata'].get('url', ''),  # Include URL in results
+                'published': match['metadata'].get('published', '')  # Include published date if available
             }
             for match in results['matches']
         ]
-    
-    def create_query_embedding(self, text: str) -> List[float]:
-        """Create embedding for query using Gemini"""
-        result = genai.embed_content(
-            model=Config.EMBEDDING_MODEL,
-            content=text,
-            task_type="retrieval_query"
-        )
-        return result['embedding']
     
     def get_index_stats(self):
         """Get index statistics"""
