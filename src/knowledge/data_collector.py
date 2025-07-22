@@ -1,38 +1,41 @@
 import requests
 import feedparser
-from bs4 import BeautifulSoup
 from newspaper import Article
 import time
-from typing import List, Dict, Any, Optional
-from urllib.parse import urljoin, urlparse
+from typing import List, Dict, Any
 import json
-from src.utils.url_metadata_logger import URLMetadataLogger, correlation_context
-from src.monitoring.url_metadata_monitor import URLMetadataMonitor
+import os
+
+from btc_max_knowledge_agent.utils.url_metadata_logger import (
+    URLMetadataLogger,
+    correlation_context,
+)
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
+    URLMetadataMonitor,
+)
 
 # Import enhanced URL utilities and error handling
-from src.utils.url_utils import (
+from btc_max_knowledge_agent.utils.url_utils import (
     sanitize_url_for_storage,
-    validate_url_format,
     validate_url_batch,
-    check_url_accessibility,
-    extract_domain,
-    is_secure_url
+    extract_domain
 )
-from src.utils.url_error_handler import (
-    URLMetadataError,
+from btc_max_knowledge_agent.utils.url_error_handler import (
     URLValidationError,
-    retry_url_validation,
     exponential_backoff_retry,
     GracefulDegradation,
     FallbackURLStrategy
 )
 
 class BitcoinDataCollector:
-    def __init__(self):
+    def __init__(self, check_url_accessibility: bool = False):
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
         })
+        
+        # Configuration for URL validation behavior
+        self.check_url_accessibility = check_url_accessibility
         
         # Initialize logging
         self.validation_logger = URLMetadataLogger.get_logger('validation')
@@ -55,6 +58,27 @@ class BitcoinDataCollector:
             'https://www.coindesk.com/arc/outboundfeeds/rss/',
             'https://cointelegraph.com/rss',
         ]
+    
+    def set_url_accessibility_check(self, enabled: bool) -> None:
+        """
+        Set whether URL accessibility checking should be performed during batch validation.
+        
+        Args:
+            enabled: True to enable accessibility checks, False to disable
+        """
+        self.check_url_accessibility = enabled
+        self.validation_logger.info(
+            f"URL accessibility checking {'enabled' if enabled else 'disabled'}"
+        )
+    
+    def get_url_accessibility_check(self) -> bool:
+        """
+        Get the current URL accessibility checking setting.
+        
+        Returns:
+            bool: True if accessibility checks are enabled, False otherwise
+        """
+        return self.check_url_accessibility
     
     @exponential_backoff_retry(
         max_retries=3,
@@ -83,7 +107,11 @@ class BitcoinDataCollector:
                     })
                     
                     start_time = time.time()
-                    feed = feedparser.parse(feed_url)
+                    # Fetch RSS feed with timeout using requests session
+                    response = self.session.get(feed_url, timeout=10)
+                    response.raise_for_status()
+                    # Parse the RSS content with feedparser
+                    feed = feedparser.parse(response.content)
                     feed_fetch_duration = (time.time() - start_time) * 1000
                     
                     self.metrics_logger.info("RSS feed fetched", extra={
@@ -357,27 +385,27 @@ class BitcoinDataCollector:
             legislative_resources = [
                 {
                     'id': 'genius_act_overview',
-                    'title': 'GENIUS Act - Blockchain Innovation',
-                    'content': """The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) is legislation aimed at promoting blockchain technology innovation and cryptocurrency adoption in the United States. The act focuses on creating regulatory clarity for blockchain businesses, supporting research and development in distributed ledger technologies, and fostering innovation in the digital asset space. It aims to position the United States as a leader in blockchain technology while ensuring consumer protection and maintaining financial stability.""",
+                    'title': 'GENIUS Act - Stablecoin Regulation Framework',
+                    'content': """The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) S. 1582 from the 119th Congress focuses on establishing a comprehensive regulatory framework for stablecoins and digital assets in the United States. The legislation aims to provide regulatory clarity for stablecoin issuers, establish consumer protections, and create a framework for the oversight of digital payment systems. It addresses key issues including reserve requirements, redemption rights, and supervisory standards for stablecoin providers while fostering innovation in the digital payments ecosystem.""",
                     'source': 'legislative',
                     'category': 'regulation',
-                    'url': 'https://www.congress.gov/bill/118th-congress/house-bill/6572',
+                    'url': 'https://www.congress.gov/bill/119th-congress/senate-bill/1582',
                     'government_urls': [
-                        'https://www.congress.gov/bill/118th-congress/house-bill/6572',
-                        'https://www.congress.gov/bill/118th-congress/house-bill/6572/text',
-                        'https://www.congress.gov/bill/118th-congress/house-bill/6572/actions'
+                        'https://www.congress.gov/bill/119th-congress/senate-bill/1582',
+                        'https://www.congress.gov/bill/119th-congress/senate-bill/1582/text',
+                        'https://www.congress.gov/bill/119th-congress/senate-bill/1582/actions'
                     ]
                 },
                 {
                     'id': 'genius_act_text',
-                    'title': 'GENIUS Act - Full Text',
-                    'content': """The full text of H.R.6572 - GENIUS Act includes provisions for establishing a blockchain innovation framework, creating regulatory sandboxes for cryptocurrency projects, and supporting blockchain education initiatives. The act provides guidelines for digital asset classification, regulatory clarity for blockchain businesses, and establishes a commission to oversee blockchain innovation in the United States.""",
+                    'title': 'GENIUS Act - Full Text (Stablecoin Provisions)',
+                    'content': """The full text of S.1582 - GENIUS Act from the 119th Congress establishes comprehensive stablecoin regulations including mandatory reserve requirements, consumer redemption rights, and regulatory oversight mechanisms. The legislation defines stablecoins as digital assets backed by reserves, requires issuers to maintain full backing of outstanding tokens with high-quality liquid assets, and establishes clear supervisory frameworks under federal banking regulators. The act also addresses interoperability standards, consumer disclosures, and enforcement mechanisms for stablecoin compliance.""",
                     'source': 'congress.gov',
                     'category': 'regulation',
-                    'url': 'https://www.congress.gov/bill/118th-congress/house-bill/6572/text',
+                    'url': 'https://www.congress.gov/bill/119th-congress/senate-bill/1582/text',
                     'government_urls': [
-                        'https://www.congress.gov/bill/118th-congress/house-bill/6572/text',
-                        'https://www.govinfo.gov/app/details/BILLS-118hr6572ih'
+                        'https://www.congress.gov/bill/119th-congress/senate-bill/1582/text',
+                        'https://www.govinfo.gov/app/details/BILLS-119s1582is'
                     ]
                 },
                 {
@@ -720,7 +748,7 @@ class BitcoinDataCollector:
             # Use batch validation for efficiency
             validation_results = validate_url_batch(
                 list(all_urls),
-                check_accessibility=False,  # Skip accessibility for performance
+                check_accessibility=self.check_url_accessibility,
                 max_workers=10
             )
             
@@ -885,9 +913,16 @@ class BitcoinDataCollector:
         raise_on_exhaust=True
     )
     def save_documents(self, documents: List[Dict[str, Any]], filename: str = "bitcoin_documents.json"):
-        """Save documents to JSON file with error handling"""
-        import os
+        """Save documents to JSON file with error handling
         
+        Args:
+            documents: List of documents to save
+            filename: Name of the file to save to in the data directory
+            
+        Raises:
+            IOError: If there are I/O errors after retries
+            OSError: If there are OS-level errors after retries
+        """
         # Ensure data directory exists
         os.makedirs("data", exist_ok=True)
         
@@ -907,11 +942,34 @@ class BitcoinDataCollector:
             'filepath': filepath
         })
     
+    @exponential_backoff_retry(
+        max_retries=2,
+        exceptions=(IOError, OSError, json.JSONDecodeError),
+        raise_on_exhaust=True
+    )
     def load_documents(self, filename: str = "bitcoin_documents.json") -> List[Dict[str, Any]]:
-        """Load documents from JSON file"""
-        try:
-            with open(f"data/{filename}", 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"File data/{filename} not found")
-            return []
+        """Load documents from JSON file with retry logic for transient I/O errors.
+        
+        Args:
+            filename: Name of the file to load from the data directory
+            
+        Returns:
+            List of loaded documents
+            
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            json.JSONDecodeError: If the file contains invalid JSON
+            IOError: If there are I/O errors after retries
+            OSError: If there are OS-level errors after retries
+        """
+        filepath = f"data/{filename}"
+        with open(filepath, 'r', encoding='utf-8') as f:
+            documents = json.load(f)
+            
+        self.validation_logger.info("Documents loaded successfully", extra={
+            'filename': filename,
+            'document_count': len(documents),
+            'filepath': filepath
+        })
+        
+        return documents

@@ -3,17 +3,172 @@
 Result formatting utilities for query responses with URL metadata support
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union, Callable
 from urllib.parse import urlparse
-import re
+from functools import wraps
+
+
+class ValidationError(Exception):
+    """Custom exception for validation errors"""
+    pass
+
+
+class ResultValidator:
+    """Validator for result dictionary structures"""
+    
+    # Define expected schema for result dictionaries
+    RESULT_SCHEMA = {
+        'title': {'type': str, 'required': False, 'default': 'Untitled'},
+        'content': {'type': str, 'required': False, 'default': ''},
+        'source': {'type': str, 'required': False, 'default': 'Unknown Source'},
+        'url': {'type': str, 'required': False, 'default': ''},
+        'score': {'type': (int, float), 'required': False, 'default': 0.0},
+        'published': {'type': str, 'required': False, 'default': ''}
+    }
+    
+    SOURCE_SCHEMA = {
+        'name': {'type': str, 'required': True},
+        'url': {'type': str, 'required': False, 'default': ''},
+        'count': {'type': int, 'required': False, 'default': 1}
+    }
+    
+    @staticmethod
+    def validate_result_dict(result: Dict[str, Any], strict: bool = False) -> Dict[str, Any]:
+        """Validate and normalize a single result dictionary
+        
+        Args:
+            result: Dictionary to validate
+            strict: If True, raise exception on validation errors. If False, apply defaults.
+            
+        Returns:
+            Validated and normalized dictionary
+            
+        Raises:
+            ValidationError: If strict=True and validation fails
+        """
+        if not isinstance(result, dict):
+            if strict:
+                raise ValidationError(f"Expected dict, got {type(result).__name__}")
+            return {'title': 'Invalid Result', 'content': '', 'source': 'Unknown Source', 
+                   'url': '', 'score': 0.0, 'published': ''}
+        
+        validated_result = result.copy()
+        
+        for field, schema in ResultValidator.RESULT_SCHEMA.items():
+            value = result.get(field)
+            expected_type = schema['type']
+            required = schema.get('required', False)
+            default = schema.get('default')
+            
+            # Check if required field is missing
+            if required and (value is None or value == ''):
+                if strict:
+                    raise ValidationError(f"Required field '{field}' is missing or empty")
+                validated_result[field] = default
+                continue
+            
+            # Apply default if field is missing
+            if value is None:
+                validated_result[field] = default
+                continue
+            
+            # Type validation
+            if not isinstance(value, expected_type):
+                if strict:
+                    raise ValidationError(
+                        f"Field '{field}' expected {expected_type}, got {type(value).__name__}"
+                    )
+                # Try to convert or use default
+                try:
+                    if expected_type == str:
+                        validated_result[field] = str(value)
+                    elif expected_type in ((int, float), float, int):
+                        validated_result[field] = float(value) if '.' in str(value) else int(value)
+                    else:
+                        validated_result[field] = default
+                except (ValueError, TypeError):
+                    validated_result[field] = default
+        
+        return validated_result
+    
+    @staticmethod
+    def validate_result_list(results: List[Dict[str, Any]], strict: bool = False) -> List[Dict[str, Any]]:
+        """Validate a list of result dictionaries
+        
+        Args:
+            results: List of dictionaries to validate
+            strict: If True, raise exception on validation errors
+            
+        Returns:
+            List of validated dictionaries
+        """
+        if not isinstance(results, list):
+            if strict:
+                raise ValidationError(f"Expected list, got {type(results).__name__}")
+            return []
+        
+        validated_results = []
+        for i, result in enumerate(results):
+            try:
+                validated_result = ResultValidator.validate_result_dict(result, strict=strict)
+                validated_results.append(validated_result)
+            except ValidationError as e:
+                if strict:
+                    raise ValidationError(f"Validation error at index {i}: {str(e)}")
+                # Skip invalid results in non-strict mode
+                continue
+        
+        return validated_results
+
+
+def validate_input(*validation_specs):
+    """Decorator for input validation
+    
+    Args:
+        validation_specs: Tuples of (param_name, validator_function, strict_mode)
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Get function signature to map args to parameter names
+            import inspect
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            
+            # Apply validations
+            for param_name, validator, strict in validation_specs:
+                if param_name in bound_args.arguments:
+                    value = bound_args.arguments[param_name]
+                    try:
+                        validated_value = validator(value, strict=strict)
+                        bound_args.arguments[param_name] = validated_value
+                    except ValidationError as e:
+                        # Log validation error or handle as needed
+                        if strict:
+                            raise ValidationError(f"Validation failed for parameter '{param_name}': {str(e)}")
+                        # In non-strict mode, continue with original value
+            
+            return func(*bound_args.args, **bound_args.kwargs)
+        return wrapper
+    return decorator
 
 
 class QueryResultFormatter:
     """Formats query results with URL metadata support"""
     
     @staticmethod
+    @validate_input(('result', ResultValidator.validate_result_dict, False))
     def format_single_result(result: Dict[str, Any], include_score: bool = False) -> str:
-        """Format a single query result with URL metadata"""
+        """Format a single query result with URL metadata
+        
+        Args:
+            result: Dictionary containing result data (validated automatically)
+            include_score: Whether to include relevance score in output
+            
+        Returns:
+            Formatted string representation of the result
+        """
         
         # Extract basic information
         title = result.get('title', 'Untitled')
@@ -43,10 +198,20 @@ class QueryResultFormatter:
         return formatted_result
     
     @staticmethod
+    @validate_input(('results', ResultValidator.validate_result_list, False))
     def format_multiple_results(results: List[Dict[str, Any]], 
                               include_scores: bool = False,
                               max_results: Optional[int] = None) -> str:
-        """Format multiple query results with clear source separation"""
+        """Format multiple query results with clear source separation
+        
+        Args:
+            results: List of result dictionaries (validated automatically)
+            include_scores: Whether to include relevance scores
+            max_results: Maximum number of results to format
+            
+        Returns:
+            Formatted string representation of all results
+        """
         
         if not results:
             return "No relevant information found."
@@ -70,10 +235,20 @@ class QueryResultFormatter:
         return "\n\n---\n\n".join(formatted_results)
     
     @staticmethod
+    @validate_input(('results', ResultValidator.validate_result_list, False))
     def format_structured_response(results: List[Dict[str, Any]], 
                                  query: str = "",
                                  include_summary: bool = True) -> Dict[str, Any]:
-        """Create a structured response format for API consumption"""
+        """Create a structured response format for API consumption
+        
+        Args:
+            results: List of result dictionaries (validated automatically)
+            query: Query string for context
+            include_summary: Whether to include result summary
+            
+        Returns:
+            Structured response dictionary
+        """
         
         # Separate results with and without URLs
         results_with_urls = [r for r in results if r.get('url')]
@@ -136,7 +311,8 @@ class QueryResultFormatter:
                 # Basic domain validation
                 if '.' in parsed.netloc and len(parsed.netloc) > 3:
                     return url
-        except Exception:
+        except (ValueError, AttributeError):
+            # Log the error if logging is available
             pass
         
         return None
@@ -191,14 +367,27 @@ class MCPResponseFormatter:
     """Specialized formatter for MCP tool responses"""
     
     @staticmethod
-    def format_for_mcp(results: List[Dict[str, Any]], query: str = "") -> Dict[str, Any]:
-        """Format results for MCP tool response"""
+    @validate_input(('results', ResultValidator.validate_result_list, False))
+    def format_for_mcp(results: List[Dict[str, Any]], query: str = "", empty_message: Optional[str] = None) -> Dict[str, Any]:
+        """Format results for MCP tool response
+        
+        Args:
+            results: List of search results to format (validated automatically)
+            query: Optional query string to include in the response
+            empty_message: Optional custom message for empty results. 
+                          Defaults to "No relevant information found in the Bitcoin knowledge base."
+        
+        Returns:
+            Dict containing formatted MCP response
+        """
         
         if not results:
+            default_message = "No relevant information found in the Bitcoin knowledge base."
+            message_text = empty_message if empty_message is not None else default_message
             return {
                 'content': [{
                     'type': 'text',
-                    'text': 'No relevant information found in the Bitcoin knowledge base.'
+                    'text': message_text
                 }]
             }
         
@@ -238,8 +427,17 @@ class AssistantResponseFormatter:
     """Specialized formatter for Pinecone Assistant responses"""
     
     @staticmethod
+    @validate_input(('sources', ResultValidator.validate_result_list, False))
     def format_assistant_response(answer: str, sources: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Format Pinecone Assistant response with enhanced source display"""
+        """Format Pinecone Assistant response with enhanced source display
+        
+        Args:
+            answer: The main response text
+            sources: List of source dictionaries (validated automatically)
+            
+        Returns:
+            Dict containing formatted assistant response with source metadata
+        """
         
         if not sources:
             return {

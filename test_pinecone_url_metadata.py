@@ -6,7 +6,7 @@ Test script to verify URL metadata handling in PineconeClient
 import sys
 import os
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.retrieval.pinecone_client import PineconeClient

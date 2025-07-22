@@ -34,7 +34,7 @@ def check_pinecone_connection():
         
         if response.status_code == 200:
             indexes = response.json()
-            print(f"✅ Successfully connected to Pinecone API")
+            print("✅ Successfully connected to Pinecone API")
             print(f"📊 Found {len(indexes.get('indexes', []))} indexes")
             
             for index in indexes.get('indexes', []):

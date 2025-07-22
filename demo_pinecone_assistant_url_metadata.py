@@ -7,8 +7,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
-from src.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.agents.pinecone_assistant_agent import (
+    PineconeAssistantAgent,
+)
+from btc_max_knowledge_agent.knowledge.data_collector import (
+    BitcoinDataCollector,
+)
 
 def demo_url_metadata_functionality():
     """Demonstrate URL metadata functionality"""

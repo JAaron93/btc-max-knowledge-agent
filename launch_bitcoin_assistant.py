@@ -8,24 +8,24 @@ import sys
 import subprocess
 import time
 import signal
-import threading
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def check_dependencies():
     """Check if required dependencies are installed"""
-    try:
-        import fastapi
-        import uvicorn
-        import gradio
-        import requests
-        print("✅ All dependencies are installed")
-        return True
-    except ImportError as e:
-        print(f"❌ Missing dependency: {e}")
-        print("Run: pip install -r requirements.txt")
-        return False
+    import importlib.util
+    
+    required_packages = ["fastapi", "uvicorn", "gradio", "requests"]
+    
+    for package in required_packages:
+        if importlib.util.find_spec(package) is None:
+            print(f"❌ {package} not found")
+            print("Run: pip install -r requirements.txt")
+            return False
+    
+    print("✅ All dependencies are installed")
+    return True
 
 def check_environment():
     """Check if required environment variables are set"""
@@ -91,7 +91,7 @@ def wait_for_api(max_attempts=30):
             if response.status_code == 200:
                 print("✅ API server is ready!")
                 return True
-        except:
+        except Exception:
             pass
         
         print(f"⏳ Waiting for API server... ({attempt + 1}/{max_attempts})")

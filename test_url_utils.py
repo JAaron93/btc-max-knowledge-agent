@@ -9,23 +9,18 @@ This module tests all URL utility functions including:
 - Edge cases and error handling
 """
 
-import pytest
-from unittest.mock import patch, Mock
+import os
 import time
+import pytest
+from unittest.mock import patch, MagicMock, call
+from datetime import datetime, timedelta
+
+# Import the functions to test
 from src.utils.url_utils import (
-    is_secure_url,
-    normalize_url_rfc3986,
-    sanitize_url_for_storage,
-    validate_url_batch,
-    validate_url_format,
-    sanitize_url,
-    check_url_accessibility,
-    check_urls_accessibility_parallel,
-    extract_domain,
-    validate_and_sanitize_url,
-    format_url_for_display,
-    MAX_URL_LENGTH,
-    CACHE_TTL
+    is_secure_url, normalize_url_rfc3986, sanitize_url_for_storage,
+    validate_url_format, validate_url_batch, check_url_accessibility,
+    check_urls_accessibility_parallel, sanitize_url, validate_and_sanitize_url,
+    extract_domain, format_url_for_display, MAX_URL_LENGTH
 )
 
 
@@ -380,32 +375,17 @@ class TestValidateUrlBatch:
         # Should process 100 URLs relatively quickly with threading
         assert len(results) == 100
         assert all(results[url]['valid'] for url in urls)
-        # This is a rough check - parallel processing should be faster
-        assert duration < 5.0, "Batch processing took too long"
+        # Use environment variable for timeout with a more lenient default for CI
+        max_duration = float(os.getenv('TEST_BATCH_TIMEOUT', '10.0'))
+        error_msg = (
+            f"Batch processing took too long: {duration:.2f}s > {max_duration}s\n"
+            "This may be due to system load. Consider increasing "
+            "TEST_BATCH_TIMEOUT environment variable if this is a valid "
+            "performance regression."
+        )
+        assert duration < max_duration, error_msg
     
-    def _test_cache_functionality(self):
-        """Test URL validation caching.
-        
-        NOTE: This test has been disabled as it tests private API functions.
-        The caching functionality is tested through integration tests.
-        """
-        pass
-    
-    def _test_cache_ttl_expiration(self):
-        """Test that cache entries expire after TTL.
-        
-        NOTE: This test has been disabled as it tests private API functions.
-        The cache TTL functionality is tested through integration tests.
-        """
-        pass
-    
-    def _test_cache_size_limit(self):
-        """Test that cache size is limited.
-        
-        NOTE: This test has been disabled as it tests private API functions.
-        The cache size limiting functionality is tested through integration tests.
-        """
-        pass
+
 
 
 class TestCheckUrlsAccessibilityParallel:
@@ -464,9 +444,16 @@ class TestCheckUrlsAccessibilityParallel:
             results = check_urls_accessibility_parallel(urls, max_workers=10)
             duration = time.time() - start_time
             
-            # Should complete reasonably quickly
             assert len(results) == 50
-            assert duration < 5.0, f"Parallel check took too long: {duration}s"
+            # Use environment variable for timeout with a more lenient default for CI
+            max_duration = float(os.getenv('TEST_PARALLEL_TIMEOUT', '10.0'))
+            error_msg = (
+                f"Parallel check took too long: {duration:.2f}s > {max_duration}s\n"
+                "This may be due to system load. Consider increasing "
+                "TEST_PARALLEL_TIMEOUT environment variable if this is a valid "
+                "performance regression."
+            )
+            assert duration < max_duration, error_msg
 
 
 class TestValidateUrlFormat:

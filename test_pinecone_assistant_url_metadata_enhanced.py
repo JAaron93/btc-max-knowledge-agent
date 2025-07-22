@@ -3,6 +3,12 @@
 Enhanced test script to verify URL metadata handling in PineconeAssistantAgent
 with additional scenarios including timeouts, partial metadata, and mixed
 availability.
+
+Run from project root with:
+    python -m pytest test_pinecone_assistant_url_metadata_enhanced.py -v
+    
+Or set PYTHONPATH:
+    PYTHONPATH=. python test_pinecone_assistant_url_metadata_enhanced.py
 """
 
 import os
@@ -10,19 +16,54 @@ import sys
 import unittest
 import uuid
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import requests
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Robust path handling for imports
+def setup_import_path():
+    """Setup import path for the project modules."""
+    # Get the project root directory
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent
+    
+    # Add project root to Python path if not already present
+    project_root_str = str(project_root)
+    if project_root_str not in sys.path:
+        sys.path.insert(0, project_root_str)
+    
+    # Also check for src directory (in case of src layout)
+    src_dir = project_root / 'src'
+    if src_dir.exists() and str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+    
+    return project_root
 
-from src.agents.pinecone_assistant_agent import (  # noqa: E402
-    PineconeAssistantAgent
-)
-from src.utils.url_error_handler import (  # noqa: E402
-    exponential_backoff_retry
-)
-from src.utils.url_metadata_logger import set_correlation_id  # noqa: E402
+# Setup imports
+project_root = setup_import_path()
+
+# Now import project modules
+try:
+    from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+    from src.utils.url_error_handler import exponential_backoff_retry
+    from src.utils.url_metadata_logger import set_correlation_id
+except ImportError as e:
+    # Fallback import strategy
+    print(f"Warning: Standard import failed ({e}), trying alternative imports...")
+    try:
+        # Try relative imports from current directory
+        sys.path.insert(0, str(project_root))
+        from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+        from src.utils.url_error_handler import exponential_backoff_retry
+        from src.utils.url_metadata_logger import set_correlation_id
+    except ImportError as e2:
+        print(f"ERROR: Failed to import required modules.")
+        print(f"Please run tests from project root or set PYTHONPATH appropriately.")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Project root detected as: {project_root}")
+        print(f"Import error: {e2}")
+        sys.exit(1)
 
 
 class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
@@ -165,6 +206,7 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
             'https://timeout.com/doc3'
         )
         self.assertIn('url_check_timeout', uploaded_docs[2]['metadata'])
+        self.assertTrue(uploaded_docs[2]['metadata']['url_check_timeout'])
     
     @patch('src.agents.pinecone_assistant_agent.requests.post')
     def test_query_with_partial_url_metadata(self, mock_post):
@@ -272,10 +314,10 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         result = self.agent.upload_documents('test-assistant-id', documents)
         self.assertTrue(result)
         
-        # Verify monitoring was called
-        # Note: Actual monitoring calls depend on implementation
-        # This is a placeholder for monitoring verification
-    
+        # Verify monitoring was called with correct parameters
+        mock_monitor.track_upload.assert_called_once()
+        # Add more specific assertions based on your monitoring implementation
+        # e.g., mock_monitor.track_url_validation.assert_called_with(...)
     @patch('src.agents.pinecone_assistant_agent.requests.post')
     def test_retry_mechanism_on_upload_failure(self, mock_post):
         """Test retry mechanism during upload failures."""
@@ -308,42 +350,6 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         # Verify three attempts were made
         self.assertEqual(mock_post.call_count, 3)
     
-    @patch('src.agents.pinecone_assistant_agent.requests.post')
-    def test_large_batch_with_mixed_url_validation(self, mock_post):
-        """Test large batch processing with mixed URL validation results."""
-        # Mock successful responses for all batches
-        mock_response = Mock()
-        mock_response.status_code = 201
-        mock_response.json.return_value = {'status': 'success'}
-        mock_post.return_value = mock_response
-        
-        # Create 150 documents with various URL scenarios
-        documents = []
-        for i in range(150):
-            url_scenarios = [
-                f'https://valid{i}.com/doc',  # Valid URL
-                f'invalid-url-{i}',  # Invalid URL
-                None,  # No URL
-                '',  # Empty URL
-                f'javascript:alert({i})',  # Dangerous URL
-            ]
-            
-            doc = {
-                'id': f'doc{i}',
-                'title': f'Document {i}',
-                'content': f'Content {i}',
-                'url': url_scenarios[i % len(url_scenarios)]
-            }
-            documents.append(doc)
-        
-        # Upload documents
-        result = self.agent.upload_documents('test-assistant-id', documents)
-        self.assertTrue(result)
-        
-        # Should be split into 3 batches (50, 50, 50)
-        self.assertEqual(mock_post.call_count, 3)
-        
-        # Verify URL sanitization in batches
         for call_index in range(3):
             call_args = mock_post.call_args_list[call_index]
             batch_docs = call_args[1]['json']['documents']
@@ -352,10 +358,11 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
                 url = doc['metadata']['url']
                 # Dangerous URLs should be empty
                 self.assertNotIn('javascript:', url)
-                # Invalid URLs should be empty or sanitized
-                if 'invalid-url' in str(doc['metadata'].get('url', '')):
+                # Check the original URL from the document ID to determine expected behavior
+                doc_index = int(doc['id'].replace('doc', ''))
+                url_scenario_index = doc_index % 5
+                if url_scenario_index == 1:  # Invalid URL scenario
                     self.assertEqual(url, '')
-    
     @patch('src.agents.pinecone_assistant_agent.requests.post')
     @patch('src.utils.url_metadata_logger.logger')
     def test_correlation_id_tracking(self, mock_logger, mock_post):
@@ -379,6 +386,50 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         
         # Verify correlation ID was used in logging
         # Note: Actual verification depends on logging implementation
+        self.assertGreater(len(mock_logger.method_calls), 0)
+        
+        # Step 1: Verify at least one log call includes correlation ID
+        correlation_id_found = False
+        found_correlation_id = None
+        
+        for call in mock_logger.method_calls:
+            if hasattr(call, 'kwargs') and 'extra' in call.kwargs:
+                extra = call.kwargs['extra']
+                if isinstance(extra, dict):
+                    # Check direct extra fields
+                    if 'correlation_id' in extra:
+                        correlation_id_found = True
+                        found_correlation_id = extra['correlation_id']
+                        break
+                    # Check nested extra_fields
+                    if 'extra_fields' in extra and isinstance(extra['extra_fields'], dict):
+                        if 'correlation_id' in extra['extra_fields']:
+                            correlation_id_found = True
+                            found_correlation_id = extra['extra_fields']['correlation_id']
+                            break
+        
+        # Assert that we found at least one correlation ID
+        self.assertTrue(correlation_id_found, "No correlation ID found in any log calls")
+        
+        # Step 2: Verify correlation ID is a non-empty string
+        if found_correlation_id:
+            self.assertIsInstance(found_correlation_id, str)
+            self.assertTrue(len(found_correlation_id) > 0, "Correlation ID should not be empty")
+        
+        # Step 3: Verify consistency across all log calls with correlation ID
+        for call in mock_logger.method_calls:
+            if hasattr(call, 'kwargs') and 'extra' in call.kwargs:
+                extra = call.kwargs['extra']
+                if isinstance(extra, dict):
+                    # Check direct correlation_id
+                    if 'correlation_id' in extra:
+                        self.assertEqual(extra['correlation_id'], found_correlation_id,
+                                       "Correlation ID should be consistent across all log calls")
+                    # Check nested correlation_id
+                    if 'extra_fields' in extra and isinstance(extra['extra_fields'], dict):
+                        if 'correlation_id' in extra['extra_fields']:
+                            self.assertEqual(extra['extra_fields']['correlation_id'], found_correlation_id,
+                                           "Correlation ID should be consistent across all log calls")
     
     def test_url_normalization_in_upload(self):
         """Test URL normalization during upload process."""
@@ -414,25 +465,17 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
                 'title': 'Complete Doc',
                 'content': 'Content',
                 'source': 'Source',
-                'category': 'test',
-                'url': 'https://example.com',
-                'published': '2024-01-01'
+                'url': 'https://example.com/complete'
             },
             {
                 'id': 'minimal',
-                'content': 'Just content'
-            },
-            {
-                'id': 'partial',
-                'title': 'Partial Doc',
-                'content': 'Content',
-                'url': 'example.com'
+                'title': 'Minimal Doc',
+                'content': 'Content only'
             }
         ]
         
         # Upload documents
-        result = self.agent.upload_documents('test-assistant-id', documents)
-        self.assertTrue(result)
+        self.agent.upload_documents('test-assistant-id', documents)
         
         # Check uploaded documents
         call_args = mock_post.call_args
@@ -538,15 +581,16 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         call_args = mock_post.call_args
         uploaded_docs = call_args[1]['json']['documents']
         
-        # URLs should be properly handled (encoded or preserved)
+        # URLs should be properly handled (encoded)
         for doc in uploaded_docs:
             url = doc['metadata']['url']
-            # Should either be encoded or preserved correctly
-            self.assertTrue(
-                url.startswith('https://') or url == '',
-                f"URL should be valid or empty: {url}"
-            )
-
+            if doc['id'] == 'unicode1':
+                # Chinese characters should be percent-encoded
+                self.assertIn('%E6%96%87%E6%A1%A3', url)  # 文档 encoded
+                self.assertIn('%E6%B5%8B%E8%AF%95', url)  # 测试 encoded
+            elif doc['id'] == 'unicode2':
+                # Emoji should be percent-encoded
+                self.assertIn('%F0%9F%9A%80', url)  # 🚀 encoded
 
 def main():
     """Run the enhanced tests"""

@@ -12,7 +12,7 @@ This module tests:
 import pytest
 from unittest.mock import patch, call
 
-from src.utils.url_error_handler import (
+from btc_max_knowledge_agent.utils.url_error_handler import (
     URLMetadataError,
     URLValidationError,
     URLMetadataUploadError,
@@ -557,7 +557,7 @@ class TestIntegrationScenarios:
     def test_retry_with_fallback_strategy(self):
         """Test retry decorator with fallback URL strategy."""
         attempt_count = 0
-        
+
         @exponential_backoff_retry(
             max_retries=2,
             initial_delay=0.01,
@@ -566,20 +566,20 @@ class TestIntegrationScenarios:
         def process_url(url: str) -> str:
             nonlocal attempt_count
             attempt_count += 1
-            
+
             if attempt_count <= 2:
                 raise URLValidationError("Invalid URL", url=url)
-            
+
             # On third attempt, use fallback
             return (FallbackURLStrategy.domain_only_url(url) or
                     FallbackURLStrategy.placeholder_url())
-        
+
         result = process_url("https://example.com/invalid/path")
         assert attempt_count == 3
-        expected_results = ["https://example.com",
-                            "https://placeholder.local/document"]
-        assert result in expected_results
-    
+
+
+
+        assert result == "https://example.com"
     def test_graceful_degradation_with_retry(self):
         """Test graceful degradation combined with retry logic."""
         @retry_url_validation
@@ -617,14 +617,11 @@ class TestIntegrationScenarios:
         def monitored_operation():
             raise ConnectionError("Network error")
         
-        try:
+        with pytest.raises(RetryExhaustedError):
             monitored_operation()
-        except RetryExhaustedError:
-            pass
         
         # Verify logging was called
         assert mock_log_retry.call_count >= 1
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

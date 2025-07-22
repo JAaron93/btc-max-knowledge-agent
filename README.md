@@ -217,7 +217,7 @@ The URL metadata storage system enhances document retrieval by storing comprehen
 
 ### URL Metadata Schema
 
-```python
+```json
 {
     "source_url": "https://example.com/document",
     "url_title": "Document Title",
@@ -234,7 +234,7 @@ The URL metadata storage system enhances document retrieval by storing comprehen
 ### Security Considerations
 
 #### URL Validation
-- **Protocol Whitelist**: Only HTTP/HTTPS URLs are allowed
+- **Protocol Allowlist**: Only HTTP/HTTPS URLs are allowed
 - **Path Traversal Protection**: Blocks URLs containing `../`, `..\\`, or similar patterns
 - **Script Injection Prevention**: Rejects URLs with `javascript:`, `data:`, or other dangerous protocols
 - **Domain Validation**: Ensures proper domain format and structure
@@ -268,8 +268,13 @@ The URL metadata storage system enhances document retrieval by storing comprehen
 #### Correlation IDs
 Every operation is tracked with a unique correlation ID, enabling end-to-end tracing:
 ```python
+import uuid
+# logger setup (replace with your actual logger implementation)
+import logging
+logger = logging.getLogger(__name__)
+
 correlation_id = str(uuid.uuid4())
-logger.log_operation(operation="url_validation", correlation_id=correlation_id)
+logger.info(f"Starting operation: url_validation", extra={"correlation_id": correlation_id})
 ```
 
 #### Metrics Collected

@@ -9,15 +9,14 @@ graceful degradation strategies.
 import functools
 import logging
 import time
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar
 from urllib.parse import urlparse
 import random
 
 # Import our structured logging infrastructure
-from src.utils.url_metadata_logger import (
-    log_retry, correlation_context, url_metadata_logger
+from btc_max_knowledge_agent.utils.url_metadata_logger import (
+    log_retry
 )
-from src.monitoring.url_metadata_monitor import url_metadata_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +93,11 @@ def exponential_backoff_retry(
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
-            last_exception = None
             
             for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
-                    last_exception = e
                     
                     if attempt == max_retries:
                         # Log the final failure
@@ -132,7 +129,7 @@ def exponential_backoff_retry(
                     
                     # Add jitter if enabled
                     if jitter:
-                        delay = delay * (0.5 + random.random())
+                        delay = delay * (0.9 + random.random() * 0.2)  # ±10% jitter
                     
                     # Log the retry attempt
                     log_retry(
@@ -151,7 +148,7 @@ def exponential_backoff_retry(
                     time.sleep(delay)
             
             # This should never be reached due to the logic above
-            return fallback_result
+            raise AssertionError("Unreachable code in retry logic")
         
         return wrapper
     return decorator
@@ -258,16 +255,10 @@ class GracefulDegradation:
         if metadata is None:
             metadata = {}
         
-        # Ensure URL field exists with safe default
-        if 'url' not in metadata:
-            metadata['url'] = ''
-        elif metadata['url'] is None:
-            metadata['url'] = ''
-        
-        # Ensure other URL-related fields have safe defaults
-        url_fields = ['source_url', 'document_url', 'reference_url']
+        # Ensure all URL-related fields have safe defaults
+        url_fields = ['url', 'source_url', 'document_url', 'reference_url']
         for field in url_fields:
-            if field in metadata and metadata[field] is None:
+            if field not in metadata or metadata[field] is None:
                 metadata[field] = ''
         
         return metadata
@@ -302,6 +293,64 @@ class GracefulDegradation:
             result['errors']['details'] = error_details
         
         return result
+
+
+# Configuration constants for consistency
+MAX_QUERY_RETRIES = 10
+DEFAULT_INITIAL_DELAY = 1.0
+DEFAULT_MAX_DELAY = 60.0
+DEFAULT_EXPONENTIAL_BASE = 2.0
+
+
+# Enhanced convenience wrapper that maintains consistency with MAX_QUERY_RETRIES
+def query_retry_with_backoff(
+    max_retries: Optional[int] = None,
+    initial_delay: float = DEFAULT_INITIAL_DELAY,
+    max_delay: float = DEFAULT_MAX_DELAY,
+    exponential_base: float = DEFAULT_EXPONENTIAL_BASE,
+    jitter: bool = True,
+    exceptions: tuple = (Exception,),
+    fallback_result: Optional[Any] = None,
+    raise_on_exhaust: bool = True
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """
+    Enhanced retry decorator that maintains consistency with MAX_QUERY_RETRIES.
+    
+    This wrapper provides a standardized retry mechanism with exponential backoff
+    and jitter that's consistent across the application. It automatically uses
+    MAX_QUERY_RETRIES if no specific max_retries is provided.
+    
+    Args:
+        max_retries: Maximum retry attempts (uses MAX_QUERY_RETRIES if None)
+        initial_delay: Initial delay in seconds
+        max_delay: Maximum delay in seconds
+        exponential_base: Base for exponential backoff calculation
+        jitter: Whether to add random jitter to delays
+        exceptions: Tuple of exceptions to catch and retry
+        fallback_result: Result to return if all retries fail
+        raise_on_exhaust: Whether to raise exception when retries exhausted
+    
+    Returns:
+        Decorated function with retry logic
+        
+    Example:
+        @query_retry_with_backoff(exceptions=(requests.RequestException,))
+        def query_external_api():
+            # Your query logic here
+            pass
+    """
+    effective_max_retries = max_retries if max_retries is not None else MAX_QUERY_RETRIES
+    
+    return exponential_backoff_retry(
+        max_retries=effective_max_retries,
+        initial_delay=initial_delay,
+        max_delay=max_delay,
+        exponential_base=exponential_base,
+        jitter=jitter,
+        exceptions=exceptions,
+        fallback_result=fallback_result,
+        raise_on_exhaust=raise_on_exhaust
+    )
 
 
 # Convenience functions for common retry scenarios

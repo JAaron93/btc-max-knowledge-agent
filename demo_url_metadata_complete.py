@@ -11,22 +11,24 @@ import sys
 import time
 import uuid
 import json
+import random
 from datetime import datetime
 from typing import Dict, List, Any
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add src directory to path for btc_max_knowledge_agent imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.join(script_dir, 'src')
+sys.path.insert(0, src_dir)
 
-from src.utils.url_metadata_logger import URLMetadataLogger
-from src.monitoring.url_metadata_monitor import URLMetadataMonitor
-from src.utils.url_error_handler import (
+from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import URLMetadataMonitor
+from btc_max_knowledge_agent.utils.url_error_handler import (
     GracefulDegradation,
     FallbackURLStrategy
 )
-from src.utils.url_utils import URLValidator
-from src.utils.result_formatter import ResultFormatter
+from btc_max_knowledge_agent.utils.url_utils import URLValidator
+from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 
 
 class URLMetadataDemo:
@@ -49,7 +51,7 @@ class URLMetadataDemo:
         self.url_validator = URLValidator()
         
         # Initialize result formatter
-        self.result_formatter = ResultFormatter()
+        self.result_formatter = QueryResultFormatter()
         
         # Track demo metrics
         self.demo_metrics = {
@@ -76,12 +78,13 @@ class URLMetadataDemo:
         elif status == 'success':
             self.demo_metrics['successes'].append(entry)
     
-    def demonstrate_data_collection(self) -> List[Dict[str, Any]]:
-        """Demonstrate data collection with URL metadata."""
-        print("\n=== Data Collection Phase ===")
+    def _get_sample_sources(self) -> List[Dict[str, str]]:
+        """Generate sample data sources with various URL formats for testing.
         
-        # Sample data sources with various URL formats
-        sample_sources = [
+        Returns:
+            List of sample source dictionaries containing URL, title, and content.
+        """
+        return [
             {
                 'url': 'https://bitcoin.org/en/bitcoin-paper',
                 'title': 'Bitcoin: A Peer-to-Peer Electronic Cash System',
@@ -111,94 +114,144 @@ class URLMetadataDemo:
                             'smart contracts...')
             }
         ]
+    
+    def _generate_mock_embedding(self) -> List[float]:
+        """Generate mock embedding vector using standard library random.
         
+        Returns:
+            List of 1536 random float values representing an embedding vector.
+        """
+        return [random.random() for _ in range(1536)]
+    
+    def _process_single_source(self, source: Dict[str, str]) -> Dict[str, Any]:
+        """Process a single data source with URL validation and metadata extraction.
+        
+        Args:
+            source: Dictionary containing url, title, and content
+            
+        Returns:
+            Processed data entry with metadata or None if validation fails
+            
+        Raises:
+            Exception: If processing fails completely
+        """
+        print(f"\nProcessing: {source['url']}")
+        
+        # Validate URL with security checks
+        self.monitor.record_url_event('validation_attempt')
+        is_valid, validation_result = self.url_validator.validate_url(
+            source['url']
+        )
+        
+        if not is_valid:
+            error_msg = validation_result.get('error', 'Unknown error')
+            print(f"  ❌ URL validation failed: {error_msg}")
+            self.monitor.record_validation_result(
+                url=source['url'],
+                is_valid=False,
+                error=validation_result.get('error')
+            )
+            self.log_operation(
+                'url_validation',
+                'error',
+                {
+                    'url': source['url'],
+                    'error': validation_result.get('error'),
+                    'security_check': validation_result.get(
+                        'security_check', {})
+                }
+            )
+            return None
+        
+        print("  ✓ URL validated successfully")
+        self.monitor.record_validation_result(
+            url=source['url'],
+            is_valid=True
+        )
+        
+        # Extract URL metadata with graceful error handling
+        try:
+            url_metadata = self.url_validator.extract_metadata(
+                source['url']
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            # Log the error and continue processing
+            print(f"  ⚠️  Failed to extract metadata: {e}")
+            self.log_operation(
+                'metadata_extraction',
+                'error',
+                {
+                    'url': source['url'],
+                    'error': str(e),
+                },
+            )
+            # Provide safe defaults so downstream processing continues
+            url_metadata = {
+                'domain': '',
+                'path': '',
+                'protocol': '',
+            }
+        
+        # Create data entry with URL metadata
+        data_entry = {
+            'id': str(uuid.uuid4()),
+            'text': source['content'],
+            'metadata': {
+                'title': source['title'],
+                'source_url': source['url'],
+                'url_title': source['title'],
+                'url_domain': url_metadata['domain'],
+                'url_path': url_metadata['path'],
+                'url_protocol': url_metadata['protocol'],
+                'url_validated': True,
+                'url_validation_timestamp': (
+                    datetime.utcnow().isoformat() + 'Z'),
+                'url_security_score': validation_result.get(
+                    'security_score', 1.0),
+                'metadata_version': '2.0',
+                'collection_timestamp': (
+                    datetime.utcnow().isoformat() + 'Z'),
+                'correlation_id': self.correlation_id
+            },
+            'embedding': self._generate_mock_embedding()  # Using random module
+        }
+        
+        # Log successful collection
+        self.logger.log_metadata_creation(
+            metadata=data_entry['metadata'],
+            correlation_id=self.correlation_id
+        )
+        
+        self.log_operation(
+            'data_collection',
+            'success',
+            {
+                'url': source['url'],
+                'title': source['title'],
+                'metadata_fields': list(data_entry['metadata'].keys())
+            }
+        )
+        
+        num_fields = len(data_entry['metadata'])
+        print(f"  ✓ Data collected with {num_fields} metadata fields")
+        
+        return data_entry
+    
+    def demonstrate_data_collection(self) -> List[Dict[str, Any]]:
+        """Demonstrate data collection with URL metadata."""
+        print("\n=== Data Collection Phase ===")
+        
+        sample_sources = self._get_sample_sources()
         collected_data = []
         
         for source in sample_sources:
-            print(f"\nProcessing: {source['url']}")
-            
             try:
-                # Validate URL with security checks
-                self.monitor.record_url_event('validation_attempt')
-                is_valid, validation_result = self.url_validator.validate_url(
-                    source['url']
-                )
+                # Process individual source
+                data_entry = self._process_single_source(source)
                 
-                if not is_valid:
-                    error_msg = validation_result.get('error', 'Unknown error')
-                    print(f"  ❌ URL validation failed: {error_msg}")
-                    self.monitor.record_validation_result(
-                        url=source['url'],
-                        is_valid=False,
-                        error=validation_result.get('error')
-                    )
-                    self.log_operation(
-                        'url_validation',
-                        'error',
-                        {
-                            'url': source['url'],
-                            'error': validation_result.get('error'),
-                            'security_check': validation_result.get(
-                                'security_check', {})
-                        }
-                    )
-                    continue
-                
-                print("  ✓ URL validated successfully")
-                self.monitor.record_validation_result(
-                    url=source['url'],
-                    is_valid=True
-                )
-                
-                # Extract URL metadata
-                url_metadata = self.url_validator.extract_metadata(
-                    source['url'])
-                
-                # Create data entry with URL metadata
-                data_entry = {
-                    'id': str(uuid.uuid4()),
-                    'text': source['content'],
-                    'metadata': {
-                        'title': source['title'],
-                        'source_url': source['url'],
-                        'url_title': source['title'],
-                        'url_domain': url_metadata['domain'],
-                        'url_path': url_metadata['path'],
-                        'url_protocol': url_metadata['protocol'],
-                        'url_validated': True,
-                        'url_validation_timestamp': (
-                            datetime.utcnow().isoformat() + 'Z'),
-                        'url_security_score': validation_result.get(
-                            'security_score', 1.0),
-                        'metadata_version': '2.0',
-                        'collection_timestamp': (
-                            datetime.utcnow().isoformat() + 'Z'),
-                        'correlation_id': self.correlation_id
-                    },
-                    'embedding': np.random.rand(1536).tolist()  # Mock embed
-                }
-                
-                collected_data.append(data_entry)
-                
-                # Log successful collection
-                self.logger.log_metadata_creation(
-                    metadata=data_entry['metadata'],
-                    correlation_id=self.correlation_id
-                )
-                
-                self.log_operation(
-                    'data_collection',
-                    'success',
-                    {
-                        'url': source['url'],
-                        'title': source['title'],
-                        'metadata_fields': list(data_entry['metadata'].keys())
-                    }
-                )
-                
-                num_fields = len(data_entry['metadata'])
-                print(f"  ✓ Data collected with {num_fields} metadata fields")
-                
+                if data_entry:
+                    collected_data.append(data_entry)
+                    
             except Exception as e:
                 print(f"  ❌ Error processing source: {str(e)}")
                 self.monitor.record_error(
@@ -235,7 +288,7 @@ class URLMetadataDemo:
                 'metadata_version': '2.0',
                 'collection_timestamp': datetime.utcnow().isoformat() + 'Z'
             },
-            'embedding': np.random.rand(1536).tolist()
+            'embedding': self._generate_mock_embedding()
         }
     
     def demonstrate_concurrent_operations(self,
@@ -286,9 +339,75 @@ class URLMetadataDemo:
         
         print(f"\n✓ Processed {len(results)} items concurrently")
         return results
+    def _create_mock_results(self) -e List[Dict[str, Any]]:
+        """Create mock retrieval results for demonstration purposes.
+        
+        Returns:
+            List of mock result dictionaries
+        """
+        return [
+            {
+                'id': 'result_1',
+                'score': 0.95,
+                'metadata': {
+                    'text': ('The Lightning Network is a second-layer '
+                             'solution...'),
+                    'source_url': 'https://lightning.network/docs',
+                    'url_title': 'Lightning Network Documentation',
+                    'url_domain': 'lightning.network',
+                    'url_validated': True,
+                    'metadata_version': '2.0'
+                }
+            },
+            {
+                'id': 'result_2',
+                'score': 0.89,
+                'metadata': {
+                    'text': ('Lightning enables instant Bitcoin '
+                             'transactions...'),
+                    'source_url': 'https://bitcoin.org/lightning',
+                    'url_title': 'Bitcoin Lightning Guide',
+                    'url_domain': 'bitcoin.org',
+                    'url_validated': True,
+                    'metadata_version': '2.0'
+                }
+            },
+            {
+                'id': 'legacy_result',
+                'score': 0.85,
+                'metadata': {
+                    'text': ('Payment channels allow off-chain '
+                             'transactions...'),
+                    'timestamp': '2023-01-01T00:00:00Z'
+                    # No URL metadata (legacy format)
+                }
+            }
+        ]
     
+    def _display_formatted_response(self, formatted_response: Dict[str, Any]) -> None:
+        """Display the formatted response with sources.
+        
+        Args:
+            formatted_response: The formatted response dictionary with answer and sources
+        """
+        print("\n--- Formatted Response ---")
+        print(f"Answer: {formatted_response['answer'][:100]}...")
+        print(f"\nSources ({len(formatted_response['sources'])}):")
+        
+        for i, source in enumerate(formatted_response['sources'], 1):
+            print(f"\n  [{i}] {source.get('title', 'Unknown Source')}")
+            if source.get('url'):
+                print(f"      URL: {source['url']}")
+                print(f"      Domain: {source.get('domain', 'N/A')}")
+                validated = '✓' if source.get('validated') else '✗'
+                print(f"      Validated: {validated}")
+            else:
+                print("      URL: No URL metadata (legacy content)")
+            relevance = source.get('relevance_score', 0)
+            print(f"      Relevance: {relevance:.0%}")
+
     def demonstrate_query_and_retrieval(self, mock_mode: bool = True
-                                        ) -> Dict[str, Any]:
+                                        ) -e Dict[str, Any]:
         """Demonstrate query and retrieval with source attribution."""
         print("\n=== Query and Retrieval Phase ===")
         
@@ -298,44 +417,7 @@ class URLMetadataDemo:
         
         if mock_mode:
             # Mock retrieval results
-            mock_results = [
-                {
-                    'id': 'result_1',
-                    'score': 0.95,
-                    'metadata': {
-                        'text': ('The Lightning Network is a second-layer '
-                                 'solution...'),
-                        'source_url': 'https://lightning.network/docs',
-                        'url_title': 'Lightning Network Documentation',
-                        'url_domain': 'lightning.network',
-                        'url_validated': True,
-                        'metadata_version': '2.0'
-                    }
-                },
-                {
-                    'id': 'result_2',
-                    'score': 0.89,
-                    'metadata': {
-                        'text': ('Lightning enables instant Bitcoin '
-                                 'transactions...'),
-                        'source_url': 'https://bitcoin.org/lightning',
-                        'url_title': 'Bitcoin Lightning Guide',
-                        'url_domain': 'bitcoin.org',
-                        'url_validated': True,
-                        'metadata_version': '2.0'
-                    }
-                },
-                {
-                    'id': 'legacy_result',
-                    'score': 0.85,
-                    'metadata': {
-                        'text': ('Payment channels allow off-chain '
-                                 'transactions...'),
-                        'timestamp': '2023-01-01T00:00:00Z'
-                        # No URL metadata (legacy format)
-                    }
-                }
-            ]
+            mock_results = self._create_mock_results()
             
             # Format results with source attribution
             formatted_response = self.result_formatter.format_response(
@@ -346,21 +428,7 @@ class URLMetadataDemo:
             )
             
             # Display formatted results
-            print("\n--- Formatted Response ---")
-            print(f"Answer: {formatted_response['answer'][:100]}...")
-            print(f"\nSources ({len(formatted_response['sources'])}):")
-            
-            for i, source in enumerate(formatted_response['sources'], 1):
-                print(f"\n  [{i}] {source.get('title', 'Unknown Source')}")
-                if source.get('url'):
-                    print(f"      URL: {source['url']}")
-                    print(f"      Domain: {source.get('domain', 'N/A')}")
-                    validated = '✓' if source.get('validated') else '✗'
-                    print(f"      Validated: {validated}")
-                else:
-                    print("      URL: No URL metadata (legacy content)")
-                relevance = source.get('relevance_score', 0)
-                print(f"      Relevance: {relevance:.0%}")
+            self._display_formatted_response(formatted_response)
             
             # Log query operation
             self.logger.log_query_execution(
@@ -378,7 +446,12 @@ class URLMetadataDemo:
         else:
             # Real Pinecone query (requires setup)
             print("  ℹ️  Real query mode requires Pinecone setup")
-            return {}
+            return {
+                'query': query,
+                'answer': 'Real query mode not implemented',
+                'sources': [],
+                'error': 'Pinecone setup required'
+            }
     
     def demonstrate_monitoring_and_metrics(self):
         """Demonstrate monitoring and metrics collection."""
@@ -416,15 +489,17 @@ class URLMetadataDemo:
         
         # Save metrics to file
         metrics_file = f"demo_metrics_{self.correlation_id[:8]}.json"
-        with open(metrics_file, 'w') as f:
-            json.dump({
-                'correlation_id': self.correlation_id,
-                'system_metrics': metrics,
-                'demo_metrics': self.demo_metrics,
-                'detailed_report': report
-            }, f, indent=2, default=str)
-        
-        print(f"\n✓ Metrics saved to {metrics_file}")
+        try:
+            with open(metrics_file, 'w') as f:
+                json.dump({
+                    'correlation_id': self.correlation_id,
+                    'system_metrics': metrics,
+                    'demo_metrics': self.demo_metrics,
+                    'detailed_report': report
+                }, f, indent=2, default=str)
+            print(f"\n✓ Metrics saved to {metrics_file}")
+        except IOError as e:
+            print(f"\n⚠️  Failed to save metrics: {str(e)}")
     
     def run_complete_demo(self):
         """Run the complete URL metadata demonstration."""

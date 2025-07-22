@@ -4,9 +4,9 @@ Tracks validation success rates, broken links, performance metrics, and generate
 """
 
 import json
-import time
+import logging
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -14,6 +14,8 @@ import statistics
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -27,6 +29,8 @@ class URLMetric:
     error_type: Optional[str] = None
     metadata_size: Optional[int] = None
     correlation_id: Optional[str] = None
+    query: Optional[str] = None
+    results_count: Optional[int] = None
 
 
 @dataclass
@@ -41,26 +45,17 @@ class AlertThreshold:
 class URLMetadataMonitor:
     """Monitor for URL metadata operations with metrics collection and alerting."""
     
-    def __init__(self, metrics_retention_hours: int = 24):
+    def __init__(self, metrics_retention_hours: int = 24,
+                 alert_thresholds: Optional[List[AlertThreshold]] = None):
         self.metrics_retention_hours = metrics_retention_hours
-        self.metrics_store: Dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=10000)
-        )
+        self.metrics_store: Dict[str, deque] = defaultdict(deque)
         
         # Alert configurations
-        self.alert_thresholds = [
-            AlertThreshold(
-                "validation_failure_rate", 0.10, 60, 120
-            ),  # 10% over 1 hour
-            AlertThreshold(
-                "upload_failure_rate", 0.05, 60, 120
-            ),  # 5% over 1 hour
-            AlertThreshold(
-                "response_time_p95", 5000, 30, 60
-            ),  # 5s over 30 min
-            AlertThreshold(
-                "broken_links_rate", 0.15, 120, 180
-            ),  # 15% over 2 hours
+        self.alert_thresholds = alert_thresholds or [
+            AlertThreshold("validation_failure_rate", 0.10, 60, 120),
+            AlertThreshold("upload_failure_rate",     0.05, 60, 120),
+            AlertThreshold("response_time_p95",      5000, 30, 60),
+            AlertThreshold("broken_links_rate",      0.15, 120, 180),
         ]
         
         # Alert tracking
@@ -79,15 +74,17 @@ class URLMetadataMonitor:
         self._lock = threading.Lock()
         
         # Background URL checking
-        self.url_check_executor = ThreadPoolExecutor(max_workers=5)
-        self.broken_urls_cache: Dict[str, Tuple[bool, datetime]] = {}
+        self.url_check_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix='url_checker')
+        self.broken_urls_cache = {}
+        self._shutdown_lock = threading.Lock()
+        self._is_shutdown = False
         
     def record_validation(self, url: str, success: bool, duration_ms: float,
                          error_type: Optional[str] = None,
                          correlation_id: Optional[str] = None):
         """Record a URL validation metric."""
         metric = URLMetric(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             operation_type='validation',
             success=success,
             duration_ms=duration_ms,
@@ -102,7 +99,7 @@ class URLMetadataMonitor:
                      correlation_id: Optional[str] = None):
         """Record a URL metadata upload metric."""
         metric = URLMetric(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             operation_type='upload',
             success=success,
             duration_ms=duration_ms,
@@ -114,33 +111,49 @@ class URLMetadataMonitor:
         self._add_metric(metric)
         
     def record_retrieval(self, query: str, results_count: int,
-                        duration_ms: float, correlation_id: Optional[str] = None):
+                        duration_ms: float, success: bool = True,
+                        correlation_id: Optional[str] = None):
         """Record a retrieval operation metric."""
         metric = URLMetric(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             operation_type='retrieval',
-            success=True,  # Retrievals are considered successful if they complete
+            success=success,
             duration_ms=duration_ms,
-            url=query,  # Using URL field to store query
-            metadata_size=results_count,  # Using metadata_size for result count
+            query=query,
+            results_count=results_count,
             correlation_id=correlation_id
         )
         self._add_metric(metric)
         
-    def _add_metric(self, metric: URLMetric):
-        """Add a metric to the store and check alerts."""
+    def _add_metric(self, metric: URLMetric) -> None:
+        """Add a metric to the store."""
         with self._lock:
             self.metrics_store[metric.operation_type].append(metric)
-            
-        # Clean old metrics
         self._clean_old_metrics()
+            
+    def shutdown(self, wait: bool = True) -> None:
+        """Shutdown the URL metadata monitor and release resources.
         
-        # Check alerts in background
-        threading.Thread(target=self._check_alerts, daemon=True).start()
+        Args:
+            wait: If True, wait for all pending tasks to complete. If False, attempt to cancel them.
+        """
+        with self._shutdown_lock:
+            if not self._is_shutdown:
+                self.url_check_executor.shutdown(wait=wait)
+                self._is_shutdown = True
+    
+    def __enter__(self):
+        """Enable use as a context manager."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Ensure resources are cleaned up when exiting the context."""
+        self.shutdown(wait=True)
+        return False  # Don't suppress exceptions
         
     def _clean_old_metrics(self):
         """Remove metrics older than retention period."""
-        cutoff_time = datetime.utcnow() - timedelta(
+        cutoff_time = datetime.now(timezone.utc) - timedelta(
             hours=self.metrics_retention_hours
         )
         
@@ -152,7 +165,7 @@ class URLMetadataMonitor:
                     
     def _check_alerts(self):
         """Check all alert thresholds."""
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc)
         
         for threshold in self.alert_thresholds:
             # Check cooldown
@@ -176,7 +189,7 @@ class URLMetadataMonitor:
     def _calculate_metric(self, metric_name: str, 
                          window_minutes: int) -> Optional[float]:
         """Calculate a specific metric value."""
-        cutoff_time = datetime.utcnow() - timedelta(minutes=window_minutes)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=window_minutes)
         
         if metric_name == "validation_failure_rate":
             return self._calculate_failure_rate('validation', cutoff_time)
@@ -219,6 +232,8 @@ class URLMetadataMonitor:
             return None
             
         durations = [m.duration_ms for m in all_metrics]
+        if len(durations) < 2:
+            return durations[0] if durations else 0.0
         return statistics.quantiles(durations, n=100)[percentile - 1]
         
     def _calculate_broken_links_rate(self, cutoff_time: datetime) -> Optional[float]:
@@ -241,7 +256,7 @@ class URLMetadataMonitor:
     def _trigger_alert(self, threshold: AlertThreshold, metric_value: float):
         """Trigger an alert and record it."""
         alert_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'alert_name': threshold.name,
             'threshold_value': threshold.threshold_value,
             'actual_value': metric_value,
@@ -249,22 +264,36 @@ class URLMetadataMonitor:
         }
         
         with self._lock:
-            self.last_alert_times[threshold.name] = datetime.utcnow()
+            self.last_alert_times[threshold.name] = datetime.now(timezone.utc)
             self.alert_history.append(alert_data)
             
         # Here you would integrate with your alerting system
-        print(f"ALERT: {json.dumps(alert_data, indent=2)}")
+        logger.warning(f"Alert triggered: {threshold.name}", extra=alert_data)
+        # TODO: Integrate with alerting system (e.g., send to monitoring service)
         
     def check_url_accessibility(self, url: str) -> Tuple[bool, Optional[str]]:
         """Check if a URL is accessible."""
         # Check cache first
         if url in self.broken_urls_cache:
             is_accessible, check_time = self.broken_urls_cache[url]
-            if datetime.utcnow() - check_time < timedelta(hours=1):
+            if datetime.now(timezone.utc) - check_time < timedelta(hours=1):
                 return is_accessible, None
                 
         try:
-            response = requests.head(url, timeout=5, allow_redirects=True)
+            headers = {'User-Agent': 'URLMetadataMonitor/1.0'}
+            # Try HEAD first, fall back to GET if needed
+            try:
+                response = requests.head(url, timeout=5, allow_redirects=True, headers=headers)
+            except requests.RequestException:
+                # Some servers don't support HEAD, try GET with streaming
+                response = requests.get(
+                    url,
+                    timeout=5,
+                    allow_redirects=True,
+                    headers=headers,
+                    stream=True
+                )
+                response.close()  # Don't download the body
             is_accessible = response.status_code < 400
             error = None if is_accessible else f"HTTP {response.status_code}"
         except requests.RequestException as e:
@@ -272,7 +301,7 @@ class URLMetadataMonitor:
             error = str(e)
             
         # Cache the result
-        self.broken_urls_cache[url] = (is_accessible, datetime.utcnow())
+        self.broken_urls_cache[url] = (is_accessible, datetime.now(timezone.utc))
         
         # Record as broken link if not accessible
         if not is_accessible:
@@ -284,10 +313,10 @@ class URLMetadataMonitor:
         
     def generate_hourly_summary(self) -> Dict[str, Any]:
         """Generate hourly metrics summary."""
-        cutoff_time = datetime.utcnow() - timedelta(hours=1)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
         
         summary = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'period': 'hourly',
             'operations': {}
         }
@@ -308,20 +337,32 @@ class URLMetadataMonitor:
             cutoff_time
         )
         
-        # Add recent alerts
-        summary['recent_alerts'] = [
-            alert for alert in self.alert_history
-            if datetime.fromisoformat(alert['timestamp']) >= cutoff_time
-        ]
+        # Add recent alerts with error handling for malformed timestamps
+        recent_alerts = []
+        for alert in self.alert_history:
+            try:
+                alert_time = datetime.fromisoformat(alert['timestamp'])
+                if alert_time >= cutoff_time:
+                    recent_alerts.append(alert)
+            except (ValueError, TypeError, KeyError) as e:
+                # Log warning for malformed timestamps but continue processing
+                import logging
+                logging.warning(
+                    f"Skipping alert due to invalid timestamp format: "
+                    f"{alert.get('timestamp')}. Error: {str(e)}"
+                )
+                continue
+
+        summary['recent_alerts'] = recent_alerts
         
         return summary
         
     def generate_daily_summary(self) -> Dict[str, Any]:
         """Generate daily metrics summary."""
-        cutoff_time = datetime.utcnow() - timedelta(days=1)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=1)
         
         summary = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'period': 'daily',
             'operations': {},
             'top_errors': {},
@@ -393,8 +434,8 @@ class URLMetadataMonitor:
                 'min_duration_ms': min(durations),
                 'max_duration_ms': max(durations),
                 'p50_duration_ms': statistics.median(durations),
-                'p95_duration_ms': statistics.quantiles(durations, n=20)[18],
-                'p99_duration_ms': statistics.quantiles(durations, n=100)[98],
+                'p95_duration_ms': statistics.quantiles(durations, n=20)[18] if len(durations) > 1 else durations[0],
+                'p99_duration_ms': statistics.quantiles(durations, n=100)[98] if len(durations) > 1 else durations[0],
             })
             
         return stats
@@ -418,7 +459,7 @@ class URLMetadataMonitor:
     def _calculate_performance_trends(self) -> Dict[str, List[Dict[str, Any]]]:
         """Calculate hourly performance trends for the past 24 hours."""
         trends = defaultdict(list)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         for hour in range(24):
             hour_start = now - timedelta(hours=hour+1)
@@ -447,12 +488,12 @@ class URLMetadataMonitor:
                       hours: Optional[int] = None) -> None:
         """Export metrics to a JSON file."""
         if hours:
-            cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         else:
-            cutoff_time = datetime.min
+            cutoff_time = datetime.min.replace(tzinfo=timezone.utc)
             
         export_data = {
-            'export_timestamp': datetime.utcnow().isoformat(),
+            'export_timestamp': datetime.now(timezone.utc).isoformat(),
             'metrics': {}
         }
         
@@ -468,8 +509,18 @@ class URLMetadataMonitor:
             for metric in export_data['metrics'][op_type]:
                 metric['timestamp'] = metric['timestamp'].isoformat()
                 
-        with open(filepath, 'w') as f:
-            json.dump(export_data, f, indent=2)
+        try:
+            # Ensure parent directory exists
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write to temporary file first, then rename for atomicity
+            temp_path = filepath.with_suffix('.tmp')
+            with open(temp_path, 'w') as f:
+                json.dump(export_data, f, indent=2)
+            temp_path.replace(filepath)
+        except (IOError, OSError) as e:
+            logger.error(f"Failed to export metrics to {filepath}: {e}")
+            raise
 
 
 # Global monitor instance
@@ -490,10 +541,11 @@ def record_upload(url: str, success: bool, duration_ms: float,
     )
 
 
-def record_retrieval(query: str, results_count: int, duration_ms: float, **kwargs):
+def record_retrieval(query: str, results_count: int, duration_ms: float,
+                     success: bool = True, **kwargs):
     """Record a retrieval metric."""
     url_metadata_monitor.record_retrieval(
-        query, results_count, duration_ms, **kwargs
+        query, results_count, duration_ms, success, **kwargs
     )
 
 

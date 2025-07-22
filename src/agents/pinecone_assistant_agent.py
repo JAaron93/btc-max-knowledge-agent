@@ -1,17 +1,14 @@
 import requests
-import json
 from typing import List, Dict, Any, Optional
-from src.utils.config import Config
+from btc_max_knowledge_agent.utils.config import Config
 import os
-import re
 from urllib.parse import urlparse
-from src.utils.result_formatter import AssistantResponseFormatter
-from src.utils.url_error_handler import (
+from btc_max_knowledge_agent.utils.result_formatter import AssistantResponseFormatter
+from btc_max_knowledge_agent.utils.url_error_handler import (
     URLValidationError,
     URLMetadataUploadError,
     FallbackURLStrategy,
     GracefulDegradation,
-    retry_url_validation,
     retry_url_upload,
     exponential_backoff_retry
 )
@@ -19,11 +16,11 @@ import logging
 import time
 
 # Import our logging infrastructure
-from src.utils.url_metadata_logger import (
-    log_upload, log_retrieval, correlation_context, generate_correlation_id
+from btc_max_knowledge_agent.utils.url_metadata_logger import (
+    log_upload, correlation_context, generate_correlation_id
 )
-from src.monitoring.url_metadata_monitor import (
-    record_upload, record_retrieval
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
+    record_upload
 )
 
 logger = logging.getLogger(__name__)
@@ -44,9 +41,8 @@ class PineconeAssistantAgent:
         # Remove trailing slash if present
         self.host = self.host.rstrip('/')
     
-    @retry_url_validation
     def _validate_and_sanitize_url(self, url: str) -> Optional[str]:
-        """Validate and sanitize URL with retry logic and fallback strategies"""
+        """Validate and sanitize URL with deterministic validation"""
         if not url or not isinstance(url, str):
             return None
         
@@ -63,19 +59,19 @@ class PineconeAssistantAgent:
             # Check if URL has valid scheme and netloc
             if parsed.scheme in ('http', 'https') and parsed.netloc:
                 # Basic domain validation
-                if '.' in parsed.netloc and len(parsed.netloc) > 3:
+                if '.' in parsed.netloc:
                     return url
                 else:
-                    raise URLValidationError(f"Invalid domain format", url=url)
+                    raise URLValidationError("Invalid domain format", url=url)
             else:
-                raise URLValidationError(f"Invalid URL scheme or netloc", url=url)
+                raise URLValidationError("Invalid URL scheme or netloc", url=url)
                 
         except URLValidationError:
             # Re-raise our custom exceptions
             raise
         except Exception as e:
             # Wrap other exceptions
-            raise URLValidationError(f"URL validation failed", url=url, original_error=e)
+            raise URLValidationError("URL validation failed", url=url, original_error=e)
     
     def _safe_validate_url(self, url: str) -> Optional[str]:
         """Validate URL with fallback strategies"""
@@ -279,7 +275,7 @@ class PineconeAssistantAgent:
         with correlation_context(correlation_id):
             try:
                 # Upload in batches
-                batch_size = 50
+                batch_size = int(os.getenv('PINECONE_UPLOAD_BATCH_SIZE', '50'))
                 total_uploaded = 0
                 failed_batches = []
                 
@@ -289,7 +285,7 @@ class PineconeAssistantAgent:
                     
                     try:
                         # Calculate metadata size for batch
-                        batch_metadata_size = sum(
+                        sum(
                             len(str(doc.get('metadata', {})))
                             for doc in batch
                         )
@@ -311,12 +307,12 @@ class PineconeAssistantAgent:
                                     url=doc.get('metadata', {}).get('url', ''),
                                     success=True,
                                     metadata_size=len(str(doc.get('metadata', {}))),
-                                    duration_ms=duration_ms / len(batch)
+                                    duration_ms=duration_ms
                                 )
                                 record_upload(
                                     url=doc.get('metadata', {}).get('url', ''),
                                     success=True,
-                                    duration_ms=duration_ms / len(batch),
+                                    duration_ms=duration_ms,
                                     metadata_size=len(str(doc.get('metadata', {}))),
                                     correlation_id=correlation_id
                                 )
@@ -337,12 +333,12 @@ class PineconeAssistantAgent:
                                     success=False,
                                     metadata_size=len(str(doc.get('metadata', {}))),
                                     error=f"HTTP {response.status_code}",
-                                    duration_ms=duration_ms / len(batch)
+                                    duration_ms=duration_ms
                                 )
                                 record_upload(
                                     url=doc.get('metadata', {}).get('url', ''),
                                     success=False,
-                                    duration_ms=duration_ms / len(batch),
+                                    duration_ms=duration_ms,
                                     metadata_size=len(str(doc.get('metadata', {}))),
                                     error_type=f"http_{response.status_code}",
                                     correlation_id=correlation_id
@@ -426,8 +422,14 @@ class PineconeAssistantAgent:
         raise_on_exhaust=False,
         fallback_result=None
     )
-    def query_assistant(self, assistant_id: str, question: str,
-                       include_metadata: bool = True) -> Dict[str, Any]:
+    def query_assistant(
+        self,
+        assistant_id: str,
+        question: str,
+        include_metadata: bool = True,
+        timeout: float | int | None = None,
+        **_ignored: Any,
+    ) -> Dict[str, Any]:
         """Query assistant with graceful error handling and URL metadata safety"""
         
         query_data = {
@@ -441,7 +443,7 @@ class PineconeAssistantAgent:
                 f"{self.host}/assistants/{assistant_id}/chat",
                 headers=self.headers,
                 json=query_data,
-                timeout=30  # Add timeout for reliability
+                timeout=timeout or 30
             )
             
             if response.status_code == 200:
@@ -498,9 +500,8 @@ class PineconeAssistantAgent:
         except Exception as e:
             logger.error(f"Error querying assistant: {e}")
             return self._create_error_response(
-                "An error occurred while processing your question."
-            )
-    
+                     "I encountered an error while processing your question."
+                 ) 
     def _create_error_response(self, error_message: str) -> Dict[str, Any]:
         """Create a consistent error response structure"""
         return {

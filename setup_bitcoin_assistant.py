@@ -8,8 +8,8 @@ import os
 import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.knowledge.data_collector import BitcoinDataCollector
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.agents.pinecone_assistant_agent import PineconeAssistantAgent
 
 def main():
     print("🚀 Bitcoin Knowledge Assistant Setup")
@@ -101,7 +101,7 @@ def main():
         print("=" * 50)
         print(f"🤖 Assistant ID: {assistant_id}")
         print(f"📚 Documents uploaded: {len(documents)}")
-        print(f"💾 Assistant info saved to: data/assistant_info.json")
+        print("💾 Assistant info saved to: data/assistant_info.json")
         print("\n🔧 MCP Integration:")
         print("- Your Pinecone Assistant MCP is configured in .kiro/settings/mcp.json")
         print("- You can now use MCP tools to interact with your assistant")

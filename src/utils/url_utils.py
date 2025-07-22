@@ -17,7 +17,7 @@ import unicodedata
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
-import traceback
+
 from threading import Lock
 
 # Simple logging placeholders for test compatibility
@@ -46,6 +46,9 @@ DANGEROUS_SCHEMES = {
 ALLOWED_SCHEMES = {'http', 'https'}
 
 # Configurable via environment variables with sensible defaults
+# NOTE: MAX_URL_LENGTH is used as an EXCLUSIVE upper bound - URLs with length
+# greater than or equal to this value are considered invalid. This means the
+# actual maximum allowed URL length is (MAX_URL_LENGTH - 1).
 MAX_URL_LENGTH = int(os.getenv('MAX_URL_LENGTH', '2048'))
 CACHE_TTL = int(os.getenv('URL_CACHE_TTL', '3600'))  # 1 hour in seconds
 DEFAULT_MAX_WORKERS = int(os.getenv('DEFAULT_MAX_WORKERS', '10'))
@@ -61,6 +64,23 @@ PRIVATE_IP_RANGES = [
     ipaddress.ip_network('fc00::/7'),
     ipaddress.ip_network('fe80::/10')
 ]
+
+# Regular expressions for URL validation and parsing
+# Matches protocol schemes like 'http:', 'https:', 'ftp:', etc.
+PROTOCOL_PATTERN = r'^[a-zA-Z0-9+.-]+:'
+
+# Matches basic domain patterns like 'example.com' or 'subdomain.example.org'
+SIMPLE_DOMAIN_PATTERN = r'^[a-zA-Z0-9]+\.[a-zA-Z]{2,}'
+
+# Matches more complex domain patterns, including subdomains and hyphens
+# Examples: 'sub-domain.example.co.uk', 'xn--bcher-kva.example'
+COMPLEX_DOMAIN_PATTERN = r'^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+'
+
+# Matches protocol-relative URLs starting with '//'
+PROTOCOL_RELATIVE_PATTERN = r'^//'
+
+# Matches standard HTTP/HTTPS URLs
+HTTP_URL_PATTERN = r'^https?://'
 
 # ---------------------------------------------------------------------------
 # Local wrappers that forward to the *current* function objects in the logger
@@ -114,7 +134,9 @@ def is_secure_url(url: str) -> bool:
         record_validation(url, False, duration_ms, error_type='empty_or_invalid_type')
         return False
     
-    # Check URL length (bound is **exclusive** – anything \u2265 MAX_URL_LENGTH is invalid)
+    # Check URL length - MAX_URL_LENGTH is used as an EXCLUSIVE upper bound
+    # URLs with length >= MAX_URL_LENGTH are considered invalid
+    # (i.e., maximum allowed length is MAX_URL_LENGTH - 1)
     if len(url) >= MAX_URL_LENGTH:
         validation_details['error'] = f'url_too_long: {len(url)} chars'
         duration_ms = (time.time() - start_time) * 1000
@@ -247,10 +269,11 @@ def normalize_url_rfc3986(url: str) -> Optional[str]:
     
     # Early check for non-URL strings (very basic check)
     # Be more permissive with protocol-less URLs since we add https:// later
-    if not url.startswith(('http://', 'https://', '//')):
-        # If it doesn't look like a domain or path, it's probably not a URL
-        if not re.match(r'^[a-zA-Z0-9+.-]+:', url) and not re.match(r'^[a-zA-Z0-9]+\.[a-zA-Z]{2,}', url) and not re.match(r'^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+', url):
-            return None
+    if not (url.startswith(('http://', 'https://', '//')) or 
+            re.match(PROTOCOL_PATTERN, url) or 
+            re.match(SIMPLE_DOMAIN_PATTERN, url) or 
+            re.match(COMPLEX_DOMAIN_PATTERN, url)):
+        return None
     
     start_time = time.time()
     original_url = url

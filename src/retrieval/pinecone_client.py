@@ -1,17 +1,18 @@
 from pinecone import Pinecone, ServerlessSpec
-import time
 import re
 from urllib.parse import urlparse
 from typing import List, Dict, Any, Optional
-from src.utils.config import Config
-from src.utils.result_formatter import QueryResultFormatter
-from src.utils.url_error_handler import (
+from btc_max_knowledge_agent.utils.config import Config
+from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
+from btc_max_knowledge_agent.utils.url_error_handler import (
     URLValidationError,
     URLRetrievalError,
     FallbackURLStrategy,
     GracefulDegradation,
     retry_url_validation,
-    exponential_backoff_retry
+    exponential_backoff_retry,
+    query_retry_with_backoff,
+    MAX_QUERY_RETRIES
 )
 import logging
 
@@ -41,12 +42,26 @@ class PineconeClient:
                 )
             )
             
-            # Wait for index to be ready
-            while not self.pc.describe_index(self.index_name).status['ready']:
-                time.sleep(1)
+            # Wait for index to be ready with exponential backoff
+            self._wait_for_index_ready()
             print(f"Index {self.index_name} is ready!")
         else:
             print(f"Index {self.index_name} already exists")
+    
+    @query_retry_with_backoff(
+        max_retries=MAX_QUERY_RETRIES,
+        initial_delay=1.0,
+        max_delay=30.0,
+        exceptions=(Exception,),
+        raise_on_exhaust=True
+    )
+    def _wait_for_index_ready(self):
+        """Wait for Pinecone index to be ready with exponential backoff retry"""
+        status = self.pc.describe_index(self.index_name).status
+        if not status['ready']:
+            logger.info(f"Index {self.index_name} not ready, retrying...")
+            raise Exception(f"Index {self.index_name} not ready yet")
+        logger.info(f"Index {self.index_name} is ready")
     
     def get_index(self):
         """Get the Pinecone index"""
@@ -78,7 +93,21 @@ class PineconeClient:
                 )
             
             # Basic domain validation
-            if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', parsed.netloc):
+            hostname = parsed.hostname or parsed.netloc.split(':')[0]
+            
+            # Allow IP addresses, localhost, and domain names
+            if not (
+                # IP address pattern
+                re.match(r'^(\d{1,3}\.){3}\d{1,3}$', hostname) or
+                # Localhost
+                hostname in ['localhost', '127.0.0.1', '::1'] or
+                # Domain name pattern
+                re.match(
+                    r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?'
+                    r'(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$',
+                    hostname
+                )
+            ):
                 raise URLValidationError(
                     "Invalid domain format", url=url
                 )
@@ -147,7 +176,7 @@ class PineconeClient:
                     'title': doc.get('title', ''),
                     'source': doc.get('source', ''),
                     'category': doc.get('category', ''),
-                    'content': doc.get('content', '')[:1000],  # First 1000 chars
+                    'content': str(doc.get('content', ''))[:1000] if doc.get('content') else '',
                     'url': url or ''  # Ensure URL field exists
                 })
                 
@@ -182,7 +211,7 @@ class PineconeClient:
             )
         
         # Upsert in batches with error handling
-        batch_size = 100
+        batch_size = getattr(Config, 'PINECONE_BATCH_SIZE', 100)
         successful_batches = 0
         failed_batches = []
         
@@ -273,7 +302,7 @@ class PineconeClient:
                     formatted_results.append({
                         'id': match.get('id', ''),
                         'score': match.get('score', 0.0),
-                        'title': 'Error retrieving metadata',
+                        'title': f'[Metadata Error - ID: {match.get("id", "unknown")}]',
                         'source': 'Unknown',
                         'category': '',
                         'content': '',
@@ -298,7 +327,17 @@ class PineconeClient:
                                top_k: int = 5,
                                query_text: str = "",
                                include_scores: bool = False) -> Dict[str, Any]:
-        """Query and format results with graceful error handling"""
+        """Query and format results with graceful error handling
+        
+        Args:
+            query_embedding: Vector embedding for similarity search
+            top_k: Number of similar results to return
+            query_text: Original query text for metadata
+            include_scores: Whether to include similarity scores in formatted output
+            
+        Returns:
+            Dict containing formatted results, summary, and metadata
+        """
         
         try:
             # Get raw results with error handling
@@ -320,11 +359,24 @@ class PineconeClient:
             
             # Format using the result formatter with error handling
             try:
-                return QueryResultFormatter.format_structured_response(
+                # Get structured response from formatter
+                formatted_response = QueryResultFormatter.format_structured_response(
                     results=results,
                     query=query_text,
                     include_summary=True
                 )
+                
+                # If scores should be included, also format with scores
+                if include_scores:
+                    formatted_response['formatted_results'] = QueryResultFormatter.format_multiple_results(
+                        results=results,
+                        include_scores=True
+                    )
+                    # Add scores to metadata
+                    formatted_response['metadata'] = formatted_response.get('metadata', {})
+                    formatted_response['metadata']['scores_included'] = True
+                
+                return formatted_response
             except Exception as e:
                 logger.error(f"Error formatting query results: {e}")
                 # Return basic formatting as fallback
