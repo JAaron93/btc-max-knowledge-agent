@@ -28,7 +28,7 @@
   - Write comprehensive tests for URL validation and sanitization
   - _Requirements: 2.2, 4.4_
 
-- [ ] 5. Update query result formatting to include source URLs
+- [x] 5. Update query result formatting to include source URLs
   - Modify result formatting functions to include clickable URLs when available
   - Create structured response format that clearly associates content with sources
   - Handle mixed results where some documents have URLs and others don't

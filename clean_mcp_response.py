@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clean and format MCP response text using regex
+Clean and format MCP response text using regex and URL metadata support
 """
 
 import re
@@ -8,6 +8,13 @@ import json
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import the new result formatter
+try:
+    from src.utils.result_formatter import MCPResponseFormatter
+except ImportError:
+    # Fallback if import fails
+    MCPResponseFormatter = None
 
 def clean_text_content(text):
     """Clean text content using regex patterns"""
@@ -106,6 +113,55 @@ def format_bitcoin_content(content_item):
         }
     
     return content_item
+
+def format_query_results_for_mcp(results, query=""):
+    """Format query results with URL metadata for MCP response"""
+    
+    if MCPResponseFormatter:
+        # Use the new formatter if available
+        return MCPResponseFormatter.format_for_mcp(results, query)
+    else:
+        # Fallback to basic formatting
+        if not results:
+            return {
+                'content': [{
+                    'type': 'text',
+                    'text': 'No relevant information found in the Bitcoin knowledge base.'
+                }]
+            }
+        
+        # Basic formatting without URL support
+        formatted_text = ""
+        if query:
+            formatted_text += f"**Query:** {query}\n\n---\n\n"
+        
+        for i, result in enumerate(results, 1):
+            title = result.get('title', 'Untitled')
+            content = result.get('content', '')
+            source = result.get('source', 'Unknown Source')
+            url = result.get('url', '')
+            
+            formatted_text += f"## Result {i}\n\n**{title}**\n\n"
+            
+            if content:
+                display_content = content[:500] + "..." if len(content) > 500 else content
+                formatted_text += f"{display_content}\n\n"
+            
+            # Add source with URL if available
+            if url and url.strip():
+                formatted_text += f"*Source: [{source}]({url})*\n\n"
+            else:
+                formatted_text += f"*Source: {source}*\n\n"
+            
+            if i < len(results):
+                formatted_text += "---\n\n"
+        
+        return {
+            'content': [{
+                'type': 'text',
+                'text': formatted_text.strip()
+            }]
+        }
 
 def clean_mcp_response(response_data):
     """Clean an entire MCP response"""
