@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import the new result formatter
 try:
-    from src.utils.result_formatter import MCPResponseFormatter
+    from btc_max_knowledge_agent.utils.result_formatter import MCPResponseFormatter
 except ImportError:
     # Fallback if import fails
     MCPResponseFormatter = None

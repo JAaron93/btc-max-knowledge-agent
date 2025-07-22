@@ -1,7 +1,8 @@
-from typing import List, Dict, Any
-from src.retrieval.pinecone_client import PineconeClient
-from src.utils.config import Config
-from src.utils.result_formatter import QueryResultFormatter
+import logging
+from typing import Any, Dict, List
+
+from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
+from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 
 class BitcoinKnowledgeAgent:
     def __init__(self):
@@ -20,16 +21,31 @@ class BitcoinKnowledgeAgent:
         if not relevant_docs:
             return {
                 'documents': [],
-                'formatted_response': "No relevant information found in the Bitcoin knowledge base.",
+                'formatted_response': {"response": "No relevant information found in the Bitcoin knowledge base.", "sources": [], "summary": ""},
                 'message': "No relevant information found in the Bitcoin knowledge base."
             }
         
         # Format results with URL metadata support
-        formatted_response = QueryResultFormatter.format_structured_response(
-            results=relevant_docs,
-            query=query_text,
-            include_summary=True
-        )
+        try:
+            formatted_response = QueryResultFormatter.format_structured_response(
+                results=relevant_docs,
+                query=query_text,
+                include_summary=True
+            )
+        except Exception as e:
+            # Log the formatting error but continue with fallback response
+            logging.error(f"Error formatting query results: {str(e)}", exc_info=True)
+            
+            # Provide fallback formatted response
+            formatted_response = {
+                'formatted_response': {
+                    'response': f"Found {len(relevant_docs)} relevant documents, but formatting failed.",
+                    'sources': [doc.get('metadata', {}).get('url', 'Unknown source') for doc in relevant_docs],
+                    'summary': f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
+                },
+                'sources': [doc.get('metadata', {}).get('url', 'Unknown source') for doc in relevant_docs],
+                'summary': f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
+            }
         
         return {
             'documents': relevant_docs,

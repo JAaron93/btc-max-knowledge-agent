@@ -8,28 +8,20 @@ and retry mechanisms for URL metadata operations.
 
 import sys
 import logging
-from typing import Dict, List, Any
-import time
+from src.utils.url_error_handler import (
+    URLValidationError,
+    FallbackURLStrategy,
+    GracefulDegradation,
+    exponential_backoff_retry
+)
+from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+from src.retrieval.pinecone_client import PineconeClient
 
 # Configure logging to see all our error handling in action
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-
-# Import our modules
-from src.utils.url_error_handler import (
-    URLValidationError,
-    URLMetadataUploadError,
-    URLRetrievalError,
-    FallbackURLStrategy,
-    GracefulDegradation,
-    exponential_backoff_retry,
-    retry_url_validation,
-    retry_url_upload
-)
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
-from src.retrieval.pinecone_client import PineconeClient
 
 
 def test_url_error_handler():
@@ -179,29 +171,6 @@ def test_pinecone_client():
         # Test 2: Document preparation with URL issues
         print("\n2. Testing document upsert with URL issues:")
         
-        test_docs = [
-            {
-                'id': 'doc1',
-                'content': 'Bitcoin is a cryptocurrency',
-                'title': 'Bitcoin Basics',
-                'url': 'https://bitcoin.org',
-                'embedding': [0.1] * 1536  # Mock embedding
-            },
-            {
-                'id': 'doc2',
-                'content': 'Lightning Network enables fast transactions',
-                'title': 'Lightning Network',
-                'url': 'invalid-url',  # Invalid URL
-                'embedding': [0.2] * 1536
-            },
-            {
-                'id': 'doc3',
-                'content': 'Blockchain is the underlying technology',
-                'title': 'Blockchain Tech',
-                # Missing URL
-                'embedding': [0.3] * 1536
-            }
-        ]
         
         # This would normally upsert, but will fail without proper config
         print("✅ Document preparation test completed (actual upsert skipped)")

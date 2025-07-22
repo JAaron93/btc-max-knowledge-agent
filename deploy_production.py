@@ -90,10 +90,10 @@ def start_production_ui():
 
 def check_production_requirements():
     """Check if production requirements are met"""
-    try:
-        import gunicorn
+    import importlib.util
+    if importlib.util.find_spec("gunicorn") is not None:
         print("✅ Gunicorn is available")
-    except ImportError:
+    else:
         print("❌ Gunicorn not found. Installing...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "gunicorn"])
         print("✅ Gunicorn installed")
@@ -233,7 +233,7 @@ def main():
     print(f"📡 API Server: http://localhost:{os.getenv('API_PORT', 8000)}")
     print(f"🌐 Web UI: http://localhost:{os.getenv('UI_PORT', 7860)}")
     print(f"📚 API Docs: http://localhost:{os.getenv('API_PORT', 8000)}/docs")
-    print(f"📊 Logs: logs/access.log, logs/error.log")
+    print("📊 Logs: logs/access.log, logs/error.log")
     
     if not args.daemon:
         print("\nPress Ctrl+C to stop servers")

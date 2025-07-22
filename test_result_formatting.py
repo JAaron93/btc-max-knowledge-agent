@@ -4,12 +4,11 @@ Test the result formatting functionality with URL metadata support
 """
 
 import unittest
-from unittest.mock import Mock, patch
 import sys
 import os
 
 # Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
 from src.utils.result_formatter import (
     QueryResultFormatter, 

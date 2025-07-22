@@ -6,8 +6,7 @@ Test script to verify URL metadata handling in PineconeAssistantAgent
 import sys
 import os
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-import json
+from unittest.mock import Mock, patch
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.agents.pinecone_assistant_agent import PineconeAssistantAgent

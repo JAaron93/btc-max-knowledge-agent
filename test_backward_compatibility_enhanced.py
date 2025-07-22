@@ -8,22 +8,15 @@ properly alongside new vectors with URL metadata.
 
 import pytest
 import numpy as np
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import uuid
 import time
+import threading
+import queue
+from datetime import datetime, timezone
+from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 from src.retrieval.pinecone_client import PineconeClient
 from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
-from src.utils.url_metadata_logger import URLMetadataLogger
-from src.monitoring.url_metadata_monitor import URLMetadataMonitor
-from src.utils.url_error_handler import (
-    exponential_backoff_retry,
-    GracefulDegradation,
-    FallbackURLStrategy
-)
-from src.utils.url_utils import URLValidator
 
 
 class TestBackwardCompatibilityEnhanced:
@@ -102,13 +95,20 @@ class TestBackwardCompatibilityEnhanced:
     @pytest.fixture
     def pinecone_client(self, mock_pinecone_index):
         """Create PineconeClient with mocked index."""
-        with patch('pinecone.Index') as mock_index_class:
-            mock_index_class.return_value = mock_pinecone_index
-            client = PineconeClient(
-                index_name='test-index',
-                dimension=1536
-            )
-            client.index = mock_pinecone_index
+        with patch('src.retrieval.pinecone_client.Pinecone') as mock_pinecone_class, \
+             patch('src.utils.config.Config') as mock_config:
+            # Mock the config
+            mock_config.validate.return_value = None
+            mock_config.PINECONE_API_KEY = 'test-key'
+            mock_config.PINECONE_INDEX_NAME = 'test-index'
+            mock_config.EMBEDDING_DIMENSION = 1536
+            
+            # Mock Pinecone instance
+            mock_pc = Mock()
+            mock_pc.Index.return_value = mock_pinecone_index
+            mock_pinecone_class.return_value = mock_pc
+            
+            client = PineconeClient()
             return client
     
     def test_query_legacy_vectors_only(self, pinecone_client, mock_pinecone_index):
@@ -160,7 +160,7 @@ class TestBackwardCompatibilityEnhanced:
             assert 'text' in result['metadata']
             assert 'timestamp' in result['metadata']
     
-    def test_null_safe_metadata_access(self, pinecone_client):
+    def test_null_safe_metadata_access(self):
         """Test null-safe access to URL metadata fields."""
         # Create vector with partial URL metadata
         partial_vector = {
@@ -188,7 +188,6 @@ class TestBackwardCompatibilityEnhanced:
         assert title == 'Unknown'
         assert domain == ''
         assert validated is False
-    
     def test_metadata_version_detection(self):
         """Test detection of metadata schema versions."""
         # Legacy format (v1.0)
@@ -232,9 +231,9 @@ class TestBackwardCompatibilityEnhanced:
             'url_domain': 'retroactive.example.com',
             'url_path': '/bitcoin',
             'url_validated': True,
-            'url_validation_timestamp': datetime.utcnow().isoformat() + 'Z',
+            'url_validation_timestamp': datetime.now(timezone.utc).isoformat(),
             'metadata_version': '2.0',
-            'enrichment_timestamp': datetime.utcnow().isoformat() + 'Z'
+            'enrichment_timestamp': datetime.now(timezone.utc).isoformat()
         })
         
         # Mock update operation
@@ -278,8 +277,7 @@ class TestBackwardCompatibilityEnhanced:
             enriched_metadata = vector['metadata'].copy()
             enriched_metadata.update({
                 'source_url': f'https://migrated.example.com/content/{vector["id"]}',
-                'metadata_version': '2.0',
-                'migration_timestamp': datetime.utcnow().isoformat() + 'Z'
+                'migration_timestamp': datetime.now(timezone.utc).isoformat()
             })
             enriched_batch.append({
                 'id': vector['id'],
@@ -288,9 +286,34 @@ class TestBackwardCompatibilityEnhanced:
         
         # Verify batch can be processed
         assert len(enriched_batch) == batch_size
+        
+        # Perform batch migration
         for vector in enriched_batch:
+            # Update vector in Pinecone with enriched metadata
+            pinecone_client.index.update(
+                id=vector['id'],
+                set_metadata=vector['metadata']
+            )
+        
+        # Verify all vectors were updated
+        assert mock_pinecone_index.update.call_count == batch_size
+        
+        # Verify update calls were made with correct data
+        for i, vector in enumerate(enriched_batch):
+            call_args = mock_pinecone_index.update.call_args_list[i][1]
+            assert call_args['id'] == vector['id']
+            assert call_args['set_metadata'] == vector['metadata']
+            
+            # Verify metadata structure
             assert 'source_url' in vector['metadata']
             assert 'metadata_version' in vector['metadata']
+            assert 'migration_timestamp' in vector['metadata']
+            
+            # Verify timestamp format (ISO 8601 with timezone)
+            try:
+                datetime.fromisoformat(vector['metadata']['migration_timestamp'].rstrip('Z'))
+            except ValueError:
+                pytest.fail(f"Invalid ISO 8601 timestamp: {vector['metadata']['migration_timestamp']}")
     
     def test_assistant_agent_backward_compatibility(self, mock_pinecone_index):
         """Test PineconeAssistantAgent with mixed vector formats."""
@@ -310,7 +333,7 @@ class TestBackwardCompatibilityEnhanced:
             
             # Mock OpenAI response
             with patch.object(agent.client.beta.threads, 'create') as mock_create:
-                with patch.object(agent.client.beta.threads.messages, 'create') as mock_msg_create:
+                with patch.object(agent.client.beta.threads.messages, 'create'):
                     with patch.object(agent.client.beta.threads.runs, 'create_and_poll') as mock_run:
                         # Setup mock responses
                         mock_thread = Mock(id='thread-123')
@@ -346,8 +369,6 @@ class TestBackwardCompatibilityEnhanced:
     
     def test_concurrent_access_mixed_vectors(self, pinecone_client, mock_pinecone_index):
         """Test concurrent access to mixed vector environments."""
-        import threading
-        import queue
         
         results_queue = queue.Queue()
         errors_queue = queue.Queue()
@@ -399,9 +420,9 @@ class TestBackwardCompatibilityEnhanced:
             assert isinstance(result, list)
             assert len(result) > 0
     
-    def test_performance_impact_measurement(self, pinecone_client, mock_pinecone_index):
+    def test_performance_impact_measurement(self, pinecone_client, mock_pinecone_index, capsys):
         """Test performance impact of URL metadata on queries."""
-        import time
+
         
         # Measure legacy vector query time
         mock_pinecone_index.query.return_value = {
@@ -409,7 +430,7 @@ class TestBackwardCompatibilityEnhanced:
         }
         
         start_time = time.time()
-        legacy_results = pinecone_client.query(
+        pinecone_client.query(
             vector=np.random.rand(1536).tolist(),
             top_k=100
         )
@@ -421,7 +442,7 @@ class TestBackwardCompatibilityEnhanced:
         }
         
         start_time = time.time()
-        modern_results = pinecone_client.query(
+        pinecone_client.query(
             vector=np.random.rand(1536).tolist(),
             top_k=100
         )
@@ -431,10 +452,18 @@ class TestBackwardCompatibilityEnhanced:
         # In real scenarios, the difference should be minimal
         performance_ratio = modern_time / legacy_time if legacy_time > 0 else 1.0
         
-        # Log performance metrics
-        print(f"Legacy query time: {legacy_time:.4f}s")
-        print(f"Modern query time: {modern_time:.4f}s")
-        print(f"Performance ratio: {performance_ratio:.2f}")
+        # Log performance metrics using capsys instead of print
+        # Output can be captured and verified if needed
+        import sys
+        sys.stdout.write(f"Legacy query time: {legacy_time:.4f}s\n")
+        sys.stdout.write(f"Modern query time: {modern_time:.4f}s\n")
+        sys.stdout.write(f"Performance ratio: {performance_ratio:.2f}\n")
+        
+        # Capture output for verification if needed
+        captured = capsys.readouterr()
+        assert "Legacy query time:" in captured.out
+        assert "Modern query time:" in captured.out
+        assert "Performance ratio:" in captured.out
         
         # Assert reasonable performance
         assert performance_ratio < 1.5, "Modern queries should not be significantly slower"
@@ -460,8 +489,7 @@ class TestMigrationStrategies:
             migration_entry = {
                 'batch_start': batch_start,
                 'batch_end': batch_end,
-                'batch_size': batch_size,
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'status': 'completed'
             }
             

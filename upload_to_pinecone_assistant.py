@@ -3,12 +3,11 @@
 Upload Bitcoin documents to Pinecone Assistant via web interface
 """
 
-import json
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 from urllib.parse import urlparse
 import re
 
@@ -97,8 +96,8 @@ def create_upload_files():
                     f.write(f"**Original Article:** [{_get_display_name(doc.get('source', 'View Source'))}]({url})\n")
                     f.write(f"**Direct Link:** <{url}>\n")
                 else:
-                    f.write(f"**Source URL:** Not available\n")
-                    f.write(f"**Original Article:** Source link not provided\n")
+                    f.write("**Source URL:** Not available\n")
+                    f.write("**Original Article:** Source link not provided\n")
                 
                 # Add publication date if available (for RSS articles)
                 if doc.get('published'):
@@ -154,7 +153,7 @@ def create_upload_files():
     file_count += 1
     print(f"✅ Created: {overview_file} (overview)")
     
-    print(f"\n📋 Upload Instructions:")
+    print("\n📋 Upload Instructions:")
     print("=" * 50)
     print("1. Go to https://app.pinecone.io")
     print("2. Navigate to your 'genius' assistant")

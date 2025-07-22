@@ -7,8 +7,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.retrieval.pinecone_client import PineconeClient
-from src.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 
 def main():
     print("🚀 Setting up Bitcoin Knowledge Base with Pinecone")

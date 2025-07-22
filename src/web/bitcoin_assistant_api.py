@@ -4,7 +4,6 @@ Bitcoin Knowledge Assistant API using FastAPI and Pinecone Assistant
 """
 
 import os
-import sys
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel

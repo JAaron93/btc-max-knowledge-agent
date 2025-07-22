@@ -39,7 +39,7 @@ def test_pinecone_assistant_endpoint():
             try:
                 data = response.json()
                 print(f"Response data: {json.dumps(data, indent=2)}")
-            except:
+            except Exception:
                 print(f"Response text: {response.text}")
         else:
             print(f"❌ Connection failed: {response.status_code}")
@@ -78,7 +78,7 @@ def test_pinecone_assistant_endpoint():
             try:
                 mcp_data = mcp_response.json()
                 print(f"MCP Response: {json.dumps(mcp_data, indent=2)}")
-            except:
+            except Exception:
                 print(f"MCP Response text: {mcp_response.text}")
         else:
             print(f"❌ MCP protocol failed: {mcp_response.status_code}")

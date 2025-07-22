@@ -50,9 +50,9 @@ def test_documents_without_urls():
             print(f"   ✅ Display name: {_get_display_name(doc.get('source', 'View Source'))}")
         else:
             print(f"   ⚠️  No valid URL (url='{url}')")
-            print(f"   ✅ Graceful handling: Source link not provided")
+            print("   ✅ Graceful handling: Source link not provided")
     
-    print(f"\n✅ Backward compatibility test passed!")
+    print("\n✅ Backward compatibility test passed!")
 
 def test_mixed_document_formatting():
     """Test formatting with mixed documents (some with URLs, some without)"""
@@ -95,8 +95,8 @@ def test_mixed_document_formatting():
                 f.write(f"**Original Article:** [{_get_display_name(doc.get('source', 'View Source'))}]({url})\n")
                 f.write(f"**Direct Link:** <{url}>\n")
             else:
-                f.write(f"**Source URL:** Not available\n")
-                f.write(f"**Original Article:** Source link not provided\n")
+                f.write("**Source URL:** Not available\n")
+                f.write("**Original Article:** Source link not provided\n")
             
             f.write("\n### Content\n")
             f.write(f"{doc.get('content', '')}\n\n")

@@ -6,16 +6,36 @@ Provides comprehensive logging infrastructure for URL-related operations.
 import json
 import logging
 import logging.handlers
-import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from contextlib import contextmanager
 from threading import local
 from pathlib import Path
 
 
+# Logging configuration constants
+LOG_ROTATION_MAX_BYTES = 50 * 1024 * 1024  # 50MB
+LOG_ROTATION_BACKUP_COUNT = 5
+
 # Thread-local storage for correlation IDs
+
+__all__ = [
+    "URLMetadataLogger",
+    "url_metadata_logger",
+    "log_validation",
+    "log_sanitization",
+    "log_upload",
+    "log_retrieval",
+    "log_retry",
+    "log_metrics",
+    "correlation_context",
+    "set_correlation_id",
+    "get_correlation_id",
+    "LOG_ROTATION_MAX_BYTES",
+    "LOG_ROTATION_BACKUP_COUNT",
+]
+
 _thread_locals = local()
 
 
@@ -32,7 +52,7 @@ class JsonFormatter(logging.Formatter):
     
     def format(self, record):
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'module': record.module,
@@ -56,7 +76,7 @@ class JsonFormatter(logging.Formatter):
 class URLMetadataLogger:
     """Central logging configuration for URL metadata operations."""
     
-    def __init__(self, log_dir: str = "logs"):
+    def __init__(self, log_dir: str = "logs", query_truncation_length: int = 100):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(exist_ok=True)
         
@@ -79,63 +99,112 @@ class URLMetadataLogger:
             'response_time_ms': 5000,
         }
         
+        # Configuration options
+        self.config = {
+            'query_truncation_length': query_truncation_length,  # Configurable truncation length for query logging
+        }
+        
     def _configure_root_logger(self):
         """Configure the root logger with appropriate handlers."""
-        root_logger = logging.getLogger()
+        root_logger = logging.getLogger('url_metadata')
         root_logger.setLevel(logging.DEBUG)
-        
-        # Remove existing handlers
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
+
+        # Only add handlers if none exist
+        if not root_logger.handlers:
+            # Add correlation ID filter to all handlers
+            correlation_filter = CorrelationIdFilter()
             
-        # Add correlation ID filter to all handlers
-        correlation_filter = CorrelationIdFilter()
-        
-        # Console handler for warnings and above
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARNING)
-        console_handler.setFormatter(JsonFormatter())
-        console_handler.addFilter(correlation_filter)
-        root_logger.addHandler(console_handler)
-        
+            # Console handler for warnings and above
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.WARNING)
+            console_handler.setFormatter(JsonFormatter())
+            console_handler.addFilter(correlation_filter)
+            root_logger.addHandler(console_handler)
     def _create_logger(self, name: str) -> logging.Logger:
         """Create a specialized logger with appropriate handlers."""
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
         
         # Clear existing handlers
-        logger.handlers = []
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
         
-        # Create handlers for different severity levels
-        handlers = [
-            self._create_file_handler(f"{name.split('.')[-1]}_debug.log", logging.DEBUG),
-            self._create_file_handler(f"{name.split('.')[-1]}_info.log", logging.INFO),
-            self._create_file_handler(f"{name.split('.')[-1]}_error.log", logging.ERROR),
-            self._create_file_handler("all_operations.log", logging.DEBUG),
-        ]
+        # Create a single handler that will handle all log levels
+        log_prefix = name.split('.')[-1]
+        handler = self._create_combined_file_handler(log_prefix)
         
-        # Add correlation filter and formatter to all handlers
+        # Add correlation filter and formatter
         correlation_filter = CorrelationIdFilter()
         formatter = JsonFormatter()
         
-        for handler in handlers:
-            handler.addFilter(correlation_filter)
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
+        handler.addFilter(correlation_filter)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        
+        # Prevent propagation to parent loggers to avoid duplicate logging
+        logger.propagate = False
             
         return logger
         
-    def _create_file_handler(self, filename: str, level: int) -> logging.Handler:
-        """Create a rotating file handler."""
-        filepath = self.log_dir / filename
-        handler = logging.handlers.RotatingFileHandler(
-            filepath,
-            maxBytes=50 * 1024 * 1024,  # 50MB
-            backupCount=10,
-            encoding='utf-8'
-        )
-        handler.setLevel(level)
-        return handler
+    def _create_combined_file_handler(self, log_prefix: str) -> logging.Handler:
+        """Create a single handler that routes messages to appropriate files."""
+        class LevelBasedFileHandler(logging.Handler):
+            """Custom handler that routes messages to different files based on level."""
+            def __init__(self, log_dir, prefix):
+                super().__init__(level=logging.DEBUG)
+                self.log_dir = log_dir
+                self.prefix = prefix
+                self.handlers = {}
+                self._setup_handlers()
+                
+            def _setup_handlers(self):
+                """Set up the actual file handlers for different log levels."""
+                # Individual log files for each level
+                self.handlers = {
+                    logging.DEBUG: self._create_rotating_handler(f"{self.prefix}_debug.log"),
+                    logging.INFO: self._create_rotating_handler(f"{self.prefix}_info.log"),
+                    logging.ERROR: self._create_rotating_handler(f"{self.prefix}_error.log"),
+                    'all': self._create_rotating_handler("all_operations.log")
+                }
+                
+            def _create_rotating_handler(self, filename):
+                """Create a rotating file handler with standard settings."""
+                filepath = self.log_dir / filename
+                handler = logging.handlers.RotatingFileHandler(
+                    filepath,
+                    maxBytes=LOG_ROTATION_MAX_BYTES,
+                    backupCount=LOG_ROTATION_BACKUP_COUNT,
+                    encoding='utf-8'
+                )
+                handler.setFormatter(logging.Formatter('%(message)s'))
+                return handler
+                
+            def emit(self, record):
+                """Emit a record to the appropriate log file(s)."""
+                try:
+                    # Write to the specific level log file
+                    if record.levelno >= logging.ERROR:
+                        self.handlers[logging.ERROR].emit(record)
+                    elif record.levelno >= logging.INFO:
+                        self.handlers[logging.INFO].emit(record)
+                    else:  # DEBUG
+                        self.handlers[logging.DEBUG].emit(record)
+                        
+                    # Always write to the all_operations.log
+                    self.handlers['all'].emit(record)
+                except Exception:
+                    self.handleError(record)
+                    
+            def close(self):
+                """Close all file handlers."""
+                for handler in self.handlers.values():
+                    try:
+                        handler.close()
+                    except Exception:
+                        pass
+                super().close()
+        
+        return LevelBasedFileHandler(self.log_dir, log_prefix)
         
     @staticmethod
     def generate_correlation_id() -> str:
@@ -159,6 +228,28 @@ class URLMetadataLogger:
                 _thread_locals.correlation_id = old_id
             else:
                 delattr(_thread_locals, 'correlation_id')
+
+    @staticmethod
+    def set_correlation_id(correlation_id: Optional[str]) -> None:
+        """Set correlation ID outside of context manager (compat shim)."""
+        if correlation_id is None:
+            if hasattr(_thread_locals, 'correlation_id'):
+                delattr(_thread_locals, 'correlation_id')
+        else:
+            _thread_locals.correlation_id = correlation_id
+    
+    @staticmethod
+    def get_logger(logger_type: str) -> logging.Logger:
+        """Get a specific logger from the global instance."""
+        logger_map = {
+            'validation': url_metadata_logger.validation_logger,
+            'upload': url_metadata_logger.upload_logger,
+            'retrieval': url_metadata_logger.retrieval_logger,
+            'sanitization': url_metadata_logger.sanitization_logger,
+            'retry': url_metadata_logger.retry_logger,
+            'metrics': url_metadata_logger.metrics_logger,
+        }
+        return logger_map.get(logger_type, logging.getLogger(f'url_metadata.{logger_type}'))
                 
     def log_validation(self, url: str, is_valid: bool, validation_type: str,
                       details: Optional[Dict[str, Any]] = None, duration_ms: Optional[float] = None):
@@ -223,7 +314,7 @@ class URLMetadataLogger:
         """Log URL metadata retrieval operations."""
         extra_fields = {
             'operation': 'retrieval',
-            'query': query[:100],  # Truncate long queries
+            'query': query[:self.config['query_truncation_length']],  # Configurable query truncation
             'results_count': results_count,
             'duration_ms': duration_ms,
         }
@@ -299,7 +390,7 @@ class URLMetadataLogger:
         """Trigger an alert (placeholder for actual alerting mechanism)."""
         alert_data = {
             'alert_type': alert_type,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'details': details,
         }
         
@@ -351,3 +442,13 @@ def log_metrics(metrics: Dict[str, Any]):
 # Export correlation context
 correlation_context = URLMetadataLogger.correlation_context
 generate_correlation_id = URLMetadataLogger.generate_correlation_id
+
+
+def set_correlation_id(correlation_id: Optional[str] = None) -> None:
+    """Set correlation ID globally for the current thread."""
+    URLMetadataLogger.set_correlation_id(correlation_id)
+
+
+def get_correlation_id() -> Optional[str]:
+    """Retrieve the current correlation ID for the current thread, if set."""
+    return getattr(_thread_locals, "correlation_id", None)

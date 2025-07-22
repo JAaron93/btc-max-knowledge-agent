@@ -7,8 +7,7 @@ import os
 import sys
 import gradio as gr
 import requests
-import json
-from typing import List, Tuple
+from typing import Tuple
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
