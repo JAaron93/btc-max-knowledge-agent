@@ -1,85 +1,99 @@
-import requests
-from typing import List, Dict, Any, Optional
-from btc_max_knowledge_agent.utils.config import Config
+import logging
 import os
+import time
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+
+import requests
+
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import record_upload
+from btc_max_knowledge_agent.utils.config import Config
 from btc_max_knowledge_agent.utils.result_formatter import AssistantResponseFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    URLValidationError,
-    URLMetadataUploadError,
     FallbackURLStrategy,
     GracefulDegradation,
+    URLMetadataUploadError,
+    URLValidationError,
+    exponential_backoff_retry,
     retry_url_upload,
-    exponential_backoff_retry
 )
-import logging
-import time
 
 # Import our logging infrastructure
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    log_upload, correlation_context, generate_correlation_id
-)
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
-    record_upload
+    correlation_context,
+    generate_correlation_id,
+    log_upload,
 )
 
 logger = logging.getLogger(__name__)
 
+
 class PineconeAssistantAgent:
     def __init__(self):
         self.api_key = Config.PINECONE_API_KEY
-        self.host = os.getenv('PINECONE_ASSISTANT_HOST')
-        
+        self.host = os.getenv("PINECONE_ASSISTANT_HOST")
+
         if not self.host or self.host == "YOUR_PINECONE_ASSISTANT_HOST_HERE":
-            raise ValueError("PINECONE_ASSISTANT_HOST not configured. Run setup_pinecone_assistant.py first.")
-        
-        self.headers = {
-            'Api-Key': self.api_key,
-            'Content-Type': 'application/json'
-        }
-        
+            raise ValueError(
+                "PINECONE_ASSISTANT_HOST not configured. Run setup_pinecone_assistant.py first."
+            )
+
+        self.headers = {"Api-Key": self.api_key, "Content-Type": "application/json"}
+
         # Remove trailing slash if present
-        self.host = self.host.rstrip('/')
-    
+        self.host = self.host.rstrip("/")
+
     def _validate_and_sanitize_url(self, url: str) -> Optional[str]:
-        """Validate and sanitize URL with deterministic validation"""
+        """Validate and sanitize URL with deterministic validation
+
+        Args:
+            url: The URL to validate and sanitize
+
+        Returns:
+            str: The sanitized URL if valid
+            None: If the URL is invalid or cannot be sanitized
+        """
         if not url or not isinstance(url, str):
             return None
-        
+
         url = url.strip()
         if not url:
             return None
-        
+
+        # Add protocol if missing
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+
         try:
-            # Add protocol if missing
-            if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url
-            
             parsed = urlparse(url)
             # Check if URL has valid scheme and netloc
-            if parsed.scheme in ('http', 'https') and parsed.netloc:
-                # Basic domain validation
-                if '.' in parsed.netloc:
+            if parsed.scheme in ("http", "https") and parsed.netloc:
+                # Basic domain validation - require at least one dot in the domain
+                # but exclude trailing dots
+                domain = parsed.netloc.rstrip(".")
+                if "." in domain:
                     return url
-                else:
-                    raise URLValidationError("Invalid domain format", url=url)
-            else:
-                raise URLValidationError("Invalid URL scheme or netloc", url=url)
-                
-        except URLValidationError:
-            # Re-raise our custom exceptions
-            raise
+
+        except ValueError as e:
+            # Handle specific URL parsing errors
+            logger.debug(f"URL parsing failed for '{url}': {e}")
+            return None
         except Exception as e:
-            # Wrap other exceptions
-            raise URLValidationError("URL validation failed", url=url, original_error=e)
-    
+            # Log unexpected errors but don't fail the entire operation
+            logger.warning(
+                f"Unexpected error validating URL '{url}': {e}", exc_info=True
+            )
+            return None
+
+        return None
+
     def _safe_validate_url(self, url: str) -> Optional[str]:
         """Validate URL with fallback strategies"""
         try:
             return self._validate_and_sanitize_url(url)
         except (URLValidationError, Exception) as e:
             logger.warning(f"URL validation failed for '{url}': {e}")
-            
+
             # Try fallback strategies
             if url:
                 # Try domain-only URL
@@ -87,58 +101,68 @@ class PineconeAssistantAgent:
                 if domain_url:
                     logger.info(f"Using domain-only fallback: {domain_url}")
                     return domain_url
-            
+
             # Return None to indicate failure, but don't block the operation
             return None
-    
-    def _format_sources_with_urls(self, citations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    def _format_sources_with_urls(
+        self, citations: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Format citations with graceful handling of missing URL metadata"""
         formatted_sources = []
-        
+
         for citation in citations:
             try:
                 # Extract metadata with null-safe approach
                 metadata = GracefulDegradation.null_safe_metadata(
-                    citation.get('metadata', {})
+                    citation.get("metadata", {})
                 )
-                
+
                 formatted_source = {
-                    'id': citation.get('id', ''),
-                    'title': metadata.get('title', ''),
-                    'source': metadata.get('source', ''),
-                    'category': metadata.get('category', ''),
-                    'content': citation.get('text', ''),
-                    'url': metadata.get('url', ''),  # Safe default from null_safe_metadata
-                    'published': metadata.get('published', ''),
-                    'score': citation.get('score', 0.0)
+                    "id": citation.get("id", ""),
+                    "title": metadata.get("title", ""),
+                    "source": metadata.get("source", ""),
+                    "category": metadata.get("category", ""),
+                    "content": citation.get("text", ""),
+                    "url": metadata.get(
+                        "url", ""
+                    ),  # Safe default from null_safe_metadata
+                    "published": metadata.get("published", ""),
+                    "score": citation.get("score", 0.0),
                 }
-                
+
                 # Validate URL if present
-                if formatted_source['url']:
-                    validated_url = self._safe_validate_url(formatted_source['url'])
-                    formatted_source['url'] = validated_url or ''
-                
+                if formatted_source["url"]:
+                    validated_url = self._safe_validate_url(formatted_source["url"])
+                    formatted_source["url"] = validated_url or ""
+
                 formatted_sources.append(formatted_source)
-                
+
             except Exception as e:
-                logger.error(f"Error formatting citation {citation.get('id', 'unknown')}: {e}")
+                logger.error(
+                    f"Error formatting citation {citation.get('id', 'unknown')}: {e}"
+                )
                 # Add citation with safe defaults even if formatting fails
-                formatted_sources.append({
-                    'id': citation.get('id', ''),
-                    'title': 'Error retrieving title',
-                    'source': 'Unknown',
-                    'category': '',
-                    'content': citation.get('text', ''),
-                    'url': '',
-                    'published': '',
-                    'score': 0.0
-                })
-        
+                formatted_sources.append(
+                    {
+                        "id": citation.get("id", ""),
+                        "title": "Error retrieving title",
+                        "source": "Unknown",
+                        "category": "",
+                        "content": citation.get("text", ""),
+                        "url": "",
+                        "published": "",
+                        "score": 0.0,
+                    }
+                )
+
         return formatted_sources
-    
-    def create_assistant(self, name: str = "Bitcoin Knowledge Assistant") -> Dict[str, Any]:
+
+    def create_assistant(
+        self, name: str = "Bitcoin Knowledge Assistant"
+    ) -> Dict[str, Any]:
         """Create a new Pinecone Assistant for Bitcoin knowledge"""
-        
+
         assistant_config = {
             "name": name,
             "instructions": """You are a Bitcoin and blockchain technology expert assistant. 
@@ -156,244 +180,275 @@ class PineconeAssistantAgent:
             "metadata": {
                 "purpose": "bitcoin-education",
                 "domain": "cryptocurrency",
-                "created_by": "btc-max-knowledge-agent"
-            }
+                "created_by": "btc-max-knowledge-agent",
+            },
         }
-        
+
         try:
             response = requests.post(
-                f"{self.host}/assistants",
-                headers=self.headers,
-                json=assistant_config
+                f"{self.host}/assistants", headers=self.headers, json=assistant_config
             )
-            
+
             if response.status_code == 201:
                 assistant = response.json()
-                print(f"✅ Created assistant: {assistant.get('name')} (ID: {assistant.get('id')})")
+                print(
+                    f"✅ Created assistant: {assistant.get('name')} (ID: {assistant.get('id')})"
+                )
                 return assistant
             else:
-                print(f"❌ Failed to create assistant: {response.status_code} - {response.text}")
+                print(
+                    f"❌ Failed to create assistant: {response.status_code} - {response.text}"
+                )
                 return {}
-                
+
         except Exception as e:
             print(f"❌ Error creating assistant: {e}")
             return {}
-    
+
     def list_assistants(self) -> List[Dict[str, Any]]:
         """List all available assistants"""
         try:
-            response = requests.get(
-                f"{self.host}/assistants",
-                headers=self.headers
-            )
-            
+            response = requests.get(f"{self.host}/assistants", headers=self.headers)
+
             if response.status_code == 200:
-                assistants = response.json().get('assistants', [])
+                assistants = response.json().get("assistants", [])
                 print(f"📋 Found {len(assistants)} assistants")
                 for assistant in assistants:
                     print(f"  - {assistant.get('name')} (ID: {assistant.get('id')})")
                 return assistants
             else:
-                print(f"❌ Failed to list assistants: {response.status_code} - {response.text}")
+                print(
+                    f"❌ Failed to list assistants: {response.status_code} - {response.text}"
+                )
                 return []
-                
+
         except Exception as e:
             print(f"❌ Error listing assistants: {e}")
             return []
-    
-    def upload_documents(self, assistant_id: str,
-                        documents: List[Dict[str, Any]]) -> bool:
+
+    def upload_documents(
+        self, assistant_id: str, documents: List[Dict[str, Any]]
+    ) -> bool:
         """Upload documents with null-safe operations and graceful URL handling"""
         
+        # Validate input parameters
+        if documents is None:
+            raise ValueError("Documents parameter cannot be None")
+        
+        if not isinstance(documents, list):
+            raise ValueError("Documents must be a list")
+        
+        if not documents:
+            raise ValueError("Documents list cannot be empty")
+        
+        # Validate document format
+        for i, doc in enumerate(documents):
+            if not isinstance(doc, dict):
+                raise ValueError(f"Document at index {i} must be a dictionary")
+            
+            # Check for required fields
+            required_fields = ["id", "content"]
+            for field in required_fields:
+                if field not in doc:
+                    raise ValueError(f"Document at index {i} missing required field '{field}'")
+
         # Track successful and failed operations
         successful_docs = []
         failed_urls = []
-        
+
         # Convert our document format to Pinecone Assistant format
         for doc in documents:
             try:
                 # Safely validate URL without blocking document upload
-                url = self._safe_validate_url(doc.get('url', ''))
-                
-                if not url and doc.get('url'):
+                url = self._safe_validate_url(doc.get("url", ""))
+
+                if not url and doc.get("url"):
                     # URL was provided but validation failed
-                    failed_urls.append({
-                        'doc_id': doc.get('id', 'unknown'),
-                        'original_url': doc.get('url', '')
-                    })
-                    # Use placeholder URL to continue indexing
-                    url = FallbackURLStrategy.placeholder_url(
-                        doc.get('id', '')
+                    failed_urls.append(
+                        {
+                            "doc_id": doc.get("id", "unknown"),
+                            "original_url": doc.get("url", ""),
+                        }
                     )
+                    # Use empty string for invalid URLs as per test expectations
+                    url = ""
                     logger.warning(
-                        f"Using placeholder URL for doc {doc.get('id')}: {url}"
+                        f"URL validation failed for doc {doc.get('id')}, using empty string"
                     )
-                
+
                 # Ensure metadata is null-safe
-                metadata = GracefulDegradation.null_safe_metadata({
-                    "title": doc.get('title', ''),
-                    "source": doc.get('source', ''),
-                    "category": doc.get('category', ''),
-                    "url": url or '',
-                    "published": doc.get('published', '')
-                })
-                
+                metadata = GracefulDegradation.null_safe_metadata(
+                    {
+                        "title": doc.get("title", ""),
+                        "source": doc.get("source", ""),
+                        "category": doc.get("category", ""),
+                        "url": url or "",
+                        "published": doc.get("published", ""),
+                    }
+                )
+
                 formatted_doc = {
-                    "id": doc.get('id', ''),
-                    "text": doc.get('content', ''),
-                    "metadata": metadata
+                    "id": doc.get("id", ""),
+                    "text": doc.get("content", ""),
+                    "metadata": metadata,
                 }
                 successful_docs.append(formatted_doc)
-                
+
             except Exception as e:
                 logger.error(
                     f"Error formatting document {doc.get('id', 'unknown')}: {e}"
                 )
                 # Continue with other documents
                 continue
-        
+
         if not successful_docs:
             logger.error("No documents could be formatted for upload")
             return False
-        
+
         # Upload with retry logic
-        return self._upload_documents_with_retry(
-            assistant_id, successful_docs, failed_urls
-        )
-    
+        try:
+            return self._upload_documents_with_retry(
+                assistant_id, successful_docs, failed_urls
+            )
+        except URLMetadataUploadError as e:
+            logger.error(f"Failed to upload documents: {e}")
+            return False
+
     @retry_url_upload
     def _upload_documents_with_retry(
         self,
         assistant_id: str,
         formatted_docs: List[Dict[str, Any]],
-        failed_urls: List[Dict[str, str]]
+        failed_urls: List[Dict[str, str]],
     ) -> bool:
         """Upload documents in batches with retry logic"""
         # Create a correlation ID for this upload operation
         correlation_id = generate_correlation_id()
-        
+
         with correlation_context(correlation_id):
             try:
                 # Upload in batches
-                batch_size = int(os.getenv('PINECONE_UPLOAD_BATCH_SIZE', '50'))
+                batch_size = int(os.getenv("PINECONE_UPLOAD_BATCH_SIZE", "50"))
                 total_uploaded = 0
                 failed_batches = []
-                
+
                 for i in range(0, len(formatted_docs), batch_size):
-                    batch = formatted_docs[i:i + batch_size]
+                    batch = formatted_docs[i : i + batch_size]
                     start_time = time.time()
-                    
+
                     try:
                         # Calculate metadata size for batch
-                        sum(
-                            len(str(doc.get('metadata', {})))
-                            for doc in batch
-                        )
-                        
+                        sum(len(str(doc.get("metadata", {}))) for doc in batch)
+
                         response = requests.post(
                             f"{self.host}/assistants/{assistant_id}/files",
                             headers=self.headers,
-                            json={"documents": batch}
+                            json={"documents": batch},
                         )
-                        
+
                         duration_ms = (time.time() - start_time) * 1000
-                        
+
                         if response.status_code in [200, 201]:
                             total_uploaded += len(batch)
-                            
+
                             # Log successful upload for each document
                             for doc in batch:
                                 log_upload(
-                                    url=doc.get('metadata', {}).get('url', ''),
+                                    url=doc.get("metadata", {}).get("url", ""),
                                     success=True,
-                                    metadata_size=len(str(doc.get('metadata', {}))),
-                                    duration_ms=duration_ms
+                                    metadata_size=len(str(doc.get("metadata", {}))),
+                                    duration_ms=duration_ms,
                                 )
                                 record_upload(
-                                    url=doc.get('metadata', {}).get('url', ''),
+                                    url=doc.get("metadata", {}).get("url", ""),
                                     success=True,
                                     duration_ms=duration_ms,
-                                    metadata_size=len(str(doc.get('metadata', {}))),
-                                    correlation_id=correlation_id
+                                    metadata_size=len(str(doc.get("metadata", {}))),
+                                    correlation_id=correlation_id,
                                 )
-                            
+
                             logger.info(
                                 f"✅ Uploaded batch {i//batch_size + 1}: "
                                 f"{len(batch)} documents"
                             )
                         else:
-                            error_msg = (f"Batch {i//batch_size + 1} upload "
-                                       f"failed: {response.status_code}")
+                            error_msg = (
+                                f"Batch {i//batch_size + 1} upload "
+                                f"failed: {response.status_code}"
+                            )
                             logger.error(f"❌ {error_msg} - {response.text}")
-                            
+
                             # Log failed upload for each document
                             for doc in batch:
                                 log_upload(
-                                    url=doc.get('metadata', {}).get('url', ''),
+                                    url=doc.get("metadata", {}).get("url", ""),
                                     success=False,
-                                    metadata_size=len(str(doc.get('metadata', {}))),
+                                    metadata_size=len(str(doc.get("metadata", {}))),
                                     error=f"HTTP {response.status_code}",
-                                    duration_ms=duration_ms
+                                    duration_ms=duration_ms,
                                 )
                                 record_upload(
-                                    url=doc.get('metadata', {}).get('url', ''),
+                                    url=doc.get("metadata", {}).get("url", ""),
                                     success=False,
                                     duration_ms=duration_ms,
-                                    metadata_size=len(str(doc.get('metadata', {}))),
+                                    metadata_size=len(str(doc.get("metadata", {}))),
                                     error_type=f"http_{response.status_code}",
-                                    correlation_id=correlation_id
+                                    correlation_id=correlation_id,
                                 )
-                            
-                            failed_batches.append({
-                                'batch_num': i//batch_size + 1,
-                                'size': len(batch),
-                                'error': error_msg
-                            })
+
+                            failed_batches.append(
+                                {
+                                    "batch_num": i // batch_size + 1,
+                                    "size": len(batch),
+                                    "error": error_msg,
+                                }
+                            )
                             # Continue with other batches
-                            
+
                     except requests.exceptions.RequestException as e:
                         duration_ms = (time.time() - start_time) * 1000
-                        error_msg = (f"Network error uploading batch "
-                                   f"{i//batch_size + 1}")
+                        error_msg = (
+                            f"Network error uploading batch " f"{i//batch_size + 1}"
+                        )
                         logger.error(f"❌ {error_msg}: {e}")
-                        
+
                         # Log failed upload for each document in batch
                         for doc in batch:
                             log_upload(
-                                url=doc.get('metadata', {}).get('url', ''),
+                                url=doc.get("metadata", {}).get("url", ""),
                                 success=False,
-                                metadata_size=len(str(doc.get('metadata', {}))),
+                                metadata_size=len(str(doc.get("metadata", {}))),
                                 error=str(e),
-                                duration_ms=duration_ms / len(batch)
+                                duration_ms=duration_ms / len(batch),
                             )
                             record_upload(
-                                url=doc.get('metadata', {}).get('url', ''),
+                                url=doc.get("metadata", {}).get("url", ""),
                                 success=False,
                                 duration_ms=duration_ms / len(batch),
-                                metadata_size=len(str(doc.get('metadata', {}))),
-                                error_type='network_error',
-                                correlation_id=correlation_id
+                                metadata_size=len(str(doc.get("metadata", {}))),
+                                error_type="network_error",
+                                correlation_id=correlation_id,
                             )
-                        
-                        failed_batches.append({
-                            'batch_num': i//batch_size + 1,
-                            'size': len(batch),
-                            'error': str(e)
-                        })
+
+                        failed_batches.append(
+                            {
+                                "batch_num": i // batch_size + 1,
+                                "size": len(batch),
+                                "error": str(e),
+                            }
+                        )
                         # Continue with other batches
-                
+
                 # Report results
                 if failed_urls:
                     logger.warning(
                         f"⚠️  {len(failed_urls)} documents had invalid URLs "
                         f"and used placeholders"
                     )
-                
+
                 if failed_batches:
-                    logger.warning(
-                        f"⚠️  {len(failed_batches)} batches failed to upload"
-                    )
-                    
+                    logger.warning(f"⚠️  {len(failed_batches)} batches failed to upload")
+
                 if total_uploaded > 0:
                     logger.info(
                         f"✅ Successfully uploaded {total_uploaded} documents "
@@ -406,21 +461,21 @@ class PineconeAssistantAgent:
                         f"Failed to upload any documents to assistant "
                         f"{assistant_id}"
                     )
-                
+
             except Exception as e:
                 # Re-raise for retry decorator to handle
                 raise URLMetadataUploadError(
                     f"Error uploading documents to assistant {assistant_id}",
-                    original_error=e
+                    original_error=e,
                 )
-    
+
     @exponential_backoff_retry(
         max_retries=3,
         initial_delay=1.0,
         max_delay=10.0,
         exceptions=(requests.exceptions.RequestException, ConnectionError),
         raise_on_exhaust=False,
-        fallback_result=None
+        fallback_result=None,
     )
     def query_assistant(
         self,
@@ -431,102 +486,108 @@ class PineconeAssistantAgent:
         **_ignored: Any,
     ) -> Dict[str, Any]:
         """Query assistant with graceful error handling and URL metadata safety"""
-        
+
         query_data = {
             "message": question,
             "include_metadata": include_metadata,
-            "stream": False
+            "stream": False,
         }
-        
+
         try:
             response = requests.post(
                 f"{self.host}/assistants/{assistant_id}/chat",
                 headers=self.headers,
                 json=query_data,
-                timeout=timeout or 30
+                timeout=timeout or 30,
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
-                
+
                 # Extract and format sources with graceful URL handling
                 try:
                     formatted_sources = self._format_sources_with_urls(
-                        result.get('citations', [])
+                        result.get("citations", [])
                     )
                 except Exception as e:
                     logger.error(f"Error formatting sources: {e}")
                     formatted_sources = []
-                
+
                 # Use the AssistantResponseFormatter with error handling
                 try:
                     formatted_response = (
                         AssistantResponseFormatter.format_assistant_response(
-                            answer=result.get('message', ''),
-                            sources=formatted_sources
+                            answer=result.get("message", ""), sources=formatted_sources
                         )
                     )
                 except Exception as e:
                     logger.error(f"Error in response formatter: {e}")
                     # Provide minimal formatting as fallback
                     formatted_response = {
-                        'formatted_sources': 'Error formatting sources.',
-                        'source_summary': f'Found {len(formatted_sources)} sources.',
-                        'structured_sources': formatted_sources
+                        "formatted_sources": "Error formatting sources.",
+                        "source_summary": f"Found {len(formatted_sources)} sources.",
+                        "structured_sources": formatted_sources,
                     }
-                
+
                 # Return response with all safety measures
                 return {
-                    'answer': result.get('message', ''),
-                    'sources': formatted_sources,
-                    'formatted_sources': formatted_response['formatted_sources'],
-                    'source_summary': formatted_response['source_summary'],
-                    'structured_sources': formatted_response['structured_sources'],
-                    'metadata': result.get('metadata', {})
+                    "answer": result.get("message", ""),
+                    "sources": formatted_sources,
+                    "formatted_sources": formatted_response.get(
+                        "formatted_sources", "No sources available."
+                    ),
+                    "source_summary": formatted_response.get(
+                        "source_summary", "No sources found."
+                    ),
+                    "structured_sources": formatted_response.get(
+                        "structured_sources", []
+                    ),
+                    "metadata": result.get("metadata", {}),
                 }
             else:
-                logger.error(
-                    f"Query failed: {response.status_code} - {response.text}"
-                )
+                logger.error(f"Query failed: {response.status_code} - {response.text}")
                 return self._create_error_response(
-                    f"Query failed with status {response.status_code}"
+                    "I encountered an error while processing your request"
                 )
-                
-        except requests.exceptions.Timeout:
-            logger.error("Query timed out")
-            return self._create_error_response(
-                "Request timed out. Please try again."
-            )
+
         except Exception as e:
             logger.error(f"Error querying assistant: {e}")
             return self._create_error_response(
-                     "I encountered an error while processing your question."
-                 ) 
+                "I encountered an error while processing your question."
+            )
+
     def _create_error_response(self, error_message: str) -> Dict[str, Any]:
         """Create a consistent error response structure"""
+        # Only prepend 'Sorry, ' if the error message doesn't already start with it
+        if not error_message.strip().startswith("Sorry"):
+            answer = f"Sorry, {error_message}"
+        else:
+            answer = error_message
+
         return {
-            'answer': f'Sorry, {error_message}',
-            'sources': [],
-            'formatted_sources': 'No sources available due to error.',
-            'source_summary': 'Error occurred during query.',
-            'structured_sources': [],
-            'metadata': {'error': True, 'message': error_message}
+            "answer": answer,
+            "sources": [],
+            "formatted_sources": "No sources available.",
+            "source_summary": "No sources found.",
+            "structured_sources": [],
+            "metadata": {},
         }
-    
+
     def get_assistant_info(self, assistant_id: str) -> Dict[str, Any]:
         """Get information about a specific assistant"""
         try:
             response = requests.get(
-                f"{self.host}/assistants/{assistant_id}",
-                headers=self.headers
+                f"{self.host}/assistants/{assistant_id}", headers=self.headers
             )
-            
+
             if response.status_code == 200:
                 return response.json()
             else:
-                print(f"❌ Failed to get assistant info: {response.status_code} - {response.text}")
+                print(
+                    f"❌ Failed to get assistant info: {response.status_code} - {response.text}"
+                )
                 return {}
-                
+
         except Exception as e:
             print(f"❌ Error getting assistant info: {e}")
             return {}

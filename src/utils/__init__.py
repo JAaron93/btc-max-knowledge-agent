@@ -9,6 +9,7 @@ place but forward sub-module look-ups to their modern counterparts whenever
 possible.  This keeps existing tests and third-party code working without
 needing to update every import statement immediately.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -17,6 +18,7 @@ import types
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+
 # from btc_max_knowledge_agent.utils.url_error_handler import query_retry_with_backoff
 
 # ---------------------------------------------------------------------------
@@ -74,13 +76,8 @@ def _forward(submodule: str) -> ModuleType:  # pragma: no cover
     sys.modules[f"{__name__}.{submodule}"] = target
     # Also register under the new package namespace so that
     # ``btc_max_knowledge_agent.utils.<submodule>`` resolves.
-    sys.modules.setdefault(
-        f"btc_max_knowledge_agent.utils.{submodule}", target
-    )
+    sys.modules.setdefault(f"btc_max_knowledge_agent.utils.{submodule}", target)
     return target
-
-
-
 
 
 def __getattr__(name: str) -> Any:  # noqa: D401

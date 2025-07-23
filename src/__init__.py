@@ -9,12 +9,11 @@ to the new location. Otherwise, Python falls back to the actual legacy module
 still living under the `src/` directory hierarchy.
 """
 
-from importlib import import_module
-import sys
-from typing import List
-
 # Ensure this module is recognised as a namespace package.
 import os
+import sys
+from importlib import import_module
+from typing import List
 
 # Ensure this behaves as a namespace package for importlib
 __path__: List[str] = [os.path.dirname(__file__)]  # type: ignore[assignment]
@@ -40,7 +39,7 @@ for _sub in _forward_subs:
         prefix_new = f"{__name__}.{_sub}."
         for mod_name, mod_obj in list(sys.modules.items()):
             if mod_name.startswith(prefix_old):
-                forwarded_name = prefix_new + mod_name[len(prefix_old):]
+                forwarded_name = prefix_new + mod_name[len(prefix_old) :]
                 sys.modules[forwarded_name] = mod_obj
     except ModuleNotFoundError:
         # If the module hasn't been migrated yet, simply ignore.

@@ -30,4 +30,4 @@ __all__ = [
     "BitcoinDataCollector",
 ]
 
-__all__ = ['BitcoinDataCollector']
+__all__ = ["BitcoinDataCollector"]

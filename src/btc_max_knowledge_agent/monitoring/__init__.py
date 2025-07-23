@@ -7,4 +7,4 @@ operational metrics across the application.
 
 from btc_max_knowledge_agent.monitoring.url_metadata_monitor import URLMetadataMonitor
 
-__all__ = ['URLMetadataMonitor']
+__all__ = ["URLMetadataMonitor"]

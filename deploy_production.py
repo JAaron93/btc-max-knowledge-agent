@@ -5,13 +5,15 @@ Uses Gunicorn for better performance and stability
 """
 
 import os
-import sys
-import subprocess
 import signal
+import subprocess
+import sys
 import time
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 def create_gunicorn_config():
     """Create Gunicorn configuration file"""
@@ -42,73 +44,73 @@ limit_request_line = 4096
 limit_request_fields = 100
 limit_request_field_size = 8190
 """
-    
+
     os.makedirs("logs", exist_ok=True)
-    
+
     with open("gunicorn.conf.py", "w") as f:
         f.write(config_content)
-    
+
     print("✅ Created Gunicorn configuration")
+
 
 def start_production_api():
     """Start API server with Gunicorn"""
     print("🚀 Starting production API server with Gunicorn...")
-    
-    cmd = [
-        "gunicorn",
-        "src.web.bitcoin_assistant_api:app",
-        "-c", "gunicorn.conf.py"
-    ]
-    
+
+    cmd = ["gunicorn", "src.web.bitcoin_assistant_api:app", "-c", "gunicorn.conf.py"]
+
     return subprocess.Popen(cmd)
+
 
 def start_production_ui():
     """Start Gradio UI for production"""
-    ui_port = int(os.getenv('UI_PORT', 7860))
+    ui_port = int(os.getenv("UI_PORT", 7860))
     print(f"🎨 Starting production Gradio UI on port {ui_port}...")
-    
+
     # Check if port is already in use
     import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('localhost', ui_port))
+    result = sock.connect_ex(("localhost", ui_port))
     sock.close()
-    
+
     if result == 0:
         print(f"⚠️  Port {ui_port} is already in use. Using port {ui_port + 1} instead.")
         ui_port = ui_port + 1
-    
+
     # Set production environment variables
     env = os.environ.copy()
-    env['GRADIO_SERVER_NAME'] = os.getenv('UI_HOST', '0.0.0.0')
-    env['GRADIO_SERVER_PORT'] = str(ui_port)
-    
-    cmd = [
-        sys.executable, "src/web/bitcoin_assistant_ui.py"
-    ]
-    
+    env["GRADIO_SERVER_NAME"] = os.getenv("UI_HOST", "0.0.0.0")
+    env["GRADIO_SERVER_PORT"] = str(ui_port)
+
+    cmd = [sys.executable, "src/web/bitcoin_assistant_ui.py"]
+
     return subprocess.Popen(cmd, env=env)
+
 
 def check_production_requirements():
     """Check if production requirements are met"""
     import importlib.util
+
     if importlib.util.find_spec("gunicorn") is not None:
         print("✅ Gunicorn is available")
     else:
         print("❌ Gunicorn not found. Installing...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "gunicorn"])
         print("✅ Gunicorn installed")
-    
+
     # Check if logs directory exists
     os.makedirs("logs", exist_ok=True)
-    
+
     return True
+
 
 def create_systemd_service():
     """Create systemd service file for production deployment"""
-    
+
     current_dir = os.path.abspath(os.getcwd())
     python_path = sys.executable
-    
+
     service_content = f"""[Unit]
 Description=Bitcoin Knowledge Assistant API
 After=network.target
@@ -130,10 +132,10 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 """
-    
+
     with open("bitcoin-assistant.service", "w") as f:
         f.write(service_content)
-    
+
     print("✅ Created systemd service file: bitcoin-assistant.service")
     print("To install:")
     print("  sudo cp bitcoin-assistant.service /etc/systemd/system/")
@@ -141,12 +143,13 @@ WantedBy=multi-user.target
     print("  sudo systemctl enable bitcoin-assistant")
     print("  sudo systemctl start bitcoin-assistant")
 
+
 def create_nginx_config():
     """Create Nginx configuration for reverse proxy"""
-    
-    api_port = os.getenv('API_PORT', 8000)
-    ui_port = os.getenv('UI_PORT', 7860)
-    
+
+    api_port = os.getenv("API_PORT", 8000)
+    ui_port = os.getenv("UI_PORT", 7860)
+
     nginx_config = f"""server {{
     listen 80;
     server_name your-domain.com;  # Replace with your domain
@@ -185,72 +188,81 @@ def create_nginx_config():
     add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
 }}
 """
-    
+
     with open("nginx-bitcoin-assistant.conf", "w") as f:
         f.write(nginx_config)
-    
+
     print("✅ Created Nginx configuration: nginx-bitcoin-assistant.conf")
     print("To install:")
-    print("  sudo cp nginx-bitcoin-assistant.conf /etc/nginx/sites-available/bitcoin-assistant")
-    print("  sudo ln -s /etc/nginx/sites-available/bitcoin-assistant /etc/nginx/sites-enabled/")
+    print(
+        "  sudo cp nginx-bitcoin-assistant.conf /etc/nginx/sites-available/bitcoin-assistant"
+    )
+    print(
+        "  sudo ln -s /etc/nginx/sites-available/bitcoin-assistant /etc/nginx/sites-enabled/"
+    )
     print("  sudo nginx -t")
     print("  sudo systemctl reload nginx")
+
 
 def main():
     """Main production deployment function"""
     import argparse
-    
-    parser = argparse.ArgumentParser(description="Bitcoin Knowledge Assistant Production Deployment")
+
+    parser = argparse.ArgumentParser(
+        description="Bitcoin Knowledge Assistant Production Deployment"
+    )
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
-    parser.add_argument("--create-configs", action="store_true", help="Create configuration files")
+    parser.add_argument(
+        "--create-configs", action="store_true", help="Create configuration files"
+    )
     args = parser.parse_args()
-    
+
     print("🏭 Bitcoin Knowledge Assistant - Production Deployment")
     print("=" * 60)
-    
+
     if args.create_configs:
         create_systemd_service()
         create_nginx_config()
         return
-    
+
     # Check production requirements
     if not check_production_requirements():
         sys.exit(1)
-    
+
     # Create Gunicorn config
     create_gunicorn_config()
-    
+
     # Start production servers
     api_process = start_production_api()
-    
+
     # Wait a bit for API to start
     time.sleep(5)
-    
+
     ui_process = start_production_ui()
-    
+
     print("\n🎉 Production Bitcoin Knowledge Assistant is running!")
     print("=" * 60)
     print(f"📡 API Server: http://localhost:{os.getenv('API_PORT', 8000)}")
     print(f"🌐 Web UI: http://localhost:{os.getenv('UI_PORT', 7860)}")
     print(f"📚 API Docs: http://localhost:{os.getenv('API_PORT', 8000)}/docs")
     print("📊 Logs: logs/access.log, logs/error.log")
-    
+
     if not args.daemon:
         print("\nPress Ctrl+C to stop servers")
-        
+
         def signal_handler(sig, frame):
             print("\n🛑 Shutting down production servers...")
             api_process.terminate()
             ui_process.terminate()
-            
+
             api_process.wait()
             ui_process.wait()
-            
+
             print("✅ Production servers stopped")
             sys.exit(0)
-        
+
         signal.signal(signal.SIGINT, signal_handler)
-        
+
         try:
             while api_process.poll() is None and ui_process.poll() is None:
                 time.sleep(1)
@@ -258,6 +270,7 @@ def main():
             signal_handler(None, None)
     else:
         print("🔄 Running as daemon...")
+
 
 if __name__ == "__main__":
     main()

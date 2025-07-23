@@ -43,7 +43,9 @@ except Exception:  # pragma: no cover – fall back to stubs
         def record_retrieval(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
             self._records.append(("retrieval", args, kwargs))
 
-        def check_url_accessibility(self, *args: Any, **kwargs: Any) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
+        def check_url_accessibility(
+            self, *args: Any, **kwargs: Any
+        ) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
             return False, "unavailable"
 
     # Module-level convenience wrappers used by production code & tests
@@ -58,7 +60,9 @@ except Exception:  # pragma: no cover – fall back to stubs
     def record_retrieval(*args: Any, **kwargs: Any) -> None:  # noqa: D401
         url_metadata_monitor.record_retrieval(*args, **kwargs)
 
-    def check_url_accessibility(*args: Any, **kwargs: Any) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
+    def check_url_accessibility(
+        *args: Any, **kwargs: Any
+    ) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
         return url_metadata_monitor.check_url_accessibility(*args, **kwargs)
 
     _legacy = SimpleNamespace(
