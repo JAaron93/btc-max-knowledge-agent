@@ -1,0 +1,34 @@
+{
+  "test_questions": [
+    {
+      "id": 1,
+      "question": "What is Bitcoin and how does it work?",
+      "category": "basics",
+      "tags": ["bitcoin", "fundamentals"]
+    },
+    {
+      "id": 2,
+      "question": "Explain the Lightning Network and its benefits",
+      "category": "scaling",
+      "tags": ["lightning", "layer2", "scaling"]
+    },
+    {
+      "id": 3,
+      "question": "What are decentralized applications (dApps)?",
+      "category": "applications",
+      "tags": ["dapps", "decentralization", "applications"]
+    },
+    {
+      "id": 4,
+      "question": "Tell me about the GENIUS Act and its impact on blockchain",
+      "category": "regulation",
+      "tags": ["regulation", "policy", "genius-act"]
+    },
+    {
+      "id": 5,
+      "question": "What are the key differences between Bitcoin and traditional currency?",
+      "category": "comparison",
+      "tags": ["bitcoin", "currency", "comparison"]
+    }
+  ]
+}

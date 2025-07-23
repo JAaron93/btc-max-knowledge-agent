@@ -18,9 +18,9 @@ __version__ = "0.1.0"
 # Example: `from src.utils.config import Config` now resolves to
 #          `btc_max_knowledge_agent.utils.config.Config`.
 
+import importlib
 import sys
 import types
-import importlib
 
 # ---------------------------------------------------------------------------
 # Legacy `src` compatibility alias
@@ -30,7 +30,6 @@ import importlib
 # package. Otherwise we manufacture a shim module and make sure it behaves
 # like a proper namespace package with a non-empty `__path__` so that the
 # import machinery does not raise KeyError while traversing parent paths.
-
 from pathlib import Path
 
 if "src" in sys.modules:

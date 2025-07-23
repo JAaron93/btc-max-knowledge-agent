@@ -6,18 +6,19 @@ This example demonstrates how to use the enhanced exponential backoff retry
 functionality that maintains consistency with MAX_QUERY_RETRIES.
 """
 
-import requests
-import time
 import logging
-from typing import Dict, Any
+import time
+from typing import Any, Dict
+
+import requests
 
 # Import the enhanced retry functionality
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    query_retry_with_backoff,
-    exponential_backoff_retry,
     MAX_QUERY_RETRIES,
+    RetryExhaustedError,
     URLMetadataUploadError,
-    RetryExhaustedError
+    exponential_backoff_retry,
+    query_retry_with_backoff,
 )
 
 # Set up logging to see retry attempts
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 @query_retry_with_backoff(
     exceptions=(requests.RequestException, ConnectionError),
     raise_on_exhaust=False,
-    fallback_result={'error': 'Service unavailable after retries'}
+    fallback_result={"error": "Service unavailable after retries"},
 )
 def query_external_api(url: str) -> Dict[str, Any]:
     """
@@ -50,7 +51,7 @@ def query_external_api(url: str) -> Dict[str, Any]:
     exponential_base=2.0,
     jitter=True,
     exceptions=(requests.RequestException,),
-    raise_on_exhaust=True
+    raise_on_exhaust=True,
 )
 def query_bitcoin_price_api() -> Dict[str, Any]:
     """
@@ -58,7 +59,9 @@ def query_bitcoin_price_api() -> Dict[str, Any]:
     This function will retry up to 3 times with exponential backoff and jitter.
     """
     logger.info("Querying Bitcoin price API")
-    response = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json", timeout=5)
+    response = requests.get(
+        "https://api.coindesk.com/v1/bpi/currentprice.json", timeout=5
+    )
     response.raise_for_status()
     return response.json()
 
@@ -71,7 +74,7 @@ def query_bitcoin_price_api() -> Dict[str, Any]:
     exponential_base=2.0,
     jitter=True,
     exceptions=(URLMetadataUploadError, ConnectionError, TimeoutError),
-    raise_on_exhaust=True
+    raise_on_exhaust=True,
 )
 def upload_metadata_to_service(metadata: Dict[str, Any]) -> bool:
     """
@@ -79,12 +82,13 @@ def upload_metadata_to_service(metadata: Dict[str, Any]) -> bool:
     This demonstrates direct use of the exponential_backoff_retry decorator.
     """
     logger.info(f"Uploading metadata: {metadata}")
-    
+
     # Simulate intermittent failures
     import random
+
     if random.random() < 0.7:  # 70% chance of failure
         raise ConnectionError("Simulated connection failure")
-    
+
     logger.info("Metadata uploaded successfully")
     return True
 
@@ -97,35 +101,40 @@ def simple_retry_query(url: str, max_attempts: int = None) -> Dict[str, Any]:
     """
     if max_attempts is None:
         max_attempts = MAX_QUERY_RETRIES
-    
+
     last_error = None
-    
+
     for attempt in range(1, max_attempts + 1):
         try:
             logger.info(f"Attempt {attempt}/{max_attempts}: Querying {url}")
             response = requests.get(url, timeout=5)
             response.raise_for_status()
             return response.json()
-            
+
         except requests.RequestException as e:
             last_error = e
             if attempt < max_attempts:
                 # Simple linear backoff (not exponential)
                 delay = attempt * 1.0
-                logger.warning(f"Attempt {attempt} failed: {e}. Retrying in {delay}s...")
+                logger.warning(
+                    f"Attempt {attempt} failed: {e}. Retrying in {delay}s..."
+                )
                 time.sleep(delay)
             else:
                 logger.error(f"All {max_attempts} attempts failed")
-    
+
     # Return error information after all attempts fail
-    return {'error': f'Failed after {max_attempts} attempts', 'last_error': str(last_error)}
+    return {
+        "error": f"Failed after {max_attempts} attempts",
+        "last_error": str(last_error),
+    }
 
 
 def demonstrate_retry_functionality():
     """Demonstrate various retry patterns."""
     print("🔄 Exponential Backoff Retry Examples")
     print("=" * 50)
-    
+
     # Example 1: Successful API call with retry wrapper
     print("\n1. Query CoinDesk API (should succeed):")
     try:
@@ -134,29 +143,33 @@ def demonstrate_retry_functionality():
         print(f"   USD Rate: {result['bpi']['USD']['rate']}")
     except Exception as e:
         print(f"❌ Failed: {e}")
-    
+
     # Example 2: Query with fallback (will likely fail for demo URL)
     print("\n2. Query with fallback (using MAX_QUERY_RETRIES):")
-    result = query_external_api("https://httpstat.us/500")  # This will return 500 errors
+    result = query_external_api(
+        "https://httpstat.us/500"
+    )  # This will return 500 errors
     print(f"Result: {result}")
-    
+
     # Example 3: Upload with simulated failures
     print("\n3. Upload with simulated failures:")
     try:
-        success = upload_metadata_to_service({
-            'title': 'Bitcoin Whitepaper',
-            'url': 'https://bitcoin.org/bitcoin.pdf',
-            'category': 'research'
-        })
+        success = upload_metadata_to_service(
+            {
+                "title": "Bitcoin Whitepaper",
+                "url": "https://bitcoin.org/bitcoin.pdf",
+                "category": "research",
+            }
+        )
         print(f"✅ Upload succeeded: {success}")
     except RetryExhaustedError as e:
         print(f"❌ Upload failed after all retries: {e}")
-    
+
     # Example 4: Compare with simple retry loop
     print("\n4. Simple retry loop (for comparison):")
     result = simple_retry_query("https://httpstat.us/503", max_attempts=3)
     print(f"Result: {result}")
-    
+
     print("\n📊 Configuration Summary:")
     print(f"   MAX_QUERY_RETRIES: {MAX_QUERY_RETRIES}")
     print("   Default initial delay: 1.0s")

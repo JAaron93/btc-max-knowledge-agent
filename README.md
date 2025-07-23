@@ -169,10 +169,11 @@ Response:
 |----------|-------------|---------|
 | `PINECONE_API_KEY` | Pinecone API key | Required |
 | `PINECONE_ASSISTANT_HOST` | Assistant endpoint | Required |
-| `API_HOST` | API server host | 0.0.0.0 |
+| `API_HOST` | API server host | ******* |
 | `API_PORT` | API server port | 8000 |
-| `UI_HOST` | UI server host | 0.0.0.0 |
+| `UI_HOST` | UI server host | ******* |
 | `UI_PORT` | UI server port | 7860 |
+| `ALLOW_LOCALHOST_URLS` | Allow localhost URLs in testing | true |
 
 ### Gunicorn Configuration
 
@@ -389,7 +390,18 @@ python demo_url_metadata_complete.py
 
 ### Test API Connection
 ```bash
-python test_mcp_tools.py
+python run_tests.py --verbose
+
+### Running Tests
+For development tests, ensure ALLOW_LOCALHOST_URLS is true:
+```bash
+python run_tests.py --verbose
+```
+
+For production tests to ensure localhost URLs are rejected:
+```bash
+python run_tests.py tests/test_pinecone_url_metadata_prod.py --verbose
+```
 ```
 
 ### Test Individual Components
@@ -406,10 +418,45 @@ curl -X POST http://localhost:8000/query \
      -d '{"question": "What is Bitcoin?"}'
 ```
 
+### Test URL Validation System
+
+#### Integration Testing Approach
+The URL validation system includes both integration and unit tests to ensure comprehensive coverage:
+
+```bash
+# Run URL validation integration tests
+python -m pytest tests/test_url_metadata_integration.py -v
+
+# Run all URL utility tests
+python -m pytest tests/test_url_utils.py -v
+```
+
+**Test Coverage Includes:**
+- Valid HTTPS URLs
+- JavaScript XSS attempts
+- Private IP addresses
+- Invalid URL formats
+- File protocol URLs
+- Unicode domain names
+
+#### Testing Strategy
+
+**Integration Tests**
+- Verify complete validation pipeline
+- Test end-to-end validation
+- Validate security-critical logic
+- Ensure regression testing coverage
+
+**Unit Tests**
+- Fast, predictable test execution
+- Test validation coordination logic
+- Isolate specific edge cases
+- Mock external dependencies
+
 ### Test URL Metadata System
 ```bash
 # Test backward compatibility
-python test_backward_compatibility_enhanced.py
+python -m pytest tests/test_backward_compatibility_enhanced.py -v
 
 # Run integration tests
 python validate_integration.py
