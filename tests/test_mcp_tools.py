@@ -122,9 +122,7 @@ def call_mcp_tool(method, params=None):
             print(f"❌ HTTP Error: {response.status_code}")
             return None
 
-    except Exception as e:
-        print(f"❌ Error calling MCP tool: {e}")
-        return None
+
 
     except Exception as e:
         print(f"❌ Error calling MCP tool: {e}")

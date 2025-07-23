@@ -19,6 +19,12 @@ This document outlines the URL validation policy for the Bitcoin Knowledge Assis
   - **IPv6 Loopback**: ::1/128 (localhost address)
   - **IPv6 Unique Local**: fc00::/7 (private IPv6 addresses)
   - **IPv6 Link-Local**: fe80::/10 (link-local addresses)
+  - **IPv4 Link-Local**: 169.254.0.0/16 (automatic private addressing)
+  - **IPv4 Shared Address Space**: 100.64.0.0/10 (Carrier-Grade NAT)
+  - **IPv4 “This Host”**: 0.0.0.0/8
+  - **IPv4 Protocol Assignments**: 192.0.0.0/24
+  - **IPv4 Benchmarking**: 198.18.0.0/15
+  - **IPv6 Documentation**: 2001:db8::/32
 - **Configuration**: Default set with `ALLOW_PRIVATE_URLS=false`.
 - **Enforcement**: Attempts to use blocked URLs will be logged and alerts generated.
 - **Rationale**: Prevents SSRF attacks and unauthorized internal network accesses by blocking internal and loopback IP addresses ensuring only external and secure URLs are accessible in production.

@@ -95,7 +95,7 @@ def check_production_requirements():
 
     if importlib.util.find_spec("gunicorn") is not None:
         print("✅ Gunicorn is available")
-        print("❌ Gunicorn not found. Installing...")
+    else:
         print("❌ Gunicorn not found. Please install it before deploying, e.g.:")
         print("    pip install gunicorn")
         return False
