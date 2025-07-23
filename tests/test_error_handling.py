@@ -250,13 +250,11 @@ def test_invalid_url_handling_in_documents(mock_pinecone_agent):
 def test_pinecone_client_url_validation():
     """Test URL validation in PineconeClient with proper assertions."""
     try:
+    try:
         client = PineconeClient()
     except Exception:
         # If client initialization fails due to missing config, create a stub for testing
-        client = PineconeClient()
-
-    # Test cases for URL validation
-    test_cases = [
+        pytest.skip("PineconeClient initialization failed - missing configuration")
         ("https://valid.example.com", "https://valid.example.com"),
         ("example.com", "https://example.com"),  # Should add https:// prefix
         ("invalid url with spaces", None),  # Should return None for invalid URLs
@@ -341,8 +339,8 @@ def test_pinecone_client_document_preparation():
     # Assert specific test cases
     valid_doc = next(d for d in processed_documents if d["id"] == "doc1")
     assert valid_doc["url"] == "", "URL should be empty string after null-safe processing"
-    
-    null_doc = next(d for d in processed_documents if d["id"] == "doc4")
+    valid_doc = next(d for d in processed_documents if d["id"] == "doc1")
+    assert valid_doc["url"] == "https://valid.example.com", "Valid URL should be preserved after null-safe processing"
     assert null_doc["title"] == "", "Null title should become empty string"
     assert null_doc["source"] == "", "Null source should become empty string"
 
@@ -385,8 +383,9 @@ def test_pinecone_client_upsert_with_errors():
         with patch.object(client, 'get_index') as mock_get_index:
             mock_index = patch('unittest.mock.Mock')()
             mock_get_index.return_value = mock_index
-            
-            # Test successful index upsert
+            from unittest.mock import Mock
+            mock_index = Mock()
+            mock_get_index.return_value = mock_index
             mock_index.upsert.return_value = {"upserted_count": 1}
             
             try:

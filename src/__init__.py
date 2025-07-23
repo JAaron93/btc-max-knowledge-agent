@@ -39,7 +39,7 @@ for _sub in _forward_subs:
         prefix_new = f"{__name__}.{_sub}."
         for mod_name, mod_obj in list(sys.modules.items()):
             if mod_name.startswith(prefix_old):
-                forwarded_name = prefix_new + mod_name[len(prefix_old):]
+                forwarded_name = prefix_new + mod_name.removeprefix(prefix_old)
                 sys.modules[forwarded_name] = mod_obj
     except ModuleNotFoundError:
         # If the module hasn't been migrated yet, simply ignore.

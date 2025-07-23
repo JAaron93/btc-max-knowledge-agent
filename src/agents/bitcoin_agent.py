@@ -29,7 +29,7 @@ class BitcoinKnowledgeAgent:
                     "response": "No relevant information found in the Bitcoin knowledge base.",
                     "sources": [],
                     "summary": "",
-                },
+        ,
                 "message": "No relevant information found in the Bitcoin knowledge base.",
             }
 

@@ -61,13 +61,17 @@ def query_bitcoin_assistant(question: str) -> Tuple[str, str]:
 
         return answer, sources_text
 
+    except requests.exceptions.ConnectionError:
+        return (
+            "❌ Cannot connect to Bitcoin Assistant API. Make sure the FastAPI server is running on port 8000.",
+            "",
+        )
     except requests.exceptions.RequestException as e:
         if hasattr(e, 'response') and e.response is not None:
             error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
             return error_msg, ""
         else:
             return f"❌ Request Error: {str(e)}", ""
-
     except requests.exceptions.ConnectionError:
         return (
             "❌ Cannot connect to Bitcoin Assistant API. Make sure the FastAPI server is running on port 8000.",

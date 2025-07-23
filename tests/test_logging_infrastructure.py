@@ -595,9 +595,7 @@ class TestErrorHandling:
         )  # Could be empty if all data was rejected
 
 
-class TestConvenienceFunctions:
-    def test_global_convenience_functions(self):
-        """Test global convenience functions."""
+
 class TestConvenienceFunctions:
     def test_global_convenience_functions(self):
         """Test global convenience functions."""

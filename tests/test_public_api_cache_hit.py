@@ -17,37 +17,33 @@ from btc_max_knowledge_agent.utils.url_utils import validate_url_batch, validate
 @pytest.fixture
 def url_format_mock():
     """
-    Fixture that provides a context manager for mocking validate_url_format
+    Fixture that provides a call counter while mocking validate_url_format
     with call counting while delegating to the real implementation.
-    
+
     Returns:
-        A context manager that yields a call counter object with a 'value' attribute.
+        A call counter object with a 'value' attribute.
     """
-    @contextmanager
-    def _mock_url_format():
-        # Store the original function to delegate to it
-        original_validate_url_format = validate_url_format
-        
-        # Create a call counter
-        class CallCounter:
-            def __init__(self):
-                self.value = 0
-        
-        call_counter = CallCounter()
-        
-        def mock_validate_url_format(url):
-            call_counter.value += 1
-            # Delegate to the real implementation
-            return original_validate_url_format(url)
-        
-        # Patch validate_url_format
-        with patch(
-            "btc_max_knowledge_agent.utils.url_utils.validate_url_format",
-            side_effect=mock_validate_url_format,
-        ):
-            yield call_counter
-    
-    return _mock_url_format
+    # Store the original function to delegate to it
+    original_validate_url_format = validate_url_format
+
+    # Create a call counter
+    class CallCounter:
+        def __init__(self):
+            self.value = 0
+
+    call_counter = CallCounter()
+
+    def mock_validate_url_format(url):
+        call_counter.value += 1
+        # Delegate to the real implementation
+        return original_validate_url_format(url)
+
+    # Patch validate_url_format
+    with patch(
+        "btc_max_knowledge_agent.utils.url_utils.validate_url_format",
+        side_effect=mock_validate_url_format,
+    ):
+        yield call_counter
 
 
 class TestPublicAPICacheHit:

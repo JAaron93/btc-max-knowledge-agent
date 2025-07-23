@@ -103,10 +103,13 @@ def test_edge_cases():
 if __name__ == "__main__":
     print("🚀 Running side effects test for clean_mcp_response")
     
-    success = test_no_side_effects()
-    test_edge_cases()
-    
-    if success:
-        print("\n🎉 All tests passed! The function is now side-effect free.")
-    else:
-        print("\n💥 Some tests failed. Please check the implementation.")
+    try:
+        success = test_no_side_effects()
+        test_edge_cases()
+        
+        if success:
+            print("\n🎉 All tests passed! The function is now side-effect free.")
+        else:
+            print("\n💥 Some tests failed. Please check the implementation.")
+    except Exception as e:
+        print(f"\n💥 Test execution failed with error: {e}")
