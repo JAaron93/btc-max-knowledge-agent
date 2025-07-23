@@ -96,7 +96,7 @@ class TestBackwardCompatibilitySimple:
         result = results[0]
         assert result["id"] == "legacy_1"
         assert result["url"] == ""  # Legacy vector has empty URL
-        assert not result.get("source_url", "")
+        assert "source_url" not in result  # Legacy vectors should not have source_url field
 
     def test_query_modern_vectors(self, pinecone_client, mock_index):
         """Test querying modern vectors with URL metadata."""

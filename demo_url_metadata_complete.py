@@ -4,38 +4,37 @@ Complete demonstration of URL metadata system end-to-end workflow.
 
 Shows data collection, validation, error handling, logging, monitoring,
 and retrieval with proper source attribution.
+
+SETUP INSTRUCTIONS:
+To run this demo, first install the package in editable mode:
+    pip install -e .
+
+This allows proper importing of the btc_max_knowledge_agent package
+without modifying sys.path at runtime.
 """
 
 import json
-import os
 import random
-import sys
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List
 
-# Add src directory to path for btc_max_knowledge_agent imports
-script_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.join(script_dir, "src")
-sys.path.insert(0, src_dir)
-
-# noqa: E402 (module level import not at top of file)
 from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
     URLMetadataMonitor,
-)  # noqa: E402
+)
 from btc_max_knowledge_agent.utils.result_formatter import (
     QueryResultFormatter,
-)  # noqa: E402
-from btc_max_knowledge_agent.utils.url_error_handler import (  # noqa: E402
+)
+from btc_max_knowledge_agent.utils.url_error_handler import (
     FallbackURLStrategy,
     GracefulDegradation,
 )
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
     URLMetadataLogger,
-)  # noqa: E402
-from btc_max_knowledge_agent.utils.url_utils import URLValidator  # noqa: E402
+)
+from btc_max_knowledge_agent.utils.url_utils import URLValidator
 
 
 class URLMetadataDemo:
@@ -174,11 +173,13 @@ class URLMetadataDemo:
         self.monitor.record_validation_result(url=source["url"], is_valid=True)
 
         # Extract URL metadata with graceful error handling
+        metadata_extraction_successful = True
         try:
             url_metadata = self.url_validator.extract_metadata(source["url"])
         except Exception as e:  # pylint: disable=broad-except
             # Log the error and continue processing
             print(f"  ⚠️  Failed to extract metadata: {e}")
+            metadata_extraction_successful = False
             self.log_operation(
                 "metadata_extraction",
                 "error",
@@ -195,6 +196,9 @@ class URLMetadataDemo:
             }
 
         # Create data entry with URL metadata
+        # url_validated should be True only if both URL validation AND metadata extraction succeeded
+        url_fully_validated = is_valid and metadata_extraction_successful
+        
         data_entry = {
             "id": str(uuid.uuid4()),
             "text": source["content"],
@@ -205,9 +209,9 @@ class URLMetadataDemo:
                 "url_domain": url_metadata["domain"],
                 "url_path": url_metadata["path"],
                 "url_protocol": url_metadata["protocol"],
-                "url_validated": True,
+                "url_validated": url_fully_validated,
                 "url_validation_timestamp": (datetime.utcnow().isoformat() + "Z"),
-                "url_security_score": validation_result.get("security_score", 1.0),
+                "url_security_score": validation_result.get("security_score", 0.0),
                 "metadata_version": "2.0",
                 "collection_timestamp": (datetime.utcnow().isoformat() + "Z"),
                 "correlation_id": self.correlation_id,

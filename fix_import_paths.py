@@ -5,10 +5,46 @@ Script to fix import path issues in test files.
 This script identifies and fixes common import path problems that cause test failures.
 """
 
+import ast
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
+
+
+class PineconeClientVisitor(ast.NodeVisitor):
+    """AST visitor to find PineconeClient constructor calls."""
+    
+    def __init__(self):
+        self.calls_to_fix = []
+    
+    def visit_Call(self, node):
+        """Visit Call nodes to find PineconeClient constructor calls."""
+        if (isinstance(node.func, ast.Name) and
+            node.func.id == 'PineconeClient'):
+            # Check if call has api_key parameter
+            has_api_key = any(
+                isinstance(keyword, ast.keyword) and keyword.arg == 'api_key'
+                for keyword in node.keywords
+            )
+            if has_api_key:
+                self.calls_to_fix.append(node)
+        self.generic_visit(node)
+
+
+class PineconeClientTransformer(ast.NodeTransformer):
+    """AST transformer to remove api_key parameter from PineconeClient calls."""
+    
+    def visit_Call(self, node):
+        """Transform Call nodes to remove api_key parameter."""
+        if (isinstance(node.func, ast.Name) and
+            node.func.id == 'PineconeClient'):
+            # Remove api_key keyword arguments
+            node.keywords = [
+                keyword for keyword in node.keywords
+                if not (isinstance(keyword, ast.keyword) and keyword.arg == 'api_key')
+            ]
+        return self.generic_visit(node)
 
 
 class ImportPathFixer:
@@ -40,7 +76,6 @@ class ImportPathFixer:
             r'patch\("src\.utils\.url_utils\.is_private_ip"\)': 'patch("src.utils.url_utils.is_secure_url")',
             
             # Data collector fixes
-            r'patch\.object\([^,]+, "_fetch_data"\)': 'patch.object(collector, "collect_from_sources")',
             r'process_and_add_chunks': 'process_documents',
         }
         
@@ -207,17 +242,22 @@ class ImportPathFixer:
         return content, changes
     
     def _fix_integration_tests(self, content: str) -> Tuple[str, List[str]]:
-        """Fix specific issues in integration tests."""
+        """Fix specific issues in integration tests using AST-based approach."""
         changes = []
         
-        # Fix PineconeClient constructor calls - remove invalid api_key parameter
+        # Fix PineconeClient constructor calls using AST parsing
         if 'PineconeClient(' in content and 'api_key=' in content:
-            content = re.sub(
-                r'PineconeClient\([^)]*api_key=[^,)]*[,)]',
-                'PineconeClient()',
-                content
-            )
-            changes.append("Fixed PineconeClient constructor calls")
+            try:
+                content, ast_changes = self._fix_pinecone_client_calls_ast(content)
+                changes.extend(ast_changes)
+            except SyntaxError:
+                # Fallback to regex if AST parsing fails
+                content = re.sub(
+                    r'PineconeClient\([^)]*api_key=[^,)]*[,)]',
+                    'PineconeClient()',
+                    content
+                )
+                changes.append("Fixed PineconeClient constructor calls (regex fallback)")
         
         # Fix missing function calls
         if 'check_url_accessibility' in content:
@@ -228,6 +268,104 @@ class ImportPathFixer:
             changes.append("Fixed check_url_accessibility function call")
         
         return content, changes
+    
+    def _fix_pinecone_client_calls_ast(self, content: str) -> Tuple[str, List[str]]:
+        """Use AST to safely remove api_key parameter from PineconeClient calls."""
+        changes = []
+        
+        try:
+            # Parse the content into an AST
+            tree = ast.parse(content)
+            
+            # Find calls that need fixing
+            visitor = PineconeClientVisitor()
+            visitor.visit(tree)
+            
+            if visitor.calls_to_fix:
+                # Transform the AST to remove api_key parameters
+                transformer = PineconeClientTransformer()
+                new_tree = transformer.visit(tree)
+                
+                # Convert back to source code using ast.unparse (Python 3.9+)
+                try:
+                    new_content = ast.unparse(new_tree)
+                    changes.append(f"Fixed {len(visitor.calls_to_fix)} PineconeClient constructor calls using AST")
+                    return new_content, changes
+                except AttributeError:
+                    # ast.unparse not available, use manual approach
+                    return self._fix_pinecone_client_calls_manual_ast(content)
+            
+        except Exception:
+            # AST parsing failed, re-raise for fallback
+            raise SyntaxError("AST parsing failed")
+        
+        return content, changes
+    
+    def _fix_pinecone_client_calls_manual_ast(self, content: str) -> Tuple[str, List[str]]:
+        """Manual AST approach without external dependencies."""
+        changes = []
+        lines = content.split('\n')
+        modified_lines = []
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i]
+            if 'PineconeClient(' in line and 'api_key=' in line:
+                try:
+                    # Collect multiline statement
+                    statement_lines = [line]
+                    current_content = line
+                    
+                    # Check if parentheses are balanced
+                    open_parens = current_content.count('(') - current_content.count(')')
+                    j = i + 1
+                    
+                    # Collect continuation lines if needed
+                    while open_parens > 0 and j < len(lines):
+                        next_line = lines[j]
+                        statement_lines.append(next_line)
+                        current_content += '\n' + next_line
+                        open_parens += next_line.count('(') - next_line.count(')')
+                        j += 1
+                    
+                    # Parse and transform the complete statement
+                    try:
+                        stmt_tree = ast.parse(current_content)
+                        transformer = PineconeClientTransformer()
+                        new_stmt_tree = transformer.visit(stmt_tree)
+                        
+                        # Use improved regex to remove api_key parameter
+                        new_content = current_content
+                        # Remove api_key parameter and handle comma cleanup
+                        new_content = re.sub(
+                            r'(\bapi_key\s*=\s*[^,)]+)(?:,\s*)?',
+                            '',
+                            new_content
+                        )
+                        # Clean up any trailing commas before closing parentheses
+                        new_content = re.sub(r',\s*\)', ')', new_content)
+                        
+                        modified_lines.extend(new_content.split('\n'))
+                        changes.append("Fixed PineconeClient constructor call using AST-guided regex")
+                        i = j  # Skip processed lines
+                        continue
+                    except:
+                        # Simple regex replacement as fallback
+                        new_line = re.sub(
+                            r'(\bapi_key\s*=\s*[^,)]+)(?:,\s*)?',
+                            '',
+                            line
+                        )
+                        new_line = re.sub(r',\s*\)', ')', new_line)
+                        modified_lines.append(new_line)
+                        changes.append("Fixed PineconeClient constructor call using regex fallback")
+                except:
+                    modified_lines.append(line)
+            else:
+                modified_lines.append(line)
+            i += 1
+        
+        return '\n'.join(modified_lines), changes
     
     def _fix_pinecone_tests(self, content: str) -> Tuple[str, List[str]]:
         """Fix specific issues in pinecone URL metadata tests."""
@@ -260,11 +398,12 @@ class ImportPathFixer:
                 content = f.read()
             
             # Add normalize_url function if missing
-            if 'def normalize_url(' not in content and 'def normalize_url_format(' in content:
+            if ('def normalize_url(' not in content and
+                'normalize_url = normalize_url_format' not in content and
+                'def normalize_url_format(' in content):
                 missing_functions[str(url_utils_path)] = [
                     '\n# Backward compatibility alias\nnormalize_url = normalize_url_format\n'
                 ]
-        
         return missing_functions
     
     def apply_fixes(self) -> Dict[str, List[str]]:

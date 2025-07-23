@@ -1,15 +1,30 @@
 #!/usr/bin/env python3
 """
 Setup script for Pinecone RAG system with Bitcoin knowledge base
+
+Prerequisites:
+    Install the package in development mode first:
+    pip install -e .
 """
 
-import os
+import logging
 import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from requests.exceptions import RequestException, ConnectionError, Timeout
+from urllib3.exceptions import HTTPError
 
 from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('setup_pinecone.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -59,15 +74,40 @@ def main():
         print("\n🔍 Testing with sample query...")
         results = pinecone_client.query_similar("What is Bitcoin?", top_k=3)
 
+        if not results:
+            print("⚠️  Warning: No results found from query!")
+            print("This may indicate that the index is not ready or contains no data.")
+            print("Please wait a few moments and try again.")
+            sys.exit(1)
+
         print("Top 3 results:")
         for i, result in enumerate(results, 1):
             print(f"   {i}. {result['title']} (score: {result['score']:.3f})")
 
+    except (RequestException, ConnectionError, Timeout, HTTPError) as e:
+        logger.error(f"Network/API error during setup: {e}")
+        logger.error("This may indicate network connectivity issues or API service problems")
+        logger.error("Please check your internet connection and API service status")
+        raise
+    except KeyError as e:
+        logger.error(f"Configuration error - missing required key: {e}")
+        logger.error("Make sure you have created a .env file with all required API keys")
+        logger.error("Required keys: PINECONE_API_KEY, OPENAI_API_KEY")
+        sys.exit(1)
+    except FileNotFoundError as e:
+        logger.error(f"File system error: {e}")
+        logger.error("Make sure all required files and directories exist")
+        logger.error("Run: pip install -r requirements.txt to install dependencies")
+        sys.exit(1)
+    except ImportError as e:
+        logger.error(f"Import error - missing dependency: {e}")
+        logger.error("Make sure all requirements are installed")
+        logger.error("Run: pip install -r requirements.txt")
+        sys.exit(1)
     except Exception as e:
-        print(f"❌ Error during setup: {e}")
-        print("Make sure you have:")
-        print("1. Created a .env file with your API keys")
-        print("2. Installed all requirements: pip install -r requirements.txt")
+        logger.error(f"Unexpected error during setup: {e}")
+        logger.error("This is an unexpected error. Please check the logs for details")
+        logger.exception("Full stack trace:")
         sys.exit(1)
 
 

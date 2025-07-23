@@ -23,7 +23,7 @@ paths_to_add = [str(src_path), str(project_root)]  # src_path first for priority
 for path in paths_to_add:
     if path not in current_pythonpath:
         if current_pythonpath:
-            current_pythonpath = f"{path}:{current_pythonpath}"
+            current_pythonpath = f"{path}{os.pathsep}{current_pythonpath}"
         else:
             current_pythonpath = path
 

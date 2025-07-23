@@ -34,6 +34,7 @@ __all__ = [
     "LOG_ROTATION_MAX_BYTES",
     "LOG_ROTATION_BACKUP_COUNT",
     "logger",
+    "generate_correlation_id",
 ]
 
 _thread_locals = local()

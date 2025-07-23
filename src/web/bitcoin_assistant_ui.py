@@ -5,15 +5,26 @@ Bitcoin Knowledge Assistant Web UI using Gradio
 
 import os
 import sys
+from pathlib import Path
 from typing import Tuple
 
 import gradio as gr
 import requests
 
-# Add parent directory to path
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+
+# Add project root to path with guard against duplicates
+def _add_project_root_to_path():
+    """Add project root directory to sys.path if not already present."""
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent
+    project_root_str = str(project_root)
+    
+    if project_root_str not in sys.path:
+        sys.path.insert(0, project_root_str)
+
+
+_add_project_root_to_path()
+
 
 # Configuration
 API_BASE_URL = "http://localhost:8000"
@@ -27,25 +38,35 @@ def query_bitcoin_assistant(question: str) -> Tuple[str, str]:
 
     try:
         response = requests.post(
-            f"{API_BASE_URL}/query", json={"question": question}, timeout=30
+            f"{API_BASE_URL}/query",
+            json={"question": question},
+            timeout=30,
         )
+        response.raise_for_status()
 
-        if response.status_code == 200:
+        try:
             data = response.json()
-            answer = data.get("answer", "No answer received")
+        except ValueError:
+            return "❌ API returned non-JSON payload.", ""
 
-            # Format sources
-            sources = data.get("sources", [])
-            sources_text = ""
-            if sources:
-                sources_text = "**Sources:**\n"
-                for i, source in enumerate(sources[:5], 1):
-                    sources_text += f"{i}. {source.get('name', 'Unknown')}\n"
+        answer = data.get("answer", "No answer received")
 
-            return answer, sources_text
-        else:
-            error_msg = f"API Error ({response.status_code}): {response.text}"
+        # Format sources
+        sources = data.get("sources", [])
+        sources_text = ""
+        if sources:
+            sources_text = "**Sources:**\n"
+            for i, source in enumerate(sources[:5], 1):
+                sources_text += f"{i}. {source.get('name', 'Unknown')}\n"
+
+        return answer, sources_text
+
+    except requests.exceptions.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
             return error_msg, ""
+        else:
+            return f"❌ Request Error: {str(e)}", ""
 
     except requests.exceptions.ConnectionError:
         return (
@@ -248,16 +269,33 @@ def create_bitcoin_assistant_ui():
 
 
 if __name__ == "__main__":
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Bitcoin Knowledge Assistant Web UI")
+    parser.add_argument("--host", default=None, help="Host to bind the server to")
+    parser.add_argument("--port", type=int, default=None, help="Port to bind the server to")
+    args = parser.parse_args()
+    
     # Create and launch the interface
     interface = create_bitcoin_assistant_ui()
 
     print("🚀 Starting Bitcoin Knowledge Assistant Web UI...")
     print("📡 Make sure the FastAPI server is running on http://localhost:8000")
-    print("🌐 Gradio UI will be available at http://localhost:7860")
 
-    # Get port from environment or use default
-    ui_port = int(os.getenv("GRADIO_SERVER_PORT", os.getenv("UI_PORT", 7860)))
-    ui_host = os.getenv("GRADIO_SERVER_NAME", os.getenv("UI_HOST", "0.0.0.0"))
+    # Get host and port from command line args, environment, or defaults
+    ui_host = args.host or os.getenv("GRADIO_SERVER_NAME", os.getenv("UI_HOST", "0.0.0.0"))
+    
+    if args.port is not None:
+        ui_port = args.port
+    else:
+        try:
+            ui_port = int(os.getenv("GRADIO_SERVER_PORT", os.getenv("UI_PORT", 7860)))
+        except ValueError:
+            print("⚠️  Invalid UI_PORT value, defaulting to 7860")
+            ui_port = 7860
+
+    print(f"🌐 Gradio UI will be available at http://{ui_host}:{ui_port}")
 
     interface.launch(
         server_name=ui_host, server_port=ui_port, share=False, show_error=True

@@ -256,11 +256,23 @@ class URLMetadataMonitor:
         if not all_metrics:
             return None
 
-        durations = [m.duration_ms for m in all_metrics]
-        if len(durations) < 2:
-            return durations[0] if durations else 0.0
-        return statistics.quantiles(durations, n=100)[percentile - 1]
-
+        import math
+        durations = [
+            m.duration_ms
+            for m in all_metrics
+            if isinstance(m.duration_ms, (int, float)) and math.isfinite(m.duration_ms)
+        ]
+        if not durations:
+            return None
+        durations.sort()
+        k = max(
+            0,
+            min(
+                len(durations) - 1,
+                int(round((percentile / 100) * (len(durations) - 1))),
+            ),
+        )
+        return durations[k]
     def _calculate_broken_links_rate(self, cutoff_time: datetime) -> Optional[float]:
         """Calculate rate of broken links."""
         with self._lock:
@@ -433,29 +445,35 @@ class URLMetadataMonitor:
         total = len(metrics)
         successes = sum(1 for m in metrics if m.success)
         failures = total - successes
+# at the top of the file
+import statistics, math
+...
 
-        durations = [m.duration_ms for m in metrics]
+            # only keep finite numbers
+            valid_durations = [
+                d for d in durations
+                if isinstance(d, (int, float)) and math.isfinite(d)
+            ]
 
-        stats = {
-            "total": total,
-            "successes": successes,
-            "failures": failures,
-            "success_rate": successes / total if total > 0 else 0,
-            "failure_rate": failures / total if total > 0 else 0,
-        }
-
-        if durations:
-            # Filter out invalid durations
-            valid_durations = [d for d in durations if isinstance(d, (int, float)) and not (isinstance(d, float) and (d != d or d == float('inf') or d == float('-inf')))]
-            
             if valid_durations:
+                # Safe percentile helper avoids StatisticsError on small samples
+                def _pct(seq, p):
+                    if not seq:
+                        return 0.0
+                    seq = sorted(seq)
+                    idx = int(round(p / 100 * (len(seq) - 1)))
+                    return seq[idx]
+
                 stats.update(
                     {
                         "avg_duration_ms": statistics.mean(valid_durations),
                         "min_duration_ms": min(valid_durations),
                         "max_duration_ms": max(valid_durations),
                         "p50_duration_ms": statistics.median(valid_durations),
-                        "p95_duration_ms": (
+                        "p95_duration_ms": _pct(valid_durations, 95),
+                        "p99_duration_ms": _pct(valid_durations, 99),
+                    }
+                )
                             statistics.quantiles(valid_durations, n=20)[18]
                             if len(valid_durations) > 1
                             else valid_durations[0]

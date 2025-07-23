@@ -3,16 +3,13 @@
 Clean and format MCP response text using regex and URL metadata support
 """
 
+import copy
 import json
-import os
 import re
-import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import the new result formatter
 try:
-    from btc_max_knowledge_agent.utils.result_formatter import MCPResponseFormatter
+    from src.utils.result_formatter import MCPResponseFormatter
 except ImportError:
     # Fallback if import fails
     MCPResponseFormatter = None
@@ -104,11 +101,10 @@ def format_bitcoin_content(content_item):
 
             return {"type": "text", "text": formatted}
 
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         # If not JSON, just clean the raw text
         cleaned_text = clean_text_content(text)
         return {"type": "text", "text": cleaned_text}
-
     return content_item
 
 
@@ -167,17 +163,20 @@ def clean_mcp_response(response_data):
     if not isinstance(response_data, dict):
         return response_data
 
+    # Create a deep copy to avoid mutating the original input
+    response_copy = copy.deepcopy(response_data)
+
     # Handle the content array
-    if "content" in response_data and isinstance(response_data["content"], list):
+    if "content" in response_copy and isinstance(response_copy["content"], list):
         cleaned_content = []
 
-        for item in response_data["content"]:
+        for item in response_copy["content"]:
             cleaned_item = format_bitcoin_content(item)
             cleaned_content.append(cleaned_item)
 
-        response_data["content"] = cleaned_content
+        response_copy["content"] = cleaned_content
 
-    return response_data
+    return response_copy
 
 
 def test_cleaning():

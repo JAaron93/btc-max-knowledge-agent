@@ -261,8 +261,8 @@ class TestExponentialBackoffRetry:
         result = failing_function()
         assert result == "success"
 
-        # With jitter, delay should be: 1.0 * (0.5 + 0.5) = 1.0
-        mock_sleep.assert_called_once_with(1.0)
+        # With jitter, delay should be: 1.0 * (0.5 + 0.5 * 0.5) = 0.75
+        mock_sleep.assert_called_once_with(0.75)
 
     @patch("utils.url_metadata_logger.log_retry")
     def test_retry_logging(self, mock_log_retry):

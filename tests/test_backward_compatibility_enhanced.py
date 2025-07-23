@@ -411,7 +411,7 @@ class TestBackwardCompatibilityEnhanced:
 class TestMigrationStrategies:
     """Test various migration strategies for adding URL metadata."""
 
-    def test_gradual_migration_strategy(self, mock_pinecone_index):
+    def test_gradual_migration_strategy(self):
         """Test gradual migration of vectors to include URL metadata."""
         # Simulate a gradual migration process
         total_vectors = 1000
@@ -442,7 +442,6 @@ class TestMigrationStrategies:
         # Verify complete migration
         assert migrated_count == total_vectors
         assert len(migration_log) == total_vectors // migration_batch_size
-
     def test_rollback_capability(self):
         """Test ability to rollback URL metadata changes."""
         import copy

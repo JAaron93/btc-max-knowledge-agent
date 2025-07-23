@@ -129,22 +129,6 @@ def normalize_url_format(url: str) -> Optional[str]:
     return normalize_url_rfc3986(url)
 
 
-def check_url_accessibility(url: str, timeout: int = 5, _use_session: bool = True) -> bool:
-    """Check if a URL is accessible.
-    
-    Args:
-        url: URL to check
-        timeout: Request timeout in seconds
-        _use_session: Whether to use a session (ignored for compatibility)
-        
-    Returns:
-        bool: True if URL is accessible, False otherwise
-    """
-    try:
-        response = requests.head(url, timeout=timeout, allow_redirects=True)
-        return response.status_code < 400
-    except:
-        return False
 
 
 def is_private_ip(url: str) -> bool:
@@ -981,6 +965,51 @@ def sanitize_url(url: str) -> Optional[str]:
         return None
 
 
+def _handle_accessibility_error(url: str, exception: Exception, start_time: float) -> bool:
+    """
+    Helper function to handle common accessibility check errors.
+    
+    Args:
+        url: The URL being checked
+        exception: The exception that occurred
+        start_time: When the request started
+        
+    Returns:
+        bool: Always returns False (error case)
+    """
+    duration_ms = (time.time() - start_time) * 1000
+    
+    # Determine error type based on exception class
+    if isinstance(exception, requests.exceptions.TooManyRedirects):
+        error_type = "too_many_redirects"
+        details = {"error": str(exception), "error_type": error_type}
+    elif isinstance(exception, (
+        requests.exceptions.SSLError,
+        requests.exceptions.ConnectionError,
+        requests.exceptions.Timeout,
+        requests.exceptions.RequestException,
+    )):
+        error_type = "request_failed"
+        details = {"error": str(exception), "error_type": type(exception).__name__}
+    else:
+        error_type = "unexpected_error"
+        details = {"error": str(exception), "error_type": "unexpected_error"}
+    
+    # Log the validation failure
+    log_validation(
+        url,
+        False,
+        "accessibility_check",
+        details=details,
+        duration_ms=duration_ms,
+    )
+    
+    # Record the validation failure
+    record_validation(url, False, duration_ms, error_type=error_type)
+    
+    return False
+
+
 def check_url_accessibility(
     url: str,
     timeout: int = 5,
@@ -1078,47 +1107,8 @@ def check_url_accessibility(
 
             return is_accessible
 
-        except requests.exceptions.TooManyRedirects as e:
-            duration_ms = (time.time() - start_time) * 1000
-            log_validation(
-                url,
-                False,
-                "accessibility_check",
-                details={"error": str(e), "error_type": "too_many_redirects"},
-                duration_ms=duration_ms,
-            )
-            record_validation(url, False, duration_ms, error_type="too_many_redirects")
-            return False
-
-        except (
-            requests.exceptions.SSLError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-            requests.exceptions.RequestException,
-        ) as e:
-            duration_ms = (time.time() - start_time) * 1000
-            error_type = type(e).__name__
-            log_validation(
-                url,
-                False,
-                "accessibility_check",
-                details={"error": str(e), "error_type": error_type},
-                duration_ms=duration_ms,
-            )
-            record_validation(url, False, duration_ms, error_type="request_failed")
-            return False
-
         except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            log_validation(
-                url,
-                False,
-                "accessibility_check",
-                details={"error": str(e), "error_type": "unexpected_error"},
-                duration_ms=duration_ms,
-            )
-            record_validation(url, False, duration_ms, error_type="unexpected_error")
-            return False
+            return _handle_accessibility_error(url, e, start_time)
 
     # Production/standard path with session and retries
     try:
@@ -1182,47 +1172,8 @@ def check_url_accessibility(
 
         return is_accessible
 
-    except requests.exceptions.TooManyRedirects as e:
-        duration_ms = (time.time() - start_time) * 1000
-        log_validation(
-            url,
-            False,
-            "accessibility_check",
-            details={"error": str(e), "error_type": "too_many_redirects"},
-            duration_ms=duration_ms,
-        )
-        record_validation(url, False, duration_ms, error_type="too_many_redirects")
-        return False
-
-    except (
-        requests.exceptions.SSLError,
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-    ) as e:
-        duration_ms = (time.time() - start_time) * 1000
-        error_type = type(e).__name__
-        log_validation(
-            url,
-            False,
-            "accessibility_check",
-            details={"error": str(e), "error_type": error_type},
-            duration_ms=duration_ms,
-        )
-        record_validation(url, False, duration_ms, error_type="request_failed")
-        return False
-
     except Exception as e:
-        duration_ms = (time.time() - start_time) * 1000
-        log_validation(
-            url,
-            False,
-            "accessibility_check",
-            details={"error": str(e), "error_type": "unexpected_error"},
-            duration_ms=duration_ms,
-        )
-        record_validation(url, False, duration_ms, error_type="unexpected_error")
-        return False
+        return _handle_accessibility_error(url, e, start_time)
 
 
 def extract_domain(url: str) -> Optional[str]:
@@ -1339,7 +1290,6 @@ def format_url_for_display(url: str, max_length: int = 50) -> str:
     if len(url) <= max_length:
         return url
 
-    # Truncate from the end, leaving room for ellipsis
     return url[: max_length - 3] + "..."  # Ensure we always return a string
     return url[: max_length - 3] + "..."
 

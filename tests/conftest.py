@@ -230,11 +230,15 @@ def mock_pinecone_client():
     except ImportError:
         pytest.skip("PineconeClient not available")
     
+    # Get the dynamic embedding dimension from the current environment or use default
+    import os
+    embedding_dimension = os.getenv("EMBEDDING_DIMENSION", "768")
+    
     # Mock environment variables for Config instead of patching Config class
     test_env_vars = {
         "PINECONE_API_KEY": "test-api-key",
         "PINECONE_INDEX_NAME": "test-index",
-        "EMBEDDING_DIMENSION": "1536",
+        "EMBEDDING_DIMENSION": embedding_dimension,
     }
     
     # Mock external dependencies
@@ -324,6 +328,10 @@ def sample_documents():
     Returns:
         List[Dict]: Sample documents with embeddings
     """
+    # Get the dynamic embedding dimension from the config
+    import os
+    embedding_dimension = int(os.getenv("EMBEDDING_DIMENSION", "768"))
+    
     return [
         {
             "id": "test_doc_1",
@@ -333,7 +341,7 @@ def sample_documents():
             "category": "test",
             "url": "https://example.com/doc1",
             "published": "2024-01-01",
-            "embedding": [0.1] * 1536,
+            "embedding": [0.1] * embedding_dimension,
         },
         {
             "id": "test_doc_2",
@@ -341,7 +349,7 @@ def sample_documents():
             "content": "This is a test document without a URL",
             "source": "test_source_2",
             "category": "test",
-            "embedding": [0.2] * 1536,
+            "embedding": [0.2] * embedding_dimension,
             # No URL field to test backward compatibility
         },
         {
@@ -351,7 +359,7 @@ def sample_documents():
             "source": "test_source_3",
             "category": "test",
             "url": "invalid-url-format",
-            "embedding": [0.3] * 1536,
+            "embedding": [0.3] * embedding_dimension,
         },
     ]
 
@@ -418,9 +426,9 @@ def sample_test_data():
             },
             100: {
                 "A" * 150: "A" * 100,
-                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics"[
-                    :100
-                ],
+                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
+                    "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics"
+                )[:100],
             },
             200: {
                 "A" * 150: "A" * 150,  # Shorter than limit

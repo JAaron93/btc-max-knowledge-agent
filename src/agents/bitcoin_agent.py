@@ -35,9 +35,18 @@ class BitcoinKnowledgeAgent:
 
         # Format results with URL metadata support
         try:
-            formatted_response = QueryResultFormatter.format_structured_response(
-                results=relevant_docs, query=query_text, include_summary=True
+        try:
+            # Normalise to a uniform envelope so downstream access is consistent
+            _out = QueryResultFormatter.format_structured_response(
+                results=relevant_docs,
+                query=query_text,
+                include_summary=True,
             )
+            formatted_response = {
+                "formatted_response": _out,
+                "sources": _out.get("sources", []),
+                "summary": _out.get("summary", ""),
+            }
         except Exception as e:
             # Log the formatting error but continue with fallback response
             logging.error(f"Error formatting query results: {str(e)}", exc_info=True)
@@ -61,10 +70,11 @@ class BitcoinKnowledgeAgent:
 
         return {
             "documents": relevant_docs,
-            "formatted_response": formatted_response["formatted_response"],
-            "sources": formatted_response["sources"],
-            "summary": formatted_response["summary"],
+            "formatted_response": formatted_response.get("formatted_response", {}),
+            "sources": formatted_response.get("sources", []),
+            "summary": formatted_response.get("summary", ""),
             "message": f"Found {len(relevant_docs)} relevant documents",
+        }
         }
 
     def get_knowledge_stats(self) -> Dict[str, Any]:

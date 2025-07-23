@@ -43,22 +43,12 @@ def send_jsonrpc_request(endpoint, api_key, method, params=None, request_id=1):
 
 def test_missing_api_key():
     """Test that the endpoint fails when API key is missing"""
+    import pytest
     from unittest.mock import patch
 
-    import pytest
-
     with patch.dict("os.environ", {"PINECONE_API_KEY": ""}):
-        # Import inside test to ensure environment is properly mocked
-        from tests.test_mcp_connection import (
-            test_pinecone_assistant_endpoint as real_test,
-        )
-
-        with pytest.raises(
-            pytest.fail.Exception,
-            match="PINECONE_API_KEY environment variable is not set",
-        ):
-            real_test()
-
+        with pytest.raises(pytest.Failed, match="PINECONE_API_KEY environment variable is not set"):
+            test_pinecone_assistant_endpoint()
 
 def test_pinecone_assistant_endpoint():
     """Test the Pinecone Assistant MCP endpoint using JSON-RPC protocol"""

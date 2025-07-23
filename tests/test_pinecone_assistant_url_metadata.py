@@ -10,7 +10,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Import from the package using absolute import
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+import sys
+sys.path.append('src')
+from agents.pinecone_assistant_agent import PineconeAssistantAgent
+from btc_max_knowledge_agent.utils.url_error_handler import RetryExhaustedError
 
 
 class TestPineconeAssistantURLMetadata(unittest.TestCase):
@@ -19,7 +22,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # Mock the config and environment variables
-        self.config_patcher = patch('src.agents.pinecone_assistant_agent.Config')
+        self.config_patcher = patch('agents.pinecone_assistant_agent.Config')
         self.mock_config = self.config_patcher.start()
         self.mock_config.PINECONE_API_KEY = 'test-api-key'
         
@@ -80,7 +83,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
             result = self.agent._validate_and_sanitize_url(url)
             self.assertIsNone(result, f"Invalid URL {url} should return None")
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_upload_documents_with_url_metadata(self, mock_post):
         """Test document upload with URL metadata"""
         # Mock successful response
@@ -170,7 +173,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
             self.assertIn("source", doc["metadata"])
             self.assertIn("category", doc["metadata"])
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_upload_documents_batch_processing(self, mock_post):
         """Test that large document sets are processed in batches"""
         # Mock successful response
@@ -266,7 +269,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
             second_source["content"], "This is the content from document 2"
         )
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_query_assistant_with_url_metadata(self, mock_post):
         """Test querying assistant and receiving URL metadata in response"""
         # Mock successful response with citations
@@ -350,7 +353,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
             self.assertIn("content", source)
             self.assertIn("score", source)
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_query_assistant_handles_missing_citations(self, mock_post):
         """Test querying assistant when response has no citations"""
         # Mock response without citations
@@ -374,7 +377,7 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
         self.assertEqual(len(result["sources"]), 0)
         self.assertEqual(result["answer"], "This is a response without citations.")
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_upload_documents_handles_request_failure(self, mock_post):
         """Test upload_documents handles API request failures gracefully"""
         # Mock failed response
@@ -396,12 +399,10 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
         ]
 
         # Call upload_documents and expect RetryExhaustedError
-        from btc_max_knowledge_agent.utils.url_error_handler import RetryExhaustedError
-
         with self.assertRaises(RetryExhaustedError):
             self.agent.upload_documents("test-assistant-id", documents)
 
-    @patch("src.agents.pinecone_assistant_agent.requests.post")
+    @patch("agents.pinecone_assistant_agent.requests.post")
     def test_query_assistant_handles_request_failure(self, mock_post):
         """Test query_assistant handles API request failures gracefully"""
         # Mock failed response

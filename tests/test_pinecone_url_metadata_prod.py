@@ -7,6 +7,7 @@ This test module runs only when localhost URLs should be rejected,
 which is the default production behavior.
 """
 
+import importlib
 import os
 import sys
 import unittest
@@ -25,35 +26,63 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
     This test class specifically validates that localhost URLs are properly rejected
     when ALLOW_LOCALHOST_URLS is False (the default production setting).
     """
+    
+    @staticmethod
+    def _setup_environment_patch(env_vars):
+        """Set up environment variable patching.
+        
+        Args:
+            env_vars: Dictionary of environment variables to patch
+            
+        Returns:
+            patch object that can be started/stopped
+        """
+        return patch.dict(os.environ, env_vars, clear=False)
+    
+    @staticmethod
+    def _reload_config_modules():
+        """Reload configuration modules to pick up new environment variables.
+        
+        This method gracefully handles module reloading with error handling.
+        """
+        modules_to_reload = [
+            'src.utils.config',
+            'utils.config',
+            'src.utils.url_utils',
+            'utils.url_utils'
+        ]
+        
+        for module_name in modules_to_reload:
+            if module_name in sys.modules:
+                try:
+                    importlib.reload(sys.modules[module_name])
+                except Exception as e:
+                    # Log the error but don't fail the test setup
+                    print(f"Warning: Failed to reload {module_name}: {e}")
 
     def setUp(self):
         """Set up test fixtures with production-like settings"""
-        import os
-        
         # Mock environment variables for Config with production settings
         test_env_vars = {
             "PINECONE_API_KEY": "test-key",
-            "PINECONE_INDEX_NAME": "test-index", 
+            "PINECONE_INDEX_NAME": "test-index",
             "EMBEDDING_DIMENSION": "768",
             "ALLOW_LOCALHOST_URLS": "False",  # Production setting - reject localhost URLs
         }
         
-        # Set up environment for the entire test - need to patch both Dict and reload config
-        # This ensures the config module gets the correct environment variables
-        self.env_patcher = patch.dict(os.environ, test_env_vars, clear=False)
+        # Set up environment patching
+        self.env_patcher = self._setup_environment_patch(test_env_vars)
         self.env_patcher.start()
         
-        # Reload config to pick up the new environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'utils.config' in sys.modules:
-            importlib.reload(sys.modules['utils.config'])
+        # Reload config modules to pick up new environment variables
+        self._reload_config_modules()
             
         # Mock the external dependencies
-        with patch("src.retrieval.pinecone_client.Pinecone"):
-            self.client = PineconeClient()
+        try:
+            with patch("src.retrieval.pinecone_client.Pinecone"):
+                self.client = PineconeClient()
+        except Exception as e:
+            self.fail(f"Failed to initialize PineconeClient: {e}")
     
     def tearDown(self):
         """Clean up test fixtures"""
@@ -63,25 +92,18 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
     def test_validate_and_sanitize_url_localhost_rejected(self):
         """Test that localhost URLs are rejected when ALLOW_LOCALHOST_URLS=False"""
         # Ensure environment is correctly set for this test
-        import os
         os.environ['ALLOW_LOCALHOST_URLS'] = 'False'
         
-        # Force reload of config and url_utils modules to pick up new environment
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'utils.config' in sys.modules:
-            importlib.reload(sys.modules['utils.config'])  
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['utils.url_utils'])
+        # Use helper method to reload config modules
+        self._reload_config_modules()
             
         # Verify config is now False
         sys.path.insert(0, 'src')
-        from utils.config import Config
-        assert Config.ALLOW_LOCALHOST_URLS is False, "Config should have ALLOW_LOCALHOST_URLS=False"
+        try:
+            from utils.config import Config
+            assert Config.ALLOW_LOCALHOST_URLS is False, "Config should have ALLOW_LOCALHOST_URLS=False"
+        except ImportError as e:
+            self.fail(f"Failed to import Config: {e}")
         
         localhost_urls = [
             "http://localhost",
@@ -116,7 +138,24 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
             assert result == url, f"Valid URL {url} should work in production mode, got {result}"
 
     def test_upsert_documents_handles_localhost_urls_gracefully(self):
-        """Test that documents with localhost URLs are handled gracefully in production"""
+        """Test that documents with localhost URLs are handled gracefully in production
+        
+        URL Replacement Strategy:
+        When ALLOW_LOCALHOST_URLS=False, rejected localhost URLs are handled as follows:
+        
+        1. Real Implementation (src/retrieval/pinecone_client.py):
+           - Uses FallbackURLStrategy.placeholder_url(doc_id) from url_error_handler.py
+           - Returns URLs in format: "https://placeholder.local/{doc_id}"
+           - Example: "http://localhost:8080" -> "https://placeholder.local/doc1"
+        
+        2. Stub Implementation (src/btc_max_knowledge_agent/retrieval/pinecone_client.py):
+           - validate_and_sanitize_url() returns None for rejected URLs
+           - upsert_documents() uses empty string ("") for None URLs
+           - Example: "http://localhost:8080" -> ""
+        
+        This test validates both implementations by accepting either placeholder URLs
+        or empty strings, ensuring compatibility with both code paths.
+        """
         # Mock the index
         mock_index = Mock()
         self.client.get_index = Mock(return_value=mock_index)
@@ -164,20 +203,23 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
         # Get the vectors that were upserted
         call_args = mock_index.upsert.call_args[1]["vectors"]
 
-        # Verify localhost URLs were rejected and replaced with empty strings or placeholders
-        # Document 1 (localhost) should have empty URL or placeholder
+        # Verify localhost URLs were rejected and replaced with placeholder URLs
+        # The real implementation uses FallbackURLStrategy.placeholder_url() which returns
+        # URLs in the format "https://placeholder.local/{doc_id}"
+        
+        # Document 1 (localhost) should have placeholder URL
         doc1_url = call_args[0]["metadata"]["url"]
-        assert doc1_url == "" or doc1_url.startswith("placeholder://"), \
-            f"Localhost URL should be rejected/replaced, got {doc1_url}"
+        assert doc1_url == "https://placeholder.local/doc1" or doc1_url == "", \
+            f"Localhost URL should be replaced with placeholder or empty, got {doc1_url}"
 
         # Document 2 (valid URL) should be unchanged
         assert call_args[1]["metadata"]["url"] == "https://example.com/doc2", \
             "Valid URL should be preserved"
 
-        # Document 3 (localhost IP) should have empty URL or placeholder  
+        # Document 3 (localhost IP) should have placeholder URL
         doc3_url = call_args[2]["metadata"]["url"]
-        assert doc3_url == "" or doc3_url.startswith("placeholder://"), \
-            f"Localhost IP URL should be rejected/replaced, got {doc3_url}"
+        assert doc3_url == "https://placeholder.local/doc3" or doc3_url == "", \
+            f"Localhost IP URL should be replaced with placeholder or empty, got {doc3_url}"
 
     def test_production_security_validation(self):
         """Test that production security validations work correctly"""
