@@ -8,12 +8,7 @@ import requests
 from newspaper import Article
 
 # Add src to path to ensure imports work
-import sys
-from pathlib import Path
-_project_root = Path(__file__).parent.parent.parent
-_src_path = str(_project_root / "src")
-if _src_path not in sys.path:
-    sys.path.insert(0, _src_path)
+
 
 from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
     URLMetadataMonitor,
@@ -42,7 +37,7 @@ class BitcoinDataCollector:
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
         )
 

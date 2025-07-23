@@ -70,7 +70,7 @@ class TestLoggingPerformance:
         # Test new logging performance (conditional formatting)
         start_time = time.time()
         for i in range(iterations):
-            new_logger.debug(f"Processing item {i}: {self.expensive_operation(i)}")
+            new_logger.debug_lazy(lambda i=i: f"Processing item {i}: {self.expensive_operation(i)}")
         new_time = time.time() - start_time
         
         print(f"\nOld logging time: {old_time:.3f}s")
@@ -87,7 +87,9 @@ class TestLoggingPerformance:
         logger = PerformanceOptimizedLogger("test_lazy", "WARNING")  # Debug disabled
         iterations = 1000
         
-        # Test regular debug (still formats when disabled)
+        # Test regular debug (demonstrates overhead: f-string evaluation
+        # happens regardless of log level, executing expensive_operation
+        # even when debug logging is disabled)
         start_time = time.time()
         for i in range(iterations):
             logger.debug(f"Regular: {self.expensive_operation(i)}")
@@ -229,6 +231,7 @@ class TestLoggingPerformance:
         # Should be very fast (less than 1ms per call on average)
         assert production_time < iterations * 0.001, f"Production logging too slow: {production_time:.3f}s"
 
+    @pytest.mark.performance
     def test_third_party_logging_suppression(self):
         """Test that third-party library logging is properly suppressed."""
         

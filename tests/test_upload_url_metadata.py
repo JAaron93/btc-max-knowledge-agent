@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
 Test script to verify URL metadata functionality in upload script
+
+Prerequisites:
+    Install the package in development mode first:
+    pip install -e .
+    
+    Run tests from the project root directory.
 """
 
 import os
 import shutil
-
-# Add parent directory to path to allow importing from upload_to_pinecone_assistant
-import sys
 import tempfile
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 import pytest
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from upload_to_pinecone_assistant import _get_display_name, _is_valid_url
 
@@ -129,15 +130,31 @@ def test_file_metadata_validation(test_setup):
             pytest.fail(f"Failed to read {filename}: {str(e)}")
 
 
-@patch("builtins.open", new_callable=mock_open, read_data="Test content")
-def test_file_reading_error_handling(mock_file):
-    """Test error handling when reading files fails."""
-    # Configure the mock to raise an IOError
-    mock_file.side_effect = IOError("File read error")
-
-    with pytest.raises(IOError):
-        with open("nonexistent_file.txt", "r", encoding="utf-8") as f:
-            f.read()
+@patch("os.listdir")
+@patch("os.path.getsize")
+def test_file_reading_error_handling(mock_getsize, mock_listdir):
+    """Test error handling when file operations fail in upload script."""
+    from upload_to_pinecone_assistant import create_upload_files
+    
+    # Configure mocks to raise IOError to simulate file system issues
+    mock_listdir.side_effect = IOError("Permission denied")
+    mock_getsize.side_effect = IOError("File not accessible")
+    
+    # Mock the BitcoinDataCollector to avoid external dependencies
+    with patch('upload_to_pinecone_assistant.BitcoinDataCollector') as mock_collector:
+        mock_collector.return_value.collect_all_documents.return_value = [
+            {
+                'title': 'Test Document',
+                'content': 'Test content',
+                'source': 'test',
+                'category': 'test',
+                'url': 'https://example.com'
+            }
+        ]
+        
+        # Test that IOError is raised when file system operations fail
+        with pytest.raises(IOError, match="Permission denied"):
+            create_upload_files()
 
 
 def test_temporary_directory_isolation(test_setup):

@@ -296,7 +296,7 @@ class TestURLMetadataMonitor:
         ), "Second alert should be blocked by cooldown"
 
         # Simulate time passing beyond cooldown period (120 minutes for validation_failure_rate)
-        with patch("src.monitoring.url_metadata_monitor.datetime") as mock_datetime:
+        with patch("btc_max_knowledge_agent.monitoring.url_metadata_monitor.datetime") as mock_datetime:
             from datetime import timezone
             future_time = (first_alert_time + timedelta(minutes=121)).replace(tzinfo=timezone.utc)
             
@@ -375,14 +375,13 @@ class TestLoggingIntegration:
                 raise ValueError("Test error")
             return "success"
 
-        with patch("src.utils.url_error_handler.log_retry") as mock_log_retry:
+        with patch("btc_max_knowledge_agent.utils.url_error_handler.log_retry") as mock_log_retry:
             result = failing_function()
 
             assert result == "success"
             assert call_count == 3
             # Check that retry logging occurred
             assert mock_log_retry.call_count == 2  # Two retries
-
     def test_data_collector_logging(self):
         """Test logging in data collector."""
         collector = BitcoinDataCollector()
@@ -391,7 +390,7 @@ class TestLoggingIntegration:
         with patch.object(collector, "collect_from_sources") as mock_fetch:
             mock_fetch.return_value = [{"url": "http://example.com", "content": "test"}]
 
-            with patch("src.knowledge.data_collector.log_validation") as mock_log:
+            with patch("btc_max_knowledge_agent.knowledge.data_collector.log_validation") as mock_log:
                 # Test collection with logging
                 documents = collector.collect_bitcoin_basics()
 
@@ -401,8 +400,6 @@ class TestLoggingIntegration:
 
                 # Verify logging occurred
                 assert mock_log.call_count > 0
-
-
 class TestPerformanceImpact:
     """Test performance impact of logging."""
 
@@ -476,7 +473,7 @@ class TestErrorHandling:
         """Test that logging failures don't break the main operation."""
         # Even if logging fails, the operation should succeed
         with patch(
-            "src.utils.url_metadata_logger.URLMetadataLogger.log_validation",
+            "btc_max_knowledge_agent.utils.url_metadata_logger.URLMetadataLogger.log_validation",
             side_effect=Exception("Logging error"),
         ):
             with patch("requests.head") as mock_head:
@@ -487,10 +484,6 @@ class TestErrorHandling:
                     assert result is True
                 except Exception as e:
                     pytest.fail(f"Operation failed due to logging error: {e}")
-
-    def test_monitor_handles_invalid_data(self):
-        """Test that monitor handles invalid data gracefully with comprehensive edge cases."""
-        monitor = URLMetadataMonitor()
 
         # Test validation with various invalid inputs
         invalid_validation_cases = [
@@ -605,6 +598,9 @@ class TestErrorHandling:
 class TestConvenienceFunctions:
     def test_global_convenience_functions(self):
         """Test global convenience functions."""
+class TestConvenienceFunctions:
+    def test_global_convenience_functions(self):
+        """Test global convenience functions."""
         # Get initial state
         initial_summary = url_metadata_monitor.generate_hourly_summary()
 
@@ -625,9 +621,8 @@ class TestConvenienceFunctions:
         ops = final_summary.get("operations", {})
         assert "validation" in ops
         assert "upload" in ops
-        # These should not raise exceptions
-        assert True
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+        # Verify specific metrics were recorded correctly
+        validation_ops = ops.get("validation", {})
+        upload_ops = ops.get("upload", {})
+        assert validation_ops.get("total", 0) >= 1
+        assert upload_ops.get("total", 0) >= 1

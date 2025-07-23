@@ -77,8 +77,8 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == 100
-        ), f"Default truncation length should be 100, got {logger.config['query_truncation_length']}"
+            logger.config["query_truncation_length"] == default_query_config.query_truncation_length
+        ), f"Default truncation length should be {default_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_custom_truncation_config(self, custom_query_config, temp_config_dir):
         """Test custom configuration using fixture."""
@@ -92,8 +92,8 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == 200
-        ), f"Custom truncation length should be 200, got {logger.config['query_truncation_length']}"
+            logger.config["query_truncation_length"] == custom_query_config.query_truncation_length
+        ), f"Custom truncation length should be {custom_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_short_truncation_config(self, short_query_config, temp_config_dir):
         """Test short configuration using fixture."""
@@ -107,13 +107,13 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == 50
-        ), f"Short truncation length should be 50, got {logger.config['query_truncation_length']}"
+            logger.config["query_truncation_length"] == short_query_config.query_truncation_length
+        ), f"Short truncation length should be {short_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_query_truncation_with_sample_data(
         self, sample_test_data, mock_url_metadata_logger
     ):
-        """Test actual query truncation behavior with sample data."""
+        """Test query truncation configuration with sample data."""
 
         sample_test_data["expected_truncations"]
         truncation_length = mock_url_metadata_logger.config["query_truncation_length"]
@@ -356,88 +356,10 @@ class TestQueryTruncationConfig:
             ), f"After concurrent usage, logger config {config_value} should be unchanged, got {logger.config['query_truncation_length']}"
 
 
-def test_configurable_query_truncation():
-    """Legacy test function maintained for backward compatibility."""
-
-    import shutil
-    import tempfile
-
-    # Create temporary directory for test logs
-    temp_dir = tempfile.mkdtemp()
-
-    try:
-        # Test with default truncation length (100)
-        logger_default = URLMetadataLogger(log_dir=os.path.join(temp_dir, "default"))
-
-        long_query = (
-            "This is a very long query that should be truncated " * 10
-        )  # ~500 chars
-
-        # This would log the query with default 100-char truncation
-        logger_default.log_retrieval(long_query, 5, 250.0)
-
-        # Verify the configuration
-        assert (
-            logger_default.config["query_truncation_length"] == 100
-        ), f"Default logger should have truncation length 100, got {logger_default.config['query_truncation_length']}"
-
-        # Test with custom truncation length (200)
-        logger_custom = URLMetadataLogger(
-            log_dir=os.path.join(temp_dir, "custom"), query_truncation_length=200
-        )
-
-        # This would log the query with custom 200-char truncation
-        logger_custom.log_retrieval(long_query, 3, 180.0)
-
-        # Verify the configuration
-        assert (
-            logger_custom.config["query_truncation_length"] == 200
-        ), f"Custom logger should have truncation length 200, got {logger_custom.config['query_truncation_length']}"
-
-        # Test with very short truncation length (50)
-        logger_short = URLMetadataLogger(
-            log_dir=os.path.join(temp_dir, "short"), query_truncation_length=50
-        )
-
-        # This would log the query with short 50-char truncation
-        logger_short.log_retrieval(long_query, 8, 95.0)
-
-        # Verify the configuration
-        assert (
-            logger_short.config["query_truncation_length"] == 50
-        ), f"Short logger should have truncation length 50, got {logger_short.config['query_truncation_length']}"
-
-        # Test that the actual truncation works as expected
-
-        # Test with 75-char limit
-        logger_75 = URLMetadataLogger(
-            log_dir=os.path.join(temp_dir, "test75"), query_truncation_length=75
-        )
-
-        # In a real scenario, we'd need to capture the log output to verify truncation
-        # For this test, we just verify the configuration is stored correctly
-        expected_truncated_length = 75
-        actual_config_length = logger_75.config["query_truncation_length"]
-
-        assert (
-            actual_config_length == expected_truncated_length
-        ), f"75-char logger should have truncation length {expected_truncated_length}, got {actual_config_length}"
-
-    finally:
-        # Clean up temporary directory
-        shutil.rmtree(temp_dir)
-
-
 def test_backwards_compatibility():
     """Test that existing code without the parameter still works."""
-    import shutil
     import tempfile
-
-    print("\nTesting backwards compatibility...")
-
-    temp_dir = tempfile.mkdtemp()
-
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
         # This should work without specifying query_truncation_length
         logger = URLMetadataLogger(log_dir=temp_dir)
 
@@ -445,21 +367,15 @@ def test_backwards_compatibility():
         assert (
             logger.config["query_truncation_length"] == 100
         ), f"Backwards compatible logger should default to 100, got {logger.config['query_truncation_length']}"
-        print("✓ Backwards compatibility maintained - defaults to 100 chars")
 
         # Test logging works
         logger.log_retrieval("Test query for backwards compatibility", 1, 50.0)
-        print("✓ Logging functionality works with default configuration")
-
-    finally:
-        shutil.rmtree(temp_dir)
 
 
 if __name__ == "__main__":
     print("Testing configurable query truncation length in URLMetadataLogger...")
     print("=" * 60)
 
-    test_configurable_query_truncation()
     test_backwards_compatibility()
 
     print("\n" + "=" * 60)

@@ -93,6 +93,8 @@ def exponential_backoff_retry(
         jitter: Whether to add random jitter to delays (default: True)
         exceptions: Tuple of exceptions to catch and retry (default: (Exception,))
         fallback_result: Result to return if all retries fail (default: None)
+                        Can be a callable that returns fresh instances to avoid
+                        mutable default problems
         raise_on_exhaust: Whether to raise exception when retries exhausted (default: True)
 
     Returns:
@@ -127,18 +129,22 @@ def exponential_backoff_retry(
                                 last_error=e,
                             )
                         else:
-                            logger.warning(
-                                f"Returning fallback result: {fallback_result}"
-                            )
-                            return fallback_result
+                            # Support callable fallback_result for fresh instances
+                            if callable(fallback_result):
+                                result = fallback_result()
+                                logger.warning(f"Returning fallback result: {result}")
+                                return result
+                            else:
+                                logger.warning(
+                                    f"Returning fallback result: {fallback_result}"
+                                )
+                                return fallback_result
 
                     # Calculate delay with exponential backoff
-                    delay = min(initial_delay * (exponential_base**attempt), max_delay)
-
-                    # Add jitter if enabled
+                    delay_base = initial_delay * (exponential_base ** attempt)
                     if jitter:
-                        delay = delay * (0.9 + random.random() * 0.2)  # ±10% jitter
-
+                        delay_base *= 0.9 + random.random() * 0.2  # ±10 % jitter _before_ capping
+                    delay = min(delay_base, max_delay)
                     # Log the retry attempt
                     log_retry(
                         operation=func.__name__,
@@ -399,5 +405,5 @@ def retry_url_retrieval(func: Callable[..., T]) -> Callable[..., T]:
         max_delay=15.0,
         exceptions=(URLRetrievalError, ConnectionError, TimeoutError),
         raise_on_exhaust=False,
-        fallback_result={},
+        fallback_result=lambda: {},
     )(func)

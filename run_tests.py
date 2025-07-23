@@ -103,10 +103,15 @@ Examples:
         help="Just collect and show tests, don't run them",
     )
 
-    parser.add_argument(
-        "--no-cov", action="store_true", help="Disable coverage reporting"
-    )
+    # Build test arguments
+    test_args: list[str] = []
 
+    if args.collect_only:
+        test_args.append("--collect-only")
+
+    # Enable coverage unless explicitly disabled
+    if not args.no_cov:
+        test_args.extend(["--cov=src", "--cov-report=term-missing"])
     args = parser.parse_args()
 
     print("🧪 BTC Max Knowledge Agent Test Runner")

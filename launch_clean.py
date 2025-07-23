@@ -18,29 +18,51 @@ load_dotenv()
 
 def kill_processes_on_port(port):
     """Kill any processes running on the specified port"""
-    killed_processes = []
+    processes_to_kill = []
 
     for proc in psutil.process_iter(["pid", "name"]):
         try:
-            # Get connections for this process
-            connections = proc.connections()
+            # Use modern psutil API compatible with psutil 6+
+            connections = proc.net_connections(kind="inet")
             for conn in connections:
                 if hasattr(conn, "laddr") and conn.laddr.port == port:
                     print(
                         f"🔄 Stopping process {proc.info['name']} (PID: {proc.info['pid']}) on port {port}"
                     )
-                    proc.terminate()
-                    killed_processes.append(proc.info["pid"])
+                    processes_to_kill.append(proc)
                     break
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
 
-    # Wait for processes to terminate
-    if killed_processes:
-        time.sleep(2)
-        print(f"✅ Cleaned up {len(killed_processes)} processes")
+    # Terminate processes and wait with timeout
+    killed_count = 0
+    for proc in processes_to_kill:
+        try:
+            proc.terminate()
+            killed_count += 1
+            
+            # Wait for process to terminate gracefully (up to 5 seconds)
+            try:
+                proc.wait(timeout=5)
+                print(f"✅ Process {proc.pid} terminated gracefully")
+            except psutil.TimeoutExpired:
+                # Process didn't terminate in time, force kill it
+                print(f"⚠️  Process {proc.pid} didn't terminate, force killing...")
+                proc.kill()
+                try:
+                    proc.wait(timeout=2)
+                    print(f"🔨 Process {proc.pid} force killed")
+                except psutil.TimeoutExpired:
+                    print(f"❌ Failed to kill process {proc.pid}")
+                    
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            # Process already gone or access denied
+            pass
 
-    return len(killed_processes)
+    if killed_count > 0:
+        print(f"✅ Cleaned up {killed_count} processes on port {port}")
+
+    return killed_count
 
 
 def check_dependencies():
@@ -74,8 +96,24 @@ def start_api_server():
         "0.0.0.0",
         "--port",
         str(api_port),
-        "--reload",
     ]
+    
+    # Only add --reload in development environments
+    env = os.getenv("ENV", "").lower()
+    debug = os.getenv("DEBUG", "").lower()
+    environment = os.getenv("ENVIRONMENT", "").lower()
+    
+    is_development = (
+        env in ("development", "dev") or
+        debug in ("true", "1", "yes") or
+        environment in ("development", "dev")
+    )
+    
+    if is_development:
+        cmd.append("--reload")
+        print("🔄 Development mode: auto-reload enabled")
+    else:
+        print("🏭 Production mode: auto-reload disabled")
 
     return subprocess.Popen(cmd)
 
@@ -195,6 +233,19 @@ def main():
             print("⚠️  Force killing processes...")
             api_process.kill()
             ui_process.kill()
+            
+            # Wait for processes to be fully reaped after kill()
+            try:
+                api_process.wait(timeout=3)
+            except (subprocess.TimeoutExpired, OSError):
+                # Ignore exceptions during cleanup
+                pass
+                
+            try:
+                ui_process.wait(timeout=3)
+            except (subprocess.TimeoutExpired, OSError):
+                # Ignore exceptions during cleanup
+                pass
 
         print("✅ Servers stopped successfully")
         sys.exit(0)

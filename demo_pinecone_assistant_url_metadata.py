@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """
 Demonstration script for PineconeAssistantAgent URL metadata functionality
+
+Prerequisites:
+    Install the package in development mode first:
+    pip install -e .
 """
 
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from btc_max_knowledge_agent.agents.pinecone_assistant_agent import (
+from src.agents.pinecone_assistant_agent import (
     PineconeAssistantAgent,
 )
-from btc_max_knowledge_agent.knowledge.data_collector import (
+from src.knowledge.data_collector import (
     BitcoinDataCollector,
 )
 
@@ -66,21 +65,8 @@ def demo_url_metadata_functionality():
         print("📤 Document Upload Format Example:")
         sample_doc = all_docs[0]
 
-        # Show how the document would be formatted for upload
-        formatted_doc = {
-            "id": sample_doc.get("id", ""),
-            "text": sample_doc.get("content", ""),
-            "metadata": {
-                "title": sample_doc.get("title", ""),
-                "source": sample_doc.get("source", ""),
-                "category": sample_doc.get("category", ""),
-                "url": assistant_agent._validate_and_sanitize_url(
-                    sample_doc.get("url", "")
-                )
-                or "",
-                "published": sample_doc.get("published", ""),
-            },
-        }
+        # Use the centralized helper method to format the document
+        formatted_doc = assistant_agent.build_upload_payload(sample_doc)
 
         print(f"Document ID: {formatted_doc['id']}")
         print(f"Title: {formatted_doc['metadata']['title']}")

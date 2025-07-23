@@ -51,7 +51,7 @@ class OptimizedPineconeClient:
             self.logger.debug("URL validation passed")
             return url
         else:
-            self.logger.warning(f"Invalid URL format: {url[:50]}...")
+            self.logger.warning(f"Invalid URL format: {url[:50] if url else 'None'}...")
             return None
     
     @timed_operation(PerformanceOptimizedLogger("timing"), "upsert_documents")

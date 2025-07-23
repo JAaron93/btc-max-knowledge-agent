@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 @query_retry_with_backoff(
     exceptions=(requests.RequestException, ConnectionError),
     raise_on_exhaust=False,
-    fallback_result={"error": "Service unavailable after retries"},
+    fallback_result=lambda: {"error": "Service unavailable after retries"},
 )
 def query_external_api(url: str) -> Dict[str, Any]:
     """

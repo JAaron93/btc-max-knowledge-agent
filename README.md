@@ -29,10 +29,12 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-2. **Install dependencies:**
+2. **Install the package in development mode:**
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
+   
+   This installs the `btc_max_knowledge_agent` package in editable mode, allowing you to use proper imports without sys.path manipulation.
 
 3. **Configure environment variables:**
    ```bash
@@ -169,11 +171,13 @@ Response:
 |----------|-------------|---------|
 | `PINECONE_API_KEY` | Pinecone API key | Required |
 | `PINECONE_ASSISTANT_HOST` | Assistant endpoint | Required |
-| `API_HOST` | API server host | ******* |
+| `API_HOST` | API server host | `0.0.0.0` (all interfaces) |
 | `API_PORT` | API server port | 8000 |
-| `UI_HOST` | UI server host | ******* |
+| `UI_HOST` | UI server host | `0.0.0.0` (all interfaces) |
 | `UI_PORT` | UI server port | 7860 |
 | `ALLOW_LOCALHOST_URLS` | Allow localhost URLs in testing | true |
+
+> **Note**: For production deployments, it's recommended to set host values to specific hostnames or IP addresses and configure appropriate firewall rules.
 
 ### Gunicorn Configuration
 
@@ -388,27 +392,74 @@ python demo_url_metadata_complete.py
 
 ## 🧪 Testing
 
-### Test API Connection
+### Running Tests
+
+#### Basic Test Execution
+
 ```bash
+# Run all tests with verbose output
 python run_tests.py --verbose
 
-### Running Tests
-For development tests, ensure ALLOW_LOCALHOST_URLS is true:
+# Run a specific test file
+python run_tests.py tests/test_my_feature.py
+
+# Run tests matching a pattern (e.g., all URL validation tests)
+python run_tests.py -k "test_url"
+
+# Run with coverage report
+python run_tests.py --cov=src --cov-report=term-missing
+```
+
+#### Environment-Specific Test Runs
+
+For development (with localhost URLs allowed):
+
 ```bash
+export ALLOW_LOCALHOST_URLS=true
 python run_tests.py --verbose
 ```
 
-For production tests to ensure localhost URLs are rejected:
+For production (with localhost URLs blocked):
+
+```bash
+export ALLOW_LOCALHOST_URLS=false
+python run_tests.py --verbose
+```
+
+#### Running Specific Tests
+
+To run a specific test file with detailed output:
+
+```bash
+python run_tests.py tests/test_my_feature.py -v
+```
+
+To run a specific test class or method:
+
+```bash
+python run_tests.py tests/test_my_feature.py::TestMyFeature::test_specific_case -v
+```
+
+To run production-specific tests:
+
 ```bash
 python run_tests.py tests/test_pinecone_url_metadata_prod.py --verbose
 ```
-```
 
-### Test Individual Components
+### Testing Individual Components
 ```bash
 # Test text cleaning
-python clean_mcp_response.py
+python run_tests.py tests/test_clean_mcp_response.py --verbose
 
+# Test API health
+python run_tests.py tests/test_api_health.py --verbose
+
+# Test query functionality
+python run_tests.py tests/test_query_endpoint.py --verbose
+```
+
+### API Testing
+```bash
 # Test API health
 curl http://localhost:8000/health
 

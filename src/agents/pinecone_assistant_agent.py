@@ -103,7 +103,81 @@ class PineconeAssistantAgent:
                     return domain_url
 
             # Return None to indicate failure, but don't block the operation
-            return None
+        return None
+
+    def build_upload_payload(self, doc: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Centralised builder for Pinecone upload payloads.
+
+        1. Validates & sanitises the doc['url'] via self._safe_validate_url.
+        2. Wraps/normalises metadata with GracefulDegradation.null_safe_metadata.
+        3. Returns the payload dict identical to what inline code built previously.
+
+        Args:
+            doc: Document dictionary containing id, content, url, title, source, category, published
+
+        Returns:
+            Dict[str, Any]: Formatted document payload ready for Pinecone upload
+            
+        Raises:
+            ValueError: If doc is None or missing required fields
+            Exception: Re-raises any unexpected errors during payload construction
+        """
+        if doc is None:
+            raise ValueError("Document cannot be None")
+        
+        if not isinstance(doc, dict):
+            raise ValueError("Document must be a dictionary")
+        
+        # Check for required fields
+        required_fields = ["id", "content"]
+        for field in required_fields:
+            if field not in doc:
+                raise ValueError(f"Document missing required field '{field}'")
+        
+        try:
+            # Safely validate URL without blocking document upload
+            url = self._safe_validate_url(doc.get("url", ""))
+            
+            if not url and doc.get("url"):
+                # URL was provided but validation failed - log warning but continue
+                logger.warning(
+                    f"URL validation failed for doc {doc.get('id')}, using empty string"
+                )
+                url = ""
+            
+            # Ensure metadata is null-safe by converting None values to empty strings
+            raw_metadata = {
+                "title": doc.get("title", ""),
+                "source": doc.get("source", ""),
+                "category": doc.get("category", ""),
+                "url": url or "",
+                "published": doc.get("published", ""),
+            }
+            
+            # Convert None values to empty strings for all fields
+            for key, value in raw_metadata.items():
+                if value is None:
+                    raw_metadata[key] = ""
+            
+            # Apply null-safe metadata processing (handles URL-related fields)
+            metadata = GracefulDegradation.null_safe_metadata(raw_metadata)
+            
+            # Build the formatted document payload
+            formatted_doc = {
+                "id": doc.get("id", ""),
+                "text": doc.get("content", ""),
+                "metadata": metadata,
+            }
+            
+            return formatted_doc
+            
+        except Exception as e:
+            logger.error(
+                f"Error formatting document {doc.get('id', 'unknown')}: {e}"
+            )
+            # Re-raise to maintain existing error handling semantics
+            raise
 
     def _format_sources_with_urls(
         self, citations: List[Dict[str, Any]]
@@ -259,40 +333,18 @@ class PineconeAssistantAgent:
         # Convert our document format to Pinecone Assistant format
         for doc in documents:
             try:
-                # Safely validate URL without blocking document upload
-                url = self._safe_validate_url(doc.get("url", ""))
-
-                if not url and doc.get("url"):
-                    # URL was provided but validation failed
+                payload = self.build_upload_payload(doc)
+                
+                # Track URL validation failures for reporting
+                if not payload["metadata"].get("url") and doc.get("url"):
                     failed_urls.append(
                         {
                             "doc_id": doc.get("id", "unknown"),
                             "original_url": doc.get("url", ""),
                         }
                     )
-                    # Use empty string for invalid URLs as per test expectations
-                    url = ""
-                    logger.warning(
-                        f"URL validation failed for doc {doc.get('id')}, using empty string"
-                    )
-
-                # Ensure metadata is null-safe
-                metadata = GracefulDegradation.null_safe_metadata(
-                    {
-                        "title": doc.get("title", ""),
-                        "source": doc.get("source", ""),
-                        "category": doc.get("category", ""),
-                        "url": url or "",
-                        "published": doc.get("published", ""),
-                    }
-                )
-
-                formatted_doc = {
-                    "id": doc.get("id", ""),
-                    "text": doc.get("content", ""),
-                    "metadata": metadata,
-                }
-                successful_docs.append(formatted_doc)
+                
+                successful_docs.append(payload)
 
             except Exception as e:
                 logger.error(
@@ -337,9 +389,6 @@ class PineconeAssistantAgent:
                     start_time = time.time()
 
                     try:
-                        # Calculate metadata size for batch
-                        sum(len(str(doc.get("metadata", {}))) for doc in batch)
-
                         response = requests.post(
                             f"{self.host}/assistants/{assistant_id}/files",
                             headers=self.headers,

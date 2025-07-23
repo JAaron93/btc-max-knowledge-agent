@@ -3,6 +3,7 @@
 Bitcoin Knowledge Assistant API using FastAPI and Pinecone Assistant
 """
 
+import asyncio
 import os
 from typing import Dict, List, Optional
 
@@ -133,8 +134,10 @@ async def health_check():
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        # Test Pinecone Assistant connection with a simple query
-        test_response = bitcoin_service.get_assistant_response("What is Bitcoin?")
+        # Test Pinecone Assistant connection with a simple query (run in thread to avoid blocking)
+        test_response = await asyncio.to_thread(
+            bitcoin_service.get_assistant_response, "What is Bitcoin?"
+        )
 
         return {
             "status": "healthy",
@@ -152,8 +155,10 @@ async def query_bitcoin_knowledge(request: QueryRequest):
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        # Get response from Pinecone Assistant
-        response_data = bitcoin_service.get_assistant_response(request.question)
+        # Get response from Pinecone Assistant (run in thread to avoid blocking)
+        response_data = await asyncio.to_thread(
+            bitcoin_service.get_assistant_response, request.question
+        )
 
         # Format the assistant response
         answer = bitcoin_service.format_assistant_response(response_data)
@@ -178,24 +183,13 @@ async def list_available_sources():
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        # Get a broad context to see available sources
-        context = bitcoin_service.get_assistant_response(
+        # Get a broad context to see available sources (run in thread to avoid blocking)
+        context = await asyncio.to_thread(
+            bitcoin_service.get_assistant_response,
             "Bitcoin blockchain cryptocurrency"
         )
 
-        sources = set()
-        if "content" in context:
-            for item in context["content"]:
-                if item.get("type") == "text":
-                    text = item.get("text", "")
-                    if "📄 **" in text:
-                        source_name = (
-                            text.split("📄 **")[1].split("**")[0]
-                            if "📄 **" in text
-                            else "Unknown"
-                        )
-                        sources.add(source_name)
-
+        sources = {s.get("name") for s in context.get("sources", []) if s.get("name")}
         return {
             "available_sources": sorted(list(sources)),
             "total_sources": len(sources),

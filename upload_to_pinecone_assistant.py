@@ -6,8 +6,8 @@ Upload Bitcoin documents to Pinecone Assistant via web interface
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+# Remove.  Install the project with:
+#   pip install -e .
 import re
 from urllib.parse import urlparse
 
@@ -83,7 +83,11 @@ def create_upload_files():
     # Create files for each category
     file_count = 0
     for category, docs in categories.items():
-        filename = f"{upload_dir}/bitcoin_{category}.txt"
+        # sanitize category name for use in filenames
+        safe = re.sub(r"[^0-9A-Za-z._-]+", "_", category.strip().lower())
+        filename = f"{upload_dir}/bitcoin_{safe}.txt"
+        if category != safe:
+            print(f"ℹ️  Normalised filename for category '{category}' → '{safe}'")
 
         with open(filename, "w", encoding="utf-8") as f:
             f.write(f"# Bitcoin Knowledge Base - {category.title()}\n\n")

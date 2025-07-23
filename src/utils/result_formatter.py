@@ -254,7 +254,7 @@ class QueryResultFormatter:
         for i, result in enumerate(results, 1):
             # Format individual result
             single_result = QueryResultFormatter.format_single_result(
-                result, include_scores
+                result, include_score=include_scores
             )
 
             # Add result number for multiple results or when max_results is applied

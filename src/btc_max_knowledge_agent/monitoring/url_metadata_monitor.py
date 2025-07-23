@@ -45,7 +45,7 @@ except Exception:  # pragma: no cover – fall back to stubs
 
         def check_url_accessibility(
             self, *args: Any, **kwargs: Any
-        ) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
+        ) -> Tuple[bool, Optional[str]]:  # noqa: D401
             return False, "unavailable"
 
     # Module-level convenience wrappers used by production code & tests
@@ -64,83 +64,6 @@ except Exception:  # pragma: no cover – fall back to stubs
         *args: Any, **kwargs: Any
     ) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
         return url_metadata_monitor.check_url_accessibility(*args, **kwargs)
-
-    _legacy = SimpleNamespace(
-        URLMetadataMonitor=URLMetadataMonitor,
-        AlertThreshold=AlertThreshold,
-        record_validation=record_validation,
-        record_upload=record_upload,
-        record_retrieval=record_retrieval,
-        check_url_accessibility=check_url_accessibility,
-        url_metadata_monitor=url_metadata_monitor,
-    )
-
-__all__ = [
-    "URLMetadataMonitor",
-    "AlertThreshold",
-    "record_validation",
-    "record_upload",
-    "record_retrieval",
-    "check_url_accessibility",
-    "url_metadata_monitor",
-]
-
-try:
-    _legacy = import_module("monitoring.url_metadata_monitor")
-    URLMetadataMonitor = _legacy.URLMetadataMonitor  # type: ignore[attr-defined]
-    AlertThreshold = _legacy.AlertThreshold  # type: ignore[attr-defined]
-    record_validation = _legacy.record_validation  # type: ignore[attr-defined]
-    record_upload = _legacy.record_upload  # type: ignore[attr-defined]
-    record_retrieval = _legacy.record_retrieval  # type: ignore[attr-defined]
-    check_url_accessibility = _legacy.check_url_accessibility  # type: ignore[attr-defined]
-    url_metadata_monitor = _legacy.url_metadata_monitor  # type: ignore[attr-defined]
-except Exception:  # pragma: no cover
-    # Legacy implementation is unavailable or broken (syntax error, etc.).
-    # Define no-op fallbacks sufficient for unit tests that only assert calls.
-
-    class AlertThreshold:  # type: ignore[too-many-ancestors]
-        """Placeholder when legacy AlertThreshold cannot be imported."""
-
-        def __init__(self, *args, **kwargs):
-            pass
-
-    class URLMetadataMonitor:  # type: ignore[too-many-ancestors]
-        """Minimal stub replacement for tests when legacy implementation fails."""
-
-        def __init__(self, *args, **kwargs):
-            self.metrics = []
-
-        # Provide dummy methods used in tests; they just record arguments.
-        def record_validation(self, *args, **kwargs):
-            self.metrics.append(("validation", args, kwargs))
-
-        def record_upload(self, *args, **kwargs):
-            self.metrics.append(("upload", args, kwargs))
-
-        def record_retrieval(self, *args, **kwargs):
-            self.metrics.append(("retrieval", args, kwargs))
-
-        def summarize(self):  # pragma: no cover
-            return {
-                "counts": {
-                    k: sum(1 for m in self.metrics if m[0] == k)
-                    for k in {"validation", "upload", "retrieval"}
-                }
-            }
-
-    def record_validation(*args, **kwargs):
-        pass  # pragma: no cover
-
-    def record_upload(*args, **kwargs):
-        pass  # pragma: no cover
-
-    def record_retrieval(*args, **kwargs):
-        pass  # pragma: no cover
-
-    def check_url_accessibility(*args, **kwargs):
-        return False, "unavailable"  # pragma: no cover
-
-    url_metadata_monitor = URLMetadataMonitor()
 
     _legacy = SimpleNamespace(
         URLMetadataMonitor=URLMetadataMonitor,

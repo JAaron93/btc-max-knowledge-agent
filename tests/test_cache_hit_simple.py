@@ -44,7 +44,6 @@ def test_cache_hit_basic():
         "btc_max_knowledge_agent.utils.url_utils.validate_url_format", side_effect=mock_validate_url_format
     ):
 
-        print("=== First call to validate_url_batch ===")
         # First call to validate_url_batch
         result1 = validate_url_batch(url_list, check_accessibility=False)
 

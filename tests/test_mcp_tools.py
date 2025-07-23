@@ -60,13 +60,18 @@ def stream_sse_events(endpoint, headers, payload):
 
 def call_mcp_tool(method, params=None):
     """Call an MCP tool using JSON-RPC"""
+    if not method or not isinstance(method, str):
+        raise ValueError("Method must be a non-empty string")
 
     endpoint = os.getenv(
         "PINECONE_ASSISTANT_HOST",
-        "https://prod-1-data.ke.pinecone.io/mcp/assistants/genius",
+        None,  # Require explicit configuration
     )
-    api_key = os.getenv("PINECONE_API_KEY")
+    if not endpoint:
+        print("❌ Error: PINECONE_ASSISTANT_HOST environment variable not set")
+        return None
 
+    api_key = os.getenv("PINECONE_API_KEY")
     if not api_key:
         print("❌ Error: PINECONE_API_KEY environment variable not set")
         return None
@@ -74,17 +79,22 @@ def call_mcp_tool(method, params=None):
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream",
     }
-
-    payload = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}
-
+    
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": method,
+        "params": params or {},
+    }
+    
     try:
-        response = requests.post(endpoint, headers=headers, json=payload, timeout=30)
+        response = requests.post(endpoint, headers=headers, json=payload, timeout=10)
 
         if response.status_code == 200:
             # Handle streaming response
-            if "text/event-stream" in response.headers.get("content-type", ""):
+            content_type = response.headers.get("content-type", "")
+            if "text/event-stream" in content_type:
                 # Parse server-sent events and collect all valid JSON events
                 lines = response.text.strip().split("\n")
                 events = []
@@ -95,7 +105,7 @@ def call_mcp_tool(method, params=None):
                             events.append(data)
                         except json.JSONDecodeError:
                             continue
-                
+
                 # Return all events if multiple were found, otherwise return single event or None
                 if len(events) == 1:
                     return events[0]  # Single event - maintain backward compatibility
@@ -104,15 +114,21 @@ def call_mcp_tool(method, params=None):
                 else:
                     return None  # No valid events found
             else:
+                if "application/json" not in content_type:
+                    print(f"❌ Unexpected content type: {content_type}")
+                    return None
                 return response.json()
         else:
-            print(f"❌ Error: {response.status_code} - {response.text}")
+            print(f"❌ HTTP Error: {response.status_code}")
             return None
 
     except Exception as e:
         print(f"❌ Error calling MCP tool: {e}")
         return None
 
+    except Exception as e:
+        print(f"❌ Error calling MCP tool: {e}")
+        return None
 
 def test_mcp_tools():
     """Test available MCP tools"""

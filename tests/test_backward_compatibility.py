@@ -6,7 +6,7 @@ Test backward compatibility with documents that don't have URLs
 import os
 import tempfile
 
-from src.utils.url_utils import extract_domain, is_url_valid
+from btc_max_knowledge_agent.utils.url_utils import extract_domain, is_url_valid
 
 
 def test_documents_without_urls():
@@ -41,7 +41,6 @@ def test_documents_without_urls():
     for i, doc in enumerate(test_docs, 1):
         url = doc.get("url", "").strip()
         if url and is_url_valid(url):
-            assert is_url_valid(url) is True
             # Use extract_domain to get a clean display name from source
             source = doc.get("source", "View Source")
             if source.startswith("http"):
@@ -120,8 +119,8 @@ def test_mixed_document_formatting():
     documents = content.split("-" * 80 + "\n\n")
     documents = [doc.strip() for doc in documents if doc.strip()]
 
-    # Verify we have the expected number of documents (2 + the header = 3 total sections)
-    # But we only have actual documents (the header doesn't count as a document)
+    # Verify we have the expected number of documents
+    # Only actual documents are counted (header is excluded from splitting logic)
     assert len(documents) == 2, f"Expected 2 documents, found {len(documents)}"
 
     # Check each document's structure
@@ -200,4 +199,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(main())

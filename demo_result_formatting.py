@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
-"""Demonstration of the new result formatting functionality with URL metadata support."""
+"""
+Demonstration of the new result formatting functionality with URL metadata support.
 
-import os
+Prerequisites:
+    Install the package in development mode first:
+    pip install -e .
+"""
+
 import sys
 
-# Add src to path for imports
-src_path = os.path.join(os.path.dirname(__file__), "src")
-if os.path.exists(src_path):
-    sys.path.append(src_path)
-else:
-    print(f"Error: src directory not found at {src_path}")
-    sys.exit(1)
-
 try:
-    from src.utils.result_formatter import (
+    from btc_max_knowledge_agent.utils.result_formatter import (
         AssistantResponseFormatter,
         MCPResponseFormatter,
         QueryResultFormatter,
     )
 except ImportError as e:
     print(f"Error importing formatter classes: {e}")
+    print("Make sure to install the package first: pip install -e .")
     sys.exit(1)
 
 # Sample data for demos
@@ -358,6 +356,9 @@ def demo_assistant_formatting() -> None:
             print(f"     Preview: {truncate_text(content_preview)}")
     except Exception as e:
         print(f"Error in assistant formatting demo: {e}")
+        return  # abort – safe exit prevents UnboundLocalError
+
+    # Only run when the try-block succeeded
     print("\nFormatted Sources:")
     print(formatted_response.get("formatted_sources", "No sources available"))
 

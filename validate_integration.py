@@ -318,12 +318,11 @@ class IntegrationValidator:
             return {"success": True, "fallback": True}
 
         # Test the graceful degradation with a fallback strategy
-        wrapped_operation = self.graceful_degradation.safe_url_operation(
+        result = self.graceful_degradation.safe_url_operation(
             failing_operation,
             fallback_strategies=[successful_fallback],
             operation_name="test_retry",
         )
-        result = wrapped_operation()
 
         # Test should pass if graceful degradation worked (result from fallback)
         return {

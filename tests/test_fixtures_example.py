@@ -220,7 +220,7 @@ class TestRealWorldScenarios:
         )
         assert new_logger.config["query_truncation_length"] == 200
 
-    def test_performance_comparison(self, config_variants, sample_test_data):
+    def test_performance_comparison(self, config_variants, sample_test_data, tmp_path):
         """Test performance implications of different truncation lengths."""
 
         import time
@@ -228,30 +228,23 @@ class TestRealWorldScenarios:
         results = {}
 
         for config_name, config in config_variants.items():
-            # Create a temporary logger for this test
-            import tempfile
+            # Use pytest's tmp_path fixture
+            temp_dir = tmp_path / f"perf_test_{config_name}"
+            temp_dir.mkdir(exist_ok=True)
 
-            temp_dir = tempfile.mkdtemp()
+            logger = URLMetadataLogger(
+                log_dir=str(temp_dir),
+                query_truncation_length=config.query_truncation_length,
+            )
 
-            try:
-                logger = URLMetadataLogger(
-                    log_dir=temp_dir,
-                    query_truncation_length=config.query_truncation_length,
-                )
+            # Measure time for logging operations
+            start_time = time.time()
 
-                # Measure time for logging operations
-                start_time = time.time()
+            for query in sample_test_data["queries"]:
+                logger.log_retrieval(query, 1, 50.0)
 
-                for query in sample_test_data["queries"]:
-                    logger.log_retrieval(query, 1, 50.0)
-
-                end_time = time.time()
-                results[config_name] = end_time - start_time
-
-            finally:
-                import shutil
-
-                shutil.rmtree(temp_dir, ignore_errors=True)
+            end_time = time.time()
+            results[config_name] = end_time - start_time
 
         # Verify that all configurations completed successfully
         assert len(results) == len(config_variants)

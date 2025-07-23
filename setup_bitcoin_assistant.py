@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """
 Complete setup script for Bitcoin Knowledge Assistant using Pinecone Assistant
+
+Prerequisites:
+    Install the package in development mode first:
+    pip install -e .
 """
 
 import json
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from btc_max_knowledge_agent.agents.pinecone_assistant_agent import (
     PineconeAssistantAgent,
 )
-from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import (
+    BitcoinDataCollector,
+)
 
 
 def main():
@@ -47,7 +51,8 @@ def main():
         for assistant in assistants:
             if "bitcoin" in assistant.get("name", "").lower():
                 bitcoin_assistant = assistant
-                print(f"✅ Found existing Bitcoin assistant: {assistant['name']}")
+                print(f"✅ Found existing Bitcoin assistant: "
+                      f"{assistant['name']}")
                 break
 
         # Step 4: Create assistant if needed
@@ -61,17 +66,39 @@ def main():
                 print("❌ Failed to create assistant. Exiting.")
                 return
         else:
-            print(f"\n4. Using existing assistant: {bitcoin_assistant['name']}")
+            print(f"\n4. Using existing assistant: "
+                  f"{bitcoin_assistant['name']}")
 
         assistant_id = bitcoin_assistant["id"]
 
-        # Step 5: Upload documents
+        # Step 5: Upload documents in chunks
         print(f"\n5. Uploading {len(documents)} documents to assistant...")
-        success = assistant_agent.upload_documents(assistant_id, documents)
-
-        if not success:
-            print("❌ Failed to upload documents. Exiting.")
-            return
+        chunk_size = 100
+        total_chunks = (len(documents) + chunk_size - 1) // chunk_size
+        
+        print(f"📦 Splitting into {total_chunks} chunks of up to "
+              f"{chunk_size} documents each")
+        
+        for i in range(0, len(documents), chunk_size):
+            chunk = documents[i:i + chunk_size]
+            batch_num = (i // chunk_size) + 1
+            
+            print(f"📤 Uploading batch {batch_num}/{total_chunks} "
+                  f"({len(chunk)} documents)...")
+            
+            success = assistant_agent.upload_documents(assistant_id, chunk)
+            
+            if not success:
+                print(f"❌ Failed to upload batch {batch_num}/{total_chunks}.")
+                print(f"   Batch contained documents {i + 1} to "
+                      f"{i + len(chunk)}.")
+                print("   Stopping upload process to prevent partial "
+                      "data corruption.")
+                return
+            
+            print(f"✅ Successfully uploaded batch {batch_num}/{total_chunks}")
+        
+        print(f"🎉 All {len(documents)} documents uploaded successfully!")
 
         # Step 6: Test the assistant
         print("\n6. Testing the assistant...")
@@ -100,16 +127,17 @@ def main():
             "setup_complete": True,
         }
 
+        os.makedirs("data", exist_ok=True)
         with open("data/assistant_info.json", "w") as f:
             json.dump(assistant_info, f, indent=2)
-
         print("\n✅ Setup Complete!")
         print("=" * 50)
         print(f"🤖 Assistant ID: {assistant_id}")
         print(f"📚 Documents uploaded: {len(documents)}")
         print("💾 Assistant info saved to: data/assistant_info.json")
         print("\n🔧 MCP Integration:")
-        print("- Your Pinecone Assistant MCP is configured in .kiro/settings/mcp.json")
+        print("- Your Pinecone Assistant MCP is configured in "
+              ".kiro/settings/mcp.json")
         print("- You can now use MCP tools to interact with your assistant")
         print("- The assistant is ready for Bitcoin and blockchain questions!")
 

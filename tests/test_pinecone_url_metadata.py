@@ -18,7 +18,7 @@ class TestPineconeURLMetadata(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        import os
+
         
         # Mock environment variables for Config
         test_env_vars = {
@@ -114,7 +114,7 @@ class TestPineconeURLMetadata(unittest.TestCase):
                 "source": "Test Source 1",
                 "category": "test",
                 "url": "https://example.com/doc1",
-                'embedding': [0.1] * mock_config.EMBEDDING_DIMENSION,
+                'embedding': [0.1] * 768,
             },
             {
                 "id": "doc2",

@@ -32,6 +32,30 @@ from btc_max_knowledge_agent.utils.url_utils import (
 )
 
 
+def reload_config_modules():
+    """
+    Helper function to reload configuration and URL utility modules.
+    
+    This is needed in tests that modify environment variables to ensure
+    the modules pick up the new configuration values.
+    """
+    import importlib
+    import sys
+    
+    # Define modules that need to be reloaded when config changes
+    modules_to_reload = [
+        'src.utils.config',
+        'btc_max_knowledge_agent.utils.config',
+        'src.utils.url_utils',
+        'btc_max_knowledge_agent.utils.url_utils'
+    ]
+    
+    # Reload each module if it's present in sys.modules
+    for module_name in modules_to_reload:
+        if module_name in sys.modules:
+            importlib.reload(sys.modules[module_name])
+
+
 class TestIsSecureUrl:
     """Tests for the enhanced security validation function."""
 
@@ -60,16 +84,7 @@ class TestIsSecureUrl:
     def test_private_ip_addresses(self):
         """Test blocking of private IP addresses."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         private_ip_urls = [
             "http://10.0.0.1",
@@ -311,16 +326,7 @@ class TestSanitizeUrlForStorage:
     def test_security_validation_integration(self):
         """Test that security validation is applied."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         insecure_urls = [
             "javascript:alert(1)",
@@ -380,7 +386,7 @@ class TestValidateUrlBatch:
         assert results["https://192.168.1.1"]["valid"] is False
         assert results["https://192.168.1.1"]["secure"] is False
 
-    @patch("src.utils.url_utils.check_url_accessibility")
+    @patch("btc_max_knowledge_agent.utils.url_utils.check_url_accessibility")
     def test_batch_with_accessibility_check(self, mock_check_accessibility):
         """Test batch validation with accessibility checking."""
         mock_check_accessibility.side_effect = [True, False, True]
@@ -1043,16 +1049,7 @@ class TestLocalhostUrlConfig:
     def test_localhost_allowed_when_enabled(self):
         """Test that localhost URLs are allowed when ALLOW_LOCALHOST_URLS=True."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         localhost_urls = [
             "http://localhost",
@@ -1076,16 +1073,7 @@ class TestLocalhostUrlConfig:
     def test_localhost_rejected_when_disabled(self):
         """Test that localhost URLs are rejected when ALLOW_LOCALHOST_URLS=False."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         localhost_urls = [
             "http://localhost",
@@ -1110,16 +1098,7 @@ class TestLocalhostUrlConfig:
     def test_production_mode_localhost_variations(self):
         """Test various localhost domain variations are all rejected in production mode."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         localhost_variations = [
             "http://localhost",
@@ -1127,7 +1106,7 @@ class TestLocalhostUrlConfig:
             "http://LOCALHOST",  # Case variations
             "https://LocalHost",
             # NOTE: These are not in the localhost check list, so they pass validation
-            # "http://localhost.localdomain",  
+            # "http://localhost.localdomain",
             # "https://localhost.local",
             # NOTE: 127.0.0.1 is blocked as private IP, not localhost
             # "http://*********",  # 127.0.0.1 IP
@@ -1141,16 +1120,7 @@ class TestLocalhostUrlConfig:
     def test_production_mode_still_allows_valid_urls(self):
         """Test that normal URLs still work in production mode."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         valid_urls = [
             "https://example.com",
@@ -1173,16 +1143,7 @@ class TestLocalhostUrlConfig:
     def test_batch_validation_with_localhost_allowed(self):
         """Test batch URL validation when localhost URLs are allowed."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         urls = [
             "https://example.com",  # Valid
@@ -1210,16 +1171,7 @@ class TestLocalhostUrlConfig:
     def test_batch_validation_with_localhost_rejected(self):
         """Test batch URL validation when localhost URLs are rejected."""
         # Force reload of config to pick up environment variable
-        import importlib
-        import sys
-        if 'src.utils.config' in sys.modules:
-            importlib.reload(sys.modules['src.utils.config'])
-        if 'btc_max_knowledge_agent.utils.config' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.config'])
-        if 'src.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['src.utils.url_utils'])
-        if 'btc_max_knowledge_agent.utils.url_utils' in sys.modules:
-            importlib.reload(sys.modules['btc_max_knowledge_agent.utils.url_utils'])
+        reload_config_modules()
         
         urls = [
             "https://example.com",  # Valid

@@ -4,6 +4,7 @@ Script to help you find your Pinecone Assistant information
 """
 
 import os
+import re
 
 import requests
 from dotenv import load_dotenv
@@ -19,14 +20,16 @@ def check_pinecone_connection():
         print("❌ PINECONE_API_KEY not found in .env file")
         return False
 
-    print(f"✅ Found Pinecone API Key: {api_key[:10]}...")
+    print(f"✅ Found Pinecone API Key: {api_key[:4]}...")
 
     # Try to get Pinecone indexes to verify connection
     try:
         headers = {"Api-Key": api_key, "Content-Type": "application/json"}
 
         # This is the standard Pinecone API endpoint
-        response = requests.get("https://api.pinecone.io/indexes", headers=headers)
+        # TODO: allow region override, fallback to legacy host
+        url = os.getenv("PINECONE_CONTROLLER_URL", "https://api.pinecone.io/indexes")
+        response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             indexes = response.json()
@@ -124,15 +127,18 @@ def main():
     host = test_assistant_host()
 
     if host:
-        # Update .env file
         try:
             with open(".env", "r") as f:
                 content = f.read()
 
-            updated_content = content.replace(
-                'PINECONE_ASSISTANT_HOST="YOUR_PINECONE_ASSISTANT_HOST_HERE"',
-                f'PINECONE_ASSISTANT_HOST="{host}"',
-            )
+            if "PINECONE_ASSISTANT_HOST" in content:
+                updated_content = re.sub(
+                    r'PINECONE_ASSISTANT_HOST\s*=.*',
+                    f'PINECONE_ASSISTANT_HOST="{host}"',
+                    content,
+                )
+            else:
+                updated_content = content.rstrip() + f'\nPINECONE_ASSISTANT_HOST="{host}"\n'
 
             with open(".env", "w") as f:
                 f.write(updated_content)
@@ -142,12 +148,10 @@ def main():
         except Exception as e:
             print(f"❌ Error updating .env file: {e}")
 
-    print("\n📋 Next Steps:")
-    print("1. If you found your Assistant host, the .env file has been updated")
-    print("2. If Assistants aren't available, consider using regular Pinecone indexes")
-    print(
-        "3. You can also proceed with the standard RAG approach using our existing code"
-    )
+    print("""\n📋 Next Steps:
+1. If you found your Assistant host, the .env file has been updated
+2. If Assistants aren't available, consider using regular Pinecone indexes
+3. You can also proceed with the standard RAG approach using our existing code""")
 
 
 if __name__ == "__main__":

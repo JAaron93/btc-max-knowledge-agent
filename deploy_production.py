@@ -59,13 +59,12 @@ def start_production_api():
 
     cmd = ["gunicorn", "src.web.bitcoin_assistant_api:app", "-c", "gunicorn.conf.py"]
 
-    return subprocess.Popen(cmd)
+    return subprocess.Popen(cmd, env=os.environ.copy())
 
 
 def start_production_ui():
     """Start Gradio UI for production"""
     ui_port = int(os.getenv("UI_PORT", 7860))
-    print(f"🎨 Starting production Gradio UI on port {ui_port}...")
 
     # Check if port is already in use
     import socket
@@ -76,13 +75,15 @@ def start_production_ui():
 
     if result == 0:
         print(f"⚠️  Port {ui_port} is already in use. Using port {ui_port + 1} instead.")
-        ui_port = ui_port + 1
+        ui_port += 1
 
     # Set production environment variables
     env = os.environ.copy()
     env["GRADIO_SERVER_NAME"] = os.getenv("UI_HOST", "0.0.0.0")
     env["GRADIO_SERVER_PORT"] = str(ui_port)
-
+    # Log the final port and keep both env vars consistent
+    print(f"🎨 Starting production Gradio UI on port {ui_port}...")
+    env["UI_PORT"] = str(ui_port)
     cmd = [sys.executable, "src/web/bitcoin_assistant_ui.py"]
 
     return subprocess.Popen(cmd, env=env)
@@ -94,10 +95,10 @@ def check_production_requirements():
 
     if importlib.util.find_spec("gunicorn") is not None:
         print("✅ Gunicorn is available")
-    else:
         print("❌ Gunicorn not found. Installing...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "gunicorn"])
-        print("✅ Gunicorn installed")
+        print("❌ Gunicorn not found. Please install it before deploying, e.g.:")
+        print("    pip install gunicorn")
+        return False
 
     # Check if logs directory exists
     os.makedirs("logs", exist_ok=True)

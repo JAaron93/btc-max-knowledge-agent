@@ -67,7 +67,7 @@ def start_api_server():
         api_host,
         "--port",
         str(api_port),
-        "--reload",
+        *([] if os.getenv("API_RELOAD", "false").lower() not in {"1", "true"} else ["--reload"]),
     ]
 
     return subprocess.Popen(cmd)
@@ -80,8 +80,15 @@ def start_gradio_ui():
 
     print(f"🎨 Starting Gradio UI on {ui_host}:{ui_port}")
 
-    # Start Gradio UI
-    cmd = [sys.executable, "src/web/bitcoin_assistant_ui.py"]
+    # Start Gradio UI with host and port arguments
+    cmd = [
+        sys.executable,
+        "src/web/bitcoin_assistant_ui.py",
+        "--host",
+        ui_host,
+        "--port",
+        str(ui_port)
+    ]
 
     return subprocess.Popen(cmd)
 
@@ -90,7 +97,8 @@ def wait_for_api(max_attempts=30):
     """Wait for API to be ready"""
     import requests
 
-    api_url = f"http://localhost:{os.getenv('API_PORT', 8000)}/health"
+    api_host = os.getenv("API_HOST", "localhost")
+    api_url = f"http://{api_host}:{os.getenv('API_PORT', 8000)}/health"
 
     for attempt in range(max_attempts):
         try:
