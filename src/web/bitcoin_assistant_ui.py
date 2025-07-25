@@ -320,12 +320,72 @@ def create_waveform_animation() -> str:
     """
 
 
-def get_tts_status_display(is_synthesizing: bool, has_error: bool = False) -> str:
-    """Get TTS status display HTML"""
-    if has_error:
+def check_tts_status() -> Tuple[bool, Optional[Dict]]:
+    """Check TTS service status and return error information"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/tts/status", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            error_state = data.get("error_state", {})
+            has_error = error_state.get("has_error", False)
+            return has_error, error_state if has_error else None
+        else:
+            return True, {"error_type": "API_ERROR", "error_message": "Failed to check TTS status"}
+    except Exception as e:
+        return True, {"error_type": "CONNECTION_ERROR", "error_message": str(e)}
+
+
+def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error_info: Optional[Dict] = None) -> str:
+    """Get TTS status display HTML with comprehensive error information and graceful fallback"""
+    if has_error and error_info:
+        error_type = error_info.get("error_type", "UNKNOWN")
+        error_message = error_info.get("error_message", "TTS service error")
+        consecutive_failures = error_info.get("consecutive_failures", 0)
+        is_muted = error_info.get("is_muted", False)
+        
+        # Create user-friendly error messages with appropriate visual indicators
+        if error_type == "API_KEY_ERROR":
+            display_message = "🔴 Invalid API key - Voice disabled"
+            tooltip = "The ElevenLabs API key is missing or invalid. Text display continues normally. Please check your ELEVEN_LABS_API_KEY environment variable."
+            color = "#dc2626"  # Red for critical errors
+        elif error_type == "RATE_LIMIT":
+            display_message = "🟡 Rate limited - Retrying automatically"
+            tooltip = f"ElevenLabs API rate limit exceeded. The service will automatically retry with exponential backoff. Text display continues normally. Failures: {consecutive_failures}"
+            color = "#f59e0b"  # Amber for temporary issues
+        elif error_type.startswith("SERVER_ERROR"):
+            display_message = "🟠 Server error - Retrying automatically"
+            tooltip = f"ElevenLabs server is experiencing issues. The service will automatically retry. Text display continues normally. Failures: {consecutive_failures}"
+            color = "#ea580c"  # Orange for server issues
+        elif error_type == "NETWORK_ERROR":
+            display_message = "🔴 Network error - Check connection"
+            tooltip = f"Network connectivity issues detected. Please check your internet connection. Text display continues normally. Failures: {consecutive_failures}"
+            color = "#dc2626"  # Red for network issues
+        elif error_type == "RETRY_EXHAUSTED":
+            display_message = "🔴 Voice synthesis failed - Text continues"
+            tooltip = f"All retry attempts exhausted. Voice synthesis is temporarily disabled but text display continues normally. The service will attempt recovery automatically."
+            color = "#dc2626"  # Red for exhausted retries
+        elif error_type == "SYNTHESIS_FAILED":
+            display_message = "🔴 Synthesis failed - Text continues"
+            tooltip = "Audio synthesis failed for this response. Text display continues normally. The service will attempt recovery on the next request."
+            color = "#dc2626"  # Red for synthesis failures
+        else:
+            display_message = "🔴 TTS service error - Text continues"
+            tooltip = f"TTS service error: {error_message}. Text display continues normally. Failures: {consecutive_failures}"
+            color = "#dc2626"  # Red for unknown errors
+        
+        # Add muted state indicator if applicable
+        muted_indicator = " (Muted)" if is_muted else ""
+        
+        return f"""
+        <div style="display: flex; align-items: center; justify-content: center; padding: 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;" title="{tooltip}">
+            <span style="color: {color}; font-size: 12px; cursor: help; font-weight: 500;">{display_message}{muted_indicator}</span>
+        </div>
+        """
+    elif has_error:
+        # Fallback error display for cases without detailed error info
         return """
-        <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-            <span style="color: #ef4444; font-size: 12px;">🔴 TTS Error - Check API key</span>
+        <div style="display: flex; align-items: center; justify-content: center; padding: 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;" title="Text-to-speech service temporarily unavailable - text will continue to display normally">
+            <span style="color: #dc2626; font-size: 12px; cursor: help; font-weight: 500;">🔴 TTS Error - Text continues normally</span>
         </div>
         """
     elif is_synthesizing:
@@ -439,6 +499,15 @@ def create_bitcoin_assistant_ui():
                         elem_classes=["tts-status"]
                     )
                     
+                    # Recovery button for TTS errors
+                    with gr.Row():
+                        tts_recovery_btn = gr.Button(
+                            "🔄 Retry TTS Connection",
+                            size="sm",
+                            variant="secondary",
+                            visible=False
+                        )
+                    
                     # Audio Output Component
                     audio_output = gr.Audio(
                         label="Generated Speech",
@@ -495,14 +564,19 @@ def create_bitcoin_assistant_ui():
 
         # Event handlers
         def submit_question(question, tts_enabled_val, volume_val):
-            """Submit question with TTS streaming support"""
+            """Submit question with TTS streaming support and comprehensive error handling"""
             if not question.strip():
-                return "Please enter a question.", "", get_tts_status_display(False), None
+                return "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False)
             
-            # Show synthesis animation if TTS is enabled
-            if tts_enabled_val:
+            # Check TTS status before starting
+            has_tts_error, error_info = check_tts_status()
+            
+            # Show synthesis animation if TTS is enabled and no errors
+            if tts_enabled_val and not has_tts_error:
                 tts_state.start_synthesis()
                 synthesis_status = get_tts_status_display(True)
+            elif has_tts_error:
+                synthesis_status = get_tts_status_display(False, has_error=True, error_info=error_info)
             else:
                 synthesis_status = get_tts_status_display(False)
             
@@ -514,11 +588,19 @@ def create_bitcoin_assistant_ui():
             # Stop synthesis animation
             tts_state.stop_synthesis()
             
-            # Prepare audio output based on streaming info
+            # Check TTS status again after query to catch any new errors
+            has_tts_error_after, error_info_after = check_tts_status()
+            
+            # Prepare audio output based on streaming info and error state
             audio_output_val = None
             final_status = get_tts_status_display(False)
+            show_recovery_button = False
             
-            if audio_data and tts_enabled_val:
+            if has_tts_error_after and tts_enabled_val:
+                # TTS error occurred during synthesis
+                final_status = get_tts_status_display(False, has_error=True, error_info=error_info_after)
+                show_recovery_button = True
+            elif audio_data and tts_enabled_val:
                 audio_output_val = audio_data
                 
                 # Update status based on whether it was cached (instant replay)
@@ -535,8 +617,12 @@ def create_bitcoin_assistant_ui():
                         <span style="color: #3b82f6; font-size: 12px;">🔊 Synthesized in {synthesis_time:.1f}s</span>
                     </div>
                     """
+            elif tts_enabled_val:
+                # TTS was enabled but no audio was returned (likely due to error)
+                final_status = get_tts_status_display(False, has_error=True, error_info={"error_type": "SYNTHESIS_FAILED", "error_message": "Audio synthesis failed"})
+                show_recovery_button = True
             
-            return answer, sources, final_status, audio_output_val
+            return answer, sources, final_status, audio_output_val, gr.update(visible=show_recovery_button)
 
         def set_sample_question(sample_q):
             return sample_q
@@ -545,16 +631,46 @@ def create_bitcoin_assistant_ui():
             """Clear all inputs and outputs"""
             return ("", "Ask a question to get started!", "", get_tts_status_display(False), None)
 
+        def attempt_tts_recovery():
+            """Attempt to recover TTS service from error state"""
+            try:
+                response = requests.post(f"{API_BASE_URL}/tts/recovery", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("recovery_successful"):
+                        return get_tts_status_display(False), gr.update(visible=False)
+                    else:
+                        error_state = data.get("current_error_state", {})
+                        return get_tts_status_display(False, has_error=True, error_info=error_state), gr.update(visible=True)
+                else:
+                    return get_tts_status_display(False, has_error=True, error_info={"error_type": "RECOVERY_FAILED", "error_message": "Recovery request failed"}), gr.update(visible=True)
+            except Exception as e:
+                return get_tts_status_display(False, has_error=True, error_info={"error_type": "CONNECTION_ERROR", "error_message": str(e)}), gr.update(visible=True)
+
         def update_tts_status(tts_enabled_val):
             """Update TTS status when toggle changes"""
             if tts_enabled_val:
-                return get_tts_status_display(False)
+                # Check for errors when enabling TTS
+                has_error, error_info = check_tts_status()
+                if has_error:
+                    return (
+                        get_tts_status_display(False, has_error=True, error_info=error_info),
+                        gr.update(visible=True)  # Show recovery button
+                    )
+                else:
+                    return (
+                        get_tts_status_display(False),
+                        gr.update(visible=False)  # Hide recovery button
+                    )
             else:
-                return """
-                <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-                    <span style="color: #6b7280; font-size: 12px;">🔇 Voice disabled</span>
-                </div>
-                """
+                return (
+                    """
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+                        <span style="color: #6b7280; font-size: 12px;">🔇 Voice disabled</span>
+                    </div>
+                    """,
+                    gr.update(visible=False)  # Hide recovery button
+                )
 
         def update_volume_display(volume_val):
             """Update volume display when slider changes"""
@@ -565,13 +681,13 @@ def create_bitcoin_assistant_ui():
         submit_btn.click(
             fn=submit_question,
             inputs=[question_input, tts_enabled, volume_slider],
-            outputs=[answer_output, sources_output, tts_status, audio_output],
+            outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn],
         )
 
         question_input.submit(
             fn=submit_question,
             inputs=[question_input, tts_enabled, volume_slider],
-            outputs=[answer_output, sources_output, tts_status, audio_output],
+            outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn],
         )
 
         clear_btn.click(
@@ -583,7 +699,13 @@ def create_bitcoin_assistant_ui():
         tts_enabled.change(
             fn=update_tts_status,
             inputs=[tts_enabled],
-            outputs=[tts_status]
+            outputs=[tts_status, tts_recovery_btn]
+        )
+
+        # TTS recovery button
+        tts_recovery_btn.click(
+            fn=attempt_tts_recovery,
+            outputs=[tts_status, tts_recovery_btn]
         )
 
         # Update volume display when slider changes

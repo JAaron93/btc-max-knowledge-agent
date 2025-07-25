@@ -141,11 +141,6 @@ class BitcoinAssistantService:
         Synthesize audio for response text using TTS service with streaming support.
         
         Args:
-    async def synthesize_response_audio(self, response_text: str) -> Optional[Dict[str, any]]:
-        """
-        Synthesize audio for response text using TTS service with streaming support.
-        
-        Args:
             response_text: The formatted response text
             
         Returns:
@@ -291,12 +286,17 @@ async def query_bitcoin_knowledge(request: QueryRequest):
         
         # Process TTS if enabled
         if request.enable_tts and bitcoin_service.tts_service:
-            tts_result = await bitcoin_service.synthesize_response_audio(answer)
-            if tts_result:
-                audio_data = tts_result["audio_data"]
-                audio_streaming_data = tts_result.get("streaming_data")
-                tts_cached = tts_result["cached"]
-                tts_synthesis_time = tts_result.get("synthesis_time")
+            try:
+                tts_result = await bitcoin_service.synthesize_response_audio(answer)
+                if tts_result:
+                    audio_data = tts_result["audio_data"]
+                    audio_streaming_data = tts_result.get("streaming_data")
+                    tts_cached = tts_result["cached"]
+                    tts_synthesis_time = tts_result.get("synthesis_time")
+            except Exception as e:
+                # Log TTS error but don't fail the entire request
+                logger.warning(f"TTS synthesis failed, continuing with text-only response: {e}")
+                # TTS variables remain None, indicating fallback to muted state
         return QueryResponse(
             answer=answer,
             sources=sources,
@@ -352,6 +352,7 @@ async def get_tts_status():
     try:
         tts_service = bitcoin_service.tts_service
         cache_stats = tts_service.get_cache_stats()
+        error_state = tts_service.get_error_state()
         
         return {
             "enabled": tts_service.is_enabled(),
@@ -359,9 +360,37 @@ async def get_tts_status():
             "voice_id": tts_service.config.voice_id,
             "model_id": tts_service.config.model_id,
             "cache_stats": cache_stats,
+            "error_state": error_state,
             "config": {
                 "cache_size": tts_service.config.cache_size,
                 "output_format": tts_service.config.output_format,
+                "volume": tts_service.config.volume
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get TTS status: {str(e)}")
+
+
+@app.post("/tts/recovery")
+async def attempt_tts_recovery():
+    """Attempt to recover TTS service from error state"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+
+    if not bitcoin_service.tts_service:
+        raise HTTPException(status_code=503, detail="TTS service not initialized")
+
+    try:
+        recovery_successful = await bitcoin_service.tts_service.attempt_recovery()
+        error_state = bitcoin_service.tts_service.get_error_state()
+        
+        return {
+            "recovery_attempted": True,
+            "recovery_successful": recovery_successful,
+            "current_error_state": error_state
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recovery attempt failed: {str(e)}")
 @app.post("/tts/clear-cache")
 async def clear_tts_cache():
     """Clear TTS audio cache"""

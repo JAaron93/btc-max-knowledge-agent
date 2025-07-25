@@ -1,5 +1,5 @@
 """
-Text-to-Speech service using ElevenLabs API with multi-tier caching and error handling.
+Text-to-Speech service using ElevenLabs API with multi-tier caching and comprehensive error handling.
 """
 
 import os
@@ -14,6 +14,10 @@ import asyncio
 import aiohttp
 
 from .multi_tier_audio_cache import get_audio_cache, MultiTierAudioCache, CacheConfig
+from .tts_error_handler import (
+    TTSError, TTSAPIKeyError, TTSRateLimitError, TTSServerError, 
+    TTSNetworkError, TTSRetryExhaustedError, get_tts_error_handler
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -48,9 +52,7 @@ class CacheEntry:
     size_bytes: int
 
 
-class TTSError(Exception):
-    """Custom exception for TTS-related errors."""
-    pass
+# TTSError and related exceptions are now imported from tts_error_handler
 
 
 class AudioCache:
@@ -123,7 +125,7 @@ class AudioCache:
 
 
 class TTSService:
-    """Text-to-Speech service with ElevenLabs integration and multi-tier caching."""
+    """Text-to-Speech service with ElevenLabs integration, multi-tier caching, and comprehensive error handling."""
     
     def __init__(self, config: Optional[TTSConfig] = None, cache_config: Optional[CacheConfig] = None):
         """Initialize TTS service."""
@@ -138,27 +140,54 @@ class TTSService:
         self.config = config
         self.cache = get_audio_cache()  # Use multi-tier cache
         self.base_url = "https://api.elevenlabs.io/v1"
-        
-        # Retry configuration for rate limiting and errors
-        self.retry_config = {
-            'max_retries_429': 3,
-            'max_retries_5xx': 2,
-            'base_delay_429': 1.0,
-            'base_delay_5xx': 0.5,
-            'max_delay_429': 16.0,
-            'max_delay_5xx': 8.0,
-            'jitter_factor': 0.25
-        }
+        self.error_handler = get_tts_error_handler()
         
         if not self.config.api_key:
             logger.warning("TTS service initialized without API key - functionality disabled")
             self.config.enabled = False
         else:
-            logger.info("TTS service initialized successfully with multi-tier caching")
+            logger.info("TTS service initialized successfully with multi-tier caching and error handling")
     
     def is_enabled(self) -> bool:
-        """Check if TTS service is enabled."""
-        return self.config.enabled and bool(self.config.api_key)
+        """Check if TTS service is enabled and not in error state."""
+        return (
+            self.config.enabled 
+            and bool(self.config.api_key) 
+            and not self.error_handler.is_in_error_state()
+        )
+    
+    def get_error_state(self) -> Dict[str, Any]:
+        """Get current error state information including circuit breaker state."""
+        error_state = self.error_handler.get_error_state()
+        circuit_state = self.error_handler.get_circuit_breaker_state()
+        
+        return {
+            "has_error": error_state.has_error,
+            "error_type": error_state.error_type,
+            "error_message": error_state.error_message,
+            "is_muted": error_state.is_muted,
+            "consecutive_failures": error_state.consecutive_failures,
+            "last_error_time": error_state.last_error_time.isoformat() if error_state.last_error_time else None,
+            "recovery_check_count": error_state.recovery_check_count,
+            "circuit_breaker": circuit_state
+        }
+    
+    async def attempt_recovery(self, test_text: str = "Hi") -> bool:
+        """
+        Attempt to recover from error state.
+
+        Args:
+            test_text: Text to use for health check (default: "Hi" for minimal token usage)
+
+        Returns:
+            True if recovery successful, False otherwise
+        """
+        return await self.error_handler.attempt_recovery(self, test_text)
+    
+    def reset_circuit_breaker(self) -> None:
+        """Reset the circuit breaker to closed state."""
+        self.error_handler.circuit_breaker.reset()
+        logger.info("Circuit breaker manually reset")
 
     def set_volume(self, volume: float) -> None:
         """
@@ -191,50 +220,8 @@ class TTSService:
         """Cache audio data for text using multi-tier cache."""
         return self.cache.put(text, audio_data)
     
-    def _calculate_backoff_delay(self, attempt: int, base_delay: float, max_delay: float) -> float:
-        """Calculate exponential backoff delay with jitter."""
-        import random
-        
-        # Exponential backoff: base_delay * (2 ^ attempt)
-        delay = base_delay * (2 ** attempt)
-        delay = min(delay, max_delay)
-        
-        # Add jitter (±25% of calculated delay)
-        jitter = delay * self.retry_config['jitter_factor']
-        delay += random.uniform(-jitter, jitter)
-        
-        return max(0, delay)
-    
-    async def synthesize_text(self, text: str, voice_id: Optional[str] = None) -> bytes:
-        """
-        Synthesize text to speech using ElevenLabs API with retry logic.
-
-        Args:
-            text: Text to synthesize
-            voice_id: Optional voice ID (uses default if not provided)
-
-        Returns:
-            Audio data as bytes (volume applied from config)
-
-        Raises:
-            TTSError: If synthesis fails after all retries
-        """
-        if not self.is_enabled():
-            raise TTSError("TTS service is not enabled or API key is missing")
-        
-        if not text.strip():
-            raise TTSError("Empty text provided for synthesis")
-        
-        # Check cache first
-        cached_audio = self.get_cached_audio(text)
-        if cached_audio:
-            logger.debug("Using cached audio for synthesis")
-            return cached_audio
-        
-        # Use provided voice_id or default
-        voice_id = voice_id or self.config.voice_id
-        
-        # Prepare API request
+    async def _synthesize_with_api(self, text: str, voice_id: str) -> bytes:
+        """Internal method to synthesize text using ElevenLabs API with timeout handling."""
         url = f"{self.base_url}/text-to-speech/{voice_id}"
         headers = {
             "Accept": "audio/mpeg",
@@ -252,85 +239,100 @@ class TTSService:
             }
         }
         
-        last_error = None
+        # Configure timeouts from error handler
+        timeout_config = self.error_handler.retry_config
+        timeout = aiohttp.ClientTimeout(
+            connect=timeout_config['connection_timeout'],
+            sock_read=timeout_config['read_timeout'],
+            total=timeout_config['total_timeout']
+        )
         
-        # Retry logic with exponential backoff
-        for attempt in range(max(self.retry_config['max_retries_429'], self.retry_config['max_retries_5xx']) + 1):
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, json=payload, headers=headers) as response:
-                        if response.status == 200:
-                            audio_data = await response.read()
-                            
-                            # Cache the audio
-                            cache_key = self.cache_audio(text, audio_data)
-                            
-                            logger.info(f"Successfully synthesized {len(audio_data)} bytes of audio (cached as {cache_key[:8]}...)")
-                            return audio_data
-                        
-                        elif response.status == 429:  # Rate limit
-                            if attempt < self.retry_config['max_retries_429']:
-                                delay = self._calculate_backoff_delay(
-                                    attempt, 
-                                    self.retry_config['base_delay_429'],
-                                    self.retry_config['max_delay_429']
-                                )
-                                error_text = await response.text()
-                                logger.warning(f"Rate limited (429), retrying in {delay:.2f}s (attempt {attempt + 1}/{self.retry_config['max_retries_429'] + 1}): {error_text}")
-                                await asyncio.sleep(delay)
-                                continue
-                            else:
-                                error_text = await response.text()
-                                last_error = TTSError(f"Rate limit exceeded after {self.retry_config['max_retries_429']} retries: {error_text}")
-                                break
-                        
-                        elif 500 <= response.status < 600:  # Server errors
-                            if attempt < self.retry_config['max_retries_5xx']:
-                                delay = self._calculate_backoff_delay(
-                                    attempt,
-                                    self.retry_config['base_delay_5xx'],
-                                    self.retry_config['max_delay_5xx']
-                                )
-                                error_text = await response.text()
-                                logger.warning(f"Server error ({response.status}), retrying in {delay:.2f}s (attempt {attempt + 1}/{self.retry_config['max_retries_5xx'] + 1}): {error_text}")
-                                await asyncio.sleep(delay)
-                                continue
-                            else:
-                                error_text = await response.text()
-                                last_error = TTSError(f"Server error after {self.retry_config['max_retries_5xx']} retries: {error_text}")
-                                break
-                        
-                        else:
-                            # Other HTTP errors (4xx except 429) - don't retry
-                            error_text = await response.text()
-                            last_error = TTSError(f"API request failed with status {response.status}: {error_text}")
-                            break
-            
-            except aiohttp.ClientError as e:
-                logger.error(f"Network error during TTS synthesis (attempt {attempt + 1}): {e}")
-                last_error = TTSError(f"Network error: {e}")
-                if attempt < self.retry_config['max_retries_5xx']:
-                    delay = self._calculate_backoff_delay(
-                        attempt,
-                        self.retry_config['base_delay_5xx'],
-                        self.retry_config['max_delay_5xx']
-                    )
-                    logger.warning(f"Retrying network request in {delay:.2f}s")
-                    await asyncio.sleep(delay)
-                    continue
-                else:
-                    break
-            
-            except Exception as e:
-                logger.error(f"Unexpected error during TTS synthesis: {e}")
-                last_error = TTSError(f"Synthesis failed: {e}")
-                break
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, json=payload, headers=headers) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    elif response.status == 401:
+                        error_text = await response.text()
+                        raise TTSAPIKeyError(f"Invalid API key: {error_text}")
+                    elif response.status == 429:
+                        error_text = await response.text()
+                        raise TTSRateLimitError(f"Rate limit exceeded: {error_text}")
+                    elif 500 <= response.status < 600:
+                        error_text = await response.text()
+                        raise TTSServerError(f"Server error: {error_text}", response.status)
+                    else:
+                        error_text = await response.text()
+                        raise TTSError(f"API request failed with status {response.status}: {error_text}")
         
-        # If we get here, all retries failed
-        if last_error:
-            raise last_error
-        else:
-            raise TTSError("Synthesis failed after all retry attempts")
+        except asyncio.TimeoutError as e:
+            raise TTSNetworkError(f"Request timeout: {str(e)}", e)
+        except aiohttp.ClientConnectorError as e:
+            raise TTSNetworkError(f"Connection error: {str(e)}", e)
+        except aiohttp.ClientError as e:
+            raise TTSNetworkError(f"Network error: {str(e)}", e)
+    
+    async def synthesize_text(self, text: str, voice_id: Optional[str] = None) -> bytes:
+        """
+        Synthesize text to speech using ElevenLabs API with comprehensive error handling.
+
+        Args:
+            text: Text to synthesize
+            voice_id: Optional voice ID (uses default if not provided)
+
+        Returns:
+            Audio data as bytes (volume applied from config)
+
+        Raises:
+            TTSError: If synthesis fails after all retries
+            TTSAPIKeyError: If API key is invalid
+            TTSRetryExhaustedError: If all retry attempts are exhausted
+        """
+        # Check if service is enabled (includes error state check)
+        if not self.config.enabled or not self.config.api_key:
+            raise TTSAPIKeyError("TTS service is not enabled or API key is missing")
+        
+        # If in error state, attempt recovery
+        if self.error_handler.is_in_error_state():
+            recovery_attempted = await self.error_handler.attempt_recovery(self)
+            if not recovery_attempted or self.error_handler.is_in_error_state():
+                error_state = self.error_handler.get_error_state()
+                raise TTSError(
+                    f"TTS service is in error state: {error_state.error_message}",
+                    error_code=error_state.error_type
+                )
+        
+        if not text.strip():
+            raise TTSError("Empty text provided for synthesis")
+        
+        # Check cache first
+        cached_audio = self.get_cached_audio(text)
+        if cached_audio:
+            logger.debug("Using cached audio for synthesis")
+            return cached_audio
+        
+        # Use provided voice_id or default
+        voice_id = voice_id or self.config.voice_id
+        
+        try:
+            # Use error handler for retry logic
+            audio_data = await self.error_handler.execute_with_retry(
+                self._synthesize_with_api, text, voice_id
+            )
+            
+            # Cache the audio
+            cache_key = self.cache_audio(text, audio_data)
+            
+            logger.info(f"Successfully synthesized {len(audio_data)} bytes of audio (cached as {cache_key[:8]}...)")
+            return audio_data
+            
+        except (TTSAPIKeyError, TTSRetryExhaustedError):
+            # These are already properly handled by the error handler
+            raise
+        except Exception as e:
+            # Wrap unexpected errors
+            logger.error(f"Unexpected error during TTS synthesis: {e}")
+            raise TTSError(f"Synthesis failed: {e}", original_error=e)
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get comprehensive cache statistics from all tiers."""

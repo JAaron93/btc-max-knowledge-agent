@@ -648,5 +648,3 @@ def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False) -> 
     """
     manager = get_audio_streaming_manager()
     return manager.prepare_streaming_audio(audio_bytes, is_cached)
-
-
