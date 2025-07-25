@@ -4,8 +4,11 @@
 - **Python** - Main development language
 
 ## Key Dependencies & Frameworks
-- **Pinecone** - Vector database for knowledge retrieval
-- **AI/ML Libraries** - For natural language processing and embeddings
+- **Pinecone** - Vector database for knowledge retrieval and assistant functionality
+- **FastAPI** - Modern web framework for building APIs
+- **Gradio** - Web UI framework for interactive interfaces
+- **ElevenLabs API** - Text-to-speech synthesis via aiohttp client
+- **Pydantic** - Data validation and settings management
 
 ## Development Environment
 - Python virtual environment management (supports venv, pipenv, poetry, uv, pdm, pixi)
@@ -33,6 +36,4 @@ poetry run python main.py
 - Pinecone configuration for vector database connection
 
 ## Data Handling
-- Vector embeddings for Bitcoin/blockchain knowledge
-- Support for various ML model formats (.pkl, .joblib, .h5, .pth, .pt, .safetensors)
-- FAISS indexing support for local vector operations
+- The Pinecone Assistant automatically handles vector embeddings for Bitcoin/blockchain knowledge

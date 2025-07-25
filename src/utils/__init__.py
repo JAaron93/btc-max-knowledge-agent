@@ -54,6 +54,7 @@ _FWD_SUBMODULES = (
     "url_error_handler",
     "config",
     "result_formatter",
+    "audio_cache",
 )
 
 
