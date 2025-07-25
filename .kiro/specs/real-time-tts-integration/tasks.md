@@ -58,7 +58,7 @@
   - Ensure audio streaming works with Gradio's streaming audio components
   - _Requirements: 1.3, 1.4, 3.4_
 
-- [ ] 7. Add comprehensive error handling
+- [x] 7. Add comprehensive error handling
   - Implement graceful fallback to muted state when ElevenLabs API fails
   - Create unobtrusive red error icon with tooltip for API errors
   - Add error handling for missing or invalid API keys
@@ -68,6 +68,18 @@
     - Handle HTTP 5xx server errors with exponential back-off starting at 0.5 seconds, doubling up to maximum 8 seconds
     - Add jitter (random delay of ±25% of calculated back-off time) to prevent thundering herd effect
     - Implement maximum retry attempts: 3 retries for 429 errors, 2 retries for 5xx errors
+    - **Add timeout handling for request/response operations:**
+      - Set connection timeout of 10 seconds for initial API connection establishment
+      - Set read timeout of 30 seconds for TTS synthesis response (accounts for audio generation time)
+      - Implement total request timeout of 45 seconds to prevent indefinite hangs
+      - Handle timeout exceptions with appropriate error logging and fallback to muted state
+    - **Implement circuit breaker pattern for resilience:**
+      - Track failure rate over sliding window (last 10 requests)
+      - Open circuit when failure rate exceeds 50% within the window
+      - Half-open circuit after 60-second cooldown period to test service recovery
+      - Close circuit after 3 consecutive successful requests in half-open state
+      - Short-circuit requests immediately when circuit is open to prevent resource waste
+      - Log circuit state changes with timestamps for monitoring and debugging
     - Log retry attempts with timestamps, error codes, and back-off delays for debugging
     - After exhausting retries, fall back to muted state with appropriate error messaging
     - Reset retry counters on successful API responses to allow recovery
@@ -93,6 +105,8 @@
     - Test text cleaning algorithm with various input formats and edge cases
     - Validate cache key generation (SHA-256 hashing) consistency
     - Test retry logic and exponential back-off calculations
+    - Test timeout handling for connection, read, and total request timeouts
+    - Test circuit breaker state transitions (closed → open → half-open → closed)
   - **Integration tests:**
     - Create integration tests for the complete query-to-audio flow
     - Test multi-tier cache coordination (memory → persistent → distributed)
@@ -102,6 +116,8 @@
     - Test rate-limit handling with simulated 429 responses
     - Validate graceful degradation when cache backends fail
     - Test API key validation and missing credential scenarios
+    - Test timeout scenarios (connection timeout, read timeout, total timeout)
+    - Test circuit breaker behavior under various failure patterns and recovery scenarios
   - **Caching tests:**
     - Write tests for audio caching functionality and cache eviction
     - Test LRU/LFU policies under various access patterns
@@ -111,7 +127,7 @@
     - **High concurrency simulation:** 100 simultaneous TTS synthesis requests to detect race conditions
     - **Memory leak detection:** Long-running tests with continuous synthesis and cache operations
     - **Cache contention testing:** Multiple threads accessing and modifying cache simultaneously
-    - **API rate-limit stress testing:** Sustained high-volume requests to validate retry mechanisms
+    - **API rate-limit stress testing:** Sustained high-volume requests to validate retry mechanisms and circuit breaker activation
     - **Resource exhaustion scenarios:** Test behavior when cache size limits are exceeded rapidly
     - **Concurrent cache operations:** Simultaneous read/write/evict operations across all cache tiers
     - **Performance benchmarking:** Measure response times under various load levels (1, 10, 50, 100 concurrent users)
@@ -135,4 +151,9 @@
   - Add logging for TTS operations and error tracking
   - Update requirements.txt with elevenlabs dependency
   - Create documentation for TTS feature configuration and usage
+  - _Requirements: 6.1, 6.2, 6.4_
+
+- [ ] 13. Add documentation and user guide
+  - Create comprehensive documentation for TTS feature
+  - Add user guide with instructions for setup and usage
   - _Requirements: 6.1, 6.2, 6.4_
