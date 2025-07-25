@@ -220,8 +220,18 @@ class TTSService:
         """Cache audio data for text using multi-tier cache."""
         return self.cache.put(text, audio_data)
     
-    async def _synthesize_with_api(self, text: str, voice_id: str) -> bytes:
-        """Internal method to synthesize text using ElevenLabs API with timeout handling."""
+    async def _synthesize_with_api(self, text: str, voice_id: str, volume: Optional[float] = None) -> bytes:
+        """
+        Internal method to synthesize text using ElevenLabs API with timeout handling.
+        
+        Args:
+            text: Text to synthesize
+            voice_id: ElevenLabs voice ID
+            volume: Optional volume level (0.0 to 1.0), uses config default if not provided
+            
+        Returns:
+            Audio data as bytes
+        """
         url = f"{self.base_url}/text-to-speech/{voice_id}"
         headers = {
             "Accept": "audio/mpeg",
@@ -229,13 +239,16 @@ class TTSService:
             "xi-api-key": self.config.api_key
         }
         
+        # Use provided volume or default from config
+        effective_volume = volume if volume is not None else self.config.volume
+        
         payload = {
             "text": text,
             "model_id": self.config.model_id,
             "voice_settings": {
                 "stability": 0.5,
                 "similarity_boost": 0.5,
-                "volume": self.config.volume
+                "volume": effective_volume
             }
         }
         
@@ -272,16 +285,17 @@ class TTSService:
         except aiohttp.ClientError as e:
             raise TTSNetworkError(f"Network error: {str(e)}", e)
     
-    async def synthesize_text(self, text: str, voice_id: Optional[str] = None) -> bytes:
+    async def synthesize_text(self, text: str, voice_id: Optional[str] = None, volume: Optional[float] = None) -> bytes:
         """
         Synthesize text to speech using ElevenLabs API with comprehensive error handling.
 
         Args:
             text: Text to synthesize
             voice_id: Optional voice ID (uses default if not provided)
+            volume: Optional volume level (0.0 to 1.0), uses config default if not provided
 
         Returns:
-            Audio data as bytes (volume applied from config)
+            Audio data as bytes (volume applied)
 
         Raises:
             TTSError: If synthesis fails after all retries
@@ -314,10 +328,14 @@ class TTSService:
         # Use provided voice_id or default
         voice_id = voice_id or self.config.voice_id
         
+        # Validate volume parameter if provided
+        if volume is not None and not 0.0 <= volume <= 1.0:
+            raise ValueError(f"Volume must be between 0.0 and 1.0, got {volume}")
+        
         try:
-            # Use error handler for retry logic
+            # Use error handler for retry logic, passing volume directly to API method
             audio_data = await self.error_handler.execute_with_retry(
-                self._synthesize_with_api, text, voice_id
+                self._synthesize_with_api, text, voice_id, volume
             )
             
             # Cache the audio

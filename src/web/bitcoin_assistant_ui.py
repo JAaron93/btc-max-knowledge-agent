@@ -13,6 +13,15 @@ import threading
 import gradio as gr
 import requests
 
+# Import validation function
+try:
+    from test_user_controls_simple import validate_volume
+except ImportError:
+    # Fallback validation function if import fails
+    def validate_volume(volume):
+        """Validate volume is between 0.0 and 1.0"""
+        return 0.0 <= volume <= 1.0
+
 
 # Add project root to path with guard against duplicates
 def _add_project_root_to_path():
@@ -100,10 +109,17 @@ def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = Fa
         return "Please enter a question about Bitcoin or blockchain technology.", "", None, None
 
     try:
+        # Validate volume parameter
+        if not validate_volume(volume):
+            # Clamp volume to valid range
+            volume = max(0.0, min(1.0, volume))
+            print(f"Warning: Volume clamped to valid range: {volume}")
+
         # Prepare request payload
         payload = {"question": question}
         if tts_enabled:
             payload["enable_tts"] = True
+            payload["volume"] = volume
 
         response = requests.post(
             f"{API_BASE_URL}/query",
@@ -257,65 +273,96 @@ class TTSState:
 tts_state = TTSState()
 
 
-def create_waveform_animation() -> str:
-    """Create animated waveform SVG for TTS synthesis"""
+def create_loading_indicator() -> str:
+    """Create loading indicator for TTS processing state"""
     return """
-    <div style="display: flex; align-items: center; justify-content: center; padding: 10px;">
-        <svg width="100" height="30" viewBox="0 0 100 30">
-            <rect x="5" y="10" width="3" height="10" fill="#3b82f6" opacity="0.8">
-                <animate attributeName="height" values="10;20;10" dur="0.8s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="10;5;10" dur="0.8s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="12" y="8" width="3" height="14" fill="#3b82f6" opacity="0.7">
-                <animate attributeName="height" values="14;24;14" dur="1.2s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="8;3;8" dur="1.2s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="19" y="12" width="3" height="6" fill="#3b82f6" opacity="0.9">
-                <animate attributeName="height" values="6;16;6" dur="0.6s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="12;7;12" dur="0.6s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="26" y="9" width="3" height="12" fill="#3b82f6" opacity="0.6">
-                <animate attributeName="height" values="12;22;12" dur="1.0s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="9;4;9" dur="1.0s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="33" y="11" width="3" height="8" fill="#3b82f6" opacity="0.8">
-                <animate attributeName="height" values="8;18;8" dur="0.9s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="11;6;11" dur="0.9s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="40" y="7" width="3" height="16" fill="#3b82f6" opacity="0.7">
-                <animate attributeName="height" values="16;26;16" dur="1.1s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="7;2;7" dur="1.1s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="47" y="10" width="3" height="10" fill="#3b82f6" opacity="0.9">
-                <animate attributeName="height" values="10;20;10" dur="0.7s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="10;5;10" dur="0.7s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="54" y="13" width="3" height="4" fill="#3b82f6" opacity="0.6">
-                <animate attributeName="height" values="4;14;4" dur="1.3s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="13;8;13" dur="1.3s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="61" y="9" width="3" height="12" fill="#3b82f6" opacity="0.8">
-                <animate attributeName="height" values="12;22;12" dur="0.8s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="9;4;9" dur="0.8s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="68" y="11" width="3" height="8" fill="#3b82f6" opacity="0.7">
-                <animate attributeName="height" values="8;18;8" dur="1.0s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="11;6;11" dur="1.0s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="75" y="8" width="3" height="14" fill="#3b82f6" opacity="0.9">
-                <animate attributeName="height" values="14;24;14" dur="0.9s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="82" y="12" width="3" height="6" fill="#3b82f6" opacity="0.6">
-                <animate attributeName="height" values="6;16;6" dur="1.1s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="12;7;12" dur="1.1s" repeatCount="indefinite"/>
-            </rect>
-            <rect x="89" y="10" width="3" height="10" fill="#3b82f6" opacity="0.8">
-                <animate attributeName="height" values="10;20;10" dur="0.7s" repeatCount="indefinite"/>
-                <animate attributeName="y" values="10;5;10" dur="0.7s" repeatCount="indefinite"/>
-            </rect>
+    <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;">
+                <style>
+                    @keyframes loading-dot {
+                        0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+                        40% { transform: scale(1); opacity: 1; }
+                    }
+                </style>
+            </div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></div>
+        </div>
+        <span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;">Processing text...</span>
+    </div>
+    """
+
+
+def create_playback_indicator(is_cached: bool = False) -> str:
+    """Create playback indicator with different styles for cached vs new audio"""
+    if is_cached:
+        return """
+        <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 0; height: 0; border-left: 8px solid #10b981; border-top: 6px solid transparent; border-bottom: 6px solid transparent; animation: pulse 1.5s infinite;"></div>
+                <div style="width: 2px; height: 12px; background-color: #10b981; margin-left: 2px; animation: pulse 1.5s infinite;"></div>
+                <div style="width: 2px; height: 16px; background-color: #10b981; animation: pulse 1.5s infinite; animation-delay: 0.1s;"></div>
+                <div style="width: 2px; height: 10px; background-color: #10b981; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></div>
+                <div style="width: 2px; height: 14px; background-color: #10b981; animation: pulse 1.5s infinite; animation-delay: 0.3s;"></div>
+            </div>
+            <span style="margin-left: 12px; color: #10b981; font-size: 14px; font-weight: 500;">⚡ Playing cached audio</span>
+        </div>
+        """
+    else:
+        return """
+        <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 0; height: 0; border-left: 8px solid #3b82f6; border-top: 6px solid transparent; border-bottom: 6px solid transparent; animation: pulse 1.5s infinite;"></div>
+                <div style="width: 2px; height: 12px; background-color: #3b82f6; margin-left: 2px; animation: pulse 1.5s infinite;"></div>
+                <div style="width: 2px; height: 16px; background-color: #3b82f6; animation: pulse 1.5s infinite; animation-delay: 0.1s;"></div>
+                <div style="width: 2px; height: 10px; background-color: #3b82f6; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></div>
+                <div style="width: 2px; height: 14px; background-color: #3b82f6; animation: pulse 1.5s infinite; animation-delay: 0.3s;"></div>
+            </div>
+            <span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;">🔊 Playing synthesized audio</span>
+        </div>
+        """
+
+
+def create_waveform_animation() -> str:
+    """Create enhanced animated waveform SVG for TTS synthesis with smooth transitions"""
+    
+    # Define bar configurations: (x, y, height, opacity, duration)
+    bar_configs = [
+        (2, 8, 8, 0.9, 0.8), (6, 6, 12, 0.8, 1.1), (10, 10, 4, 0.7, 0.6), (14, 7, 10, 0.9, 0.9),
+        (18, 9, 6, 0.6, 1.3), (22, 5, 14, 0.8, 1.0), (26, 8, 8, 0.9, 0.7), (30, 11, 2, 0.7, 1.2),
+        (34, 7, 10, 0.8, 0.8), (38, 9, 6, 0.6, 1.1), (42, 6, 12, 0.9, 0.9), (46, 10, 4, 0.7, 0.6),
+        (50, 8, 8, 0.8, 1.0), (54, 7, 10, 0.9, 0.7), (58, 9, 6, 0.6, 1.3), (62, 5, 14, 0.8, 1.1),
+        (66, 8, 8, 0.9, 0.8), (70, 11, 2, 0.7, 0.9), (74, 7, 10, 0.8, 1.2), (78, 9, 6, 0.6, 0.7),
+        (82, 6, 12, 0.9, 1.0), (86, 10, 4, 0.7, 0.8), (90, 8, 8, 0.8, 1.1), (94, 7, 10, 0.9, 0.6),
+        (98, 9, 6, 0.6, 1.3), (102, 5, 14, 0.8, 0.9), (106, 8, 8, 0.9, 0.7), (110, 11, 2, 0.7, 1.0),
+        (114, 7, 10, 0.8, 0.8)
+    ]
+    
+    # Generate rect elements programmatically
+    rect_elements = []
+    for x, y, height, opacity, duration in bar_configs:
+        # Calculate animated values
+        max_height = height + 8  # Add 8 for animation range
+        min_y = y - 4  # Adjust y position for animation
+        
+        rect_element = f'''            <rect x="{x}" y="{y}" width="2" height="{height}" fill="#3b82f6" opacity="{opacity}" rx="1">
+                <animate attributeName="height" values="{height};{max_height};{height}" dur="{duration}s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="{y};{min_y};{y}" dur="{duration}s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="{opacity};1;{opacity}" dur="{duration}s" repeatCount="indefinite"/>
+            </rect>'''
+        rect_elements.append(rect_element)
+    
+    # Join all rect elements
+    rects_html = '\n'.join(rect_elements)
+    
+    return f"""
+    <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
+        <svg width="120" height="24" viewBox="0 0 120 24" style="filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));">
+            <!-- Enhanced waveform with programmatically generated bars -->
+{rects_html}
         </svg>
-        <span style="margin-left: 10px; color: #3b82f6; font-size: 14px;">Synthesizing speech...</span>
+        <span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500; animation: pulse 2s infinite;">Synthesizing speech...</span>
     </div>
     """
 
@@ -335,8 +382,46 @@ def check_tts_status() -> Tuple[bool, Optional[Dict]]:
         return True, {"error_type": "CONNECTION_ERROR", "error_message": str(e)}
 
 
-def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error_info: Optional[Dict] = None) -> str:
-    """Get TTS status display HTML with comprehensive error information and graceful fallback"""
+def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error_info: Optional[Dict] = None,
+                          is_loading: bool = False, is_playing: bool = False, is_cached: bool = False,
+                          is_disabled: bool = False, synthesis_time: Optional[float] = None) -> str:
+    """Get TTS status display HTML with comprehensive visual feedback and smooth transitions"""
+
+    # Handle voice disabled state
+    if is_disabled:
+        return f"""
+        <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
+            <span style="color: #6b7280; font-size: 13px; font-weight: 500;">🔇 Voice disabled</span>
+        </div>
+        """
+
+    # CSS keyframes for animations (included for standalone usage)
+    css_keyframes = """
+    <style>
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes loading-dot {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+    """
+
+    # Handle error states with enhanced visual feedback
     if has_error and error_info:
         error_type = error_info.get("error_type", "UNKNOWN")
         error_message = error_info.get("error_message", "TTS service error")
@@ -377,23 +462,68 @@ def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error
         muted_indicator = " (Muted)" if is_muted else ""
         
         return f"""
-        <div style="display: flex; align-items: center; justify-content: center; padding: 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;" title="{tooltip}">
-            <span style="color: {color}; font-size: 12px; cursor: help; font-weight: 500;">{display_message}{muted_indicator}</span>
+        {css_keyframes}
+        <div class="tts-status error" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; border-radius: 8px; transition: all 0.3s ease-in-out;" title="{tooltip}">
+            <span style="color: {color}; font-size: 13px; cursor: help; font-weight: 500; animation: fade-in 0.3s ease-in-out;">{display_message}{muted_indicator}</span>
         </div>
         """
     elif has_error:
         # Fallback error display for cases without detailed error info
-        return """
-        <div style="display: flex; align-items: center; justify-content: center; padding: 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;" title="Text-to-speech service temporarily unavailable - text will continue to display normally">
-            <span style="color: #dc2626; font-size: 12px; cursor: help; font-weight: 500;">🔴 TTS Error - Text continues normally</span>
+        return f"""
+        {css_keyframes}
+        <div class="tts-status error" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; border-radius: 8px; transition: all 0.3s ease-in-out;" title="Text-to-speech service temporarily unavailable - text will continue to display normally">
+            <span style="color: #dc2626; font-size: 13px; cursor: help; font-weight: 500; animation: fade-in 0.3s ease-in-out;">🔴 TTS Error - Text continues normally</span>
+        </div>
+        """
+    elif is_loading:
+        # Show loading indicator for initial processing
+        return f"""
+        <div class="tts-status synthesizing" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
+            {create_loading_indicator()}
         </div>
         """
     elif is_synthesizing:
-        return create_waveform_animation()
+        # Show waveform animation during synthesis (hide for cached audio per requirement 3.5)
+        return f"""
+        <div class="tts-status synthesizing" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
+            {create_waveform_animation()}
+        </div>
+        """
+    elif is_playing:
+        # Show playback indicator with different styles for cached vs new audio
+        if is_cached:
+            # Instant replay status with enhanced styling
+            return f"""
+            <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 0; height: 0; border-left: 8px solid #10b981; border-top: 6px solid transparent; border-bottom: 6px solid transparent;"></div>
+                    <span style="color: #10b981; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">⚡ Instant replay (cached)</span>
+                </div>
+            </div>
+            """
+        elif synthesis_time is not None:
+            # Synthesis completion status with timing
+            return f"""
+            <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 0; height: 0; border-left: 8px solid #3b82f6; border-top: 6px solid transparent; border-bottom: 6px solid transparent;"></div>
+                    <span style="color: #3b82f6; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">🔊 Synthesized in {synthesis_time:.1f}s</span>
+                </div>
+            </div>
+            """
+        else:
+            # Default playback indicator
+            return f"""
+            <div class="tts-status playing" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                {create_playback_indicator(is_cached)}
+            </div>
+            """
     else:
-        return """
-        <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-            <span style="color: #6b7280; font-size: 12px;">🔊 Ready for voice synthesis</span>
+        # Ready state with smooth transition
+        return f"""
+        {css_keyframes}
+        <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
+            <span style="color: #6b7280; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">🔊 Ready for voice synthesis</span>
         </div>
         """
 
@@ -420,6 +550,7 @@ def create_bitcoin_assistant_ui():
             border-radius: 8px;
             padding: 15px;
             margin-top: 10px;
+            transition: all 0.3s ease-in-out;
         }
         .tts-status {
             text-align: center;
@@ -427,9 +558,317 @@ def create_bitcoin_assistant_ui():
             border-radius: 6px;
             background-color: #ffffff;
             border: 1px solid #e5e7eb;
+            transition: all 0.3s ease-in-out;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .audio-component {
             margin-top: 10px;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        /* Enhanced animations for visual feedback */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes loading-dot {
+            0%, 80%, 100% { 
+                transform: scale(0); 
+                opacity: 0.5; 
+            }
+            40% { 
+                transform: scale(1); 
+                opacity: 1; 
+            }
+        }
+        
+        @keyframes fade-in {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @keyframes fade-out {
+            from { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+            to { 
+                opacity: 0; 
+                transform: translateY(-10px); 
+            }
+        }
+        
+        @keyframes slide-in {
+            from { 
+                opacity: 0; 
+                transform: translateX(-20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+        
+        /* State-specific styling */
+        .tts-status.synthesizing {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #93c5fd;
+            animation: fade-in 0.3s ease-in-out;
+        }
+        
+        .tts-status.playing {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+            animation: fade-in 0.3s ease-in-out;
+        }
+        
+        .tts-status.error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-color: #fca5a5;
+            animation: fade-in 0.3s ease-in-out;
+        }
+        
+        .tts-status.ready {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-color: #d1d5db;
+            animation: fade-in 0.3s ease-in-out;
+        }
+        
+        /* Smooth transitions for all interactive elements */
+        .tts-controls input, .tts-controls button {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .tts-controls input:hover, .tts-controls button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        """,
+        js="""
+        function() {
+            // TTS Settings persistence in localStorage
+            const TTS_SETTINGS_KEY = 'btc_assistant_tts_settings';
+
+            // Default settings per requirements 2.8
+            const DEFAULT_SETTINGS = {
+                tts_enabled: true,
+                volume: 0.7
+            };
+
+            // Debounce timer for volume slider
+            let volumeDebounceTimer = null;
+            const VOLUME_DEBOUNCE_DELAY = 300; // 300ms delay
+
+            // Retry configuration
+            const RETRY_CONFIG = {
+                maxAttempts: 10,
+                baseDelay: 50,
+                maxDelay: 2000,
+                backoffFactor: 1.5
+            };
+
+            // Load settings from localStorage or use defaults
+            function loadTTSSettings() {
+                try {
+                    const stored = localStorage.getItem(TTS_SETTINGS_KEY);
+                    if (stored) {
+                        const settings = JSON.parse(stored);
+                        return {
+                            tts_enabled: settings.tts_enabled !== undefined ? settings.tts_enabled : DEFAULT_SETTINGS.tts_enabled,
+                            volume: settings.volume !== undefined ? settings.volume : DEFAULT_SETTINGS.volume
+                        };
+                    }
+                } catch (e) {
+                    console.warn('Failed to load TTS settings from localStorage:', e);
+                }
+                return DEFAULT_SETTINGS;
+            }
+
+            // Save settings to localStorage
+            function saveTTSSettings(settings) {
+                try {
+                    localStorage.setItem(TTS_SETTINGS_KEY, JSON.stringify(settings));
+                } catch (e) {
+                    console.warn('Failed to save TTS settings to localStorage:', e);
+                }
+            }
+
+            // Debounced save function for volume settings
+            function debouncedSaveVolume(volume) {
+                if (volumeDebounceTimer) {
+                    clearTimeout(volumeDebounceTimer);
+                }
+                volumeDebounceTimer = setTimeout(() => {
+                    const currentSettings = loadTTSSettings();
+                    currentSettings.volume = volume;
+                    saveTTSSettings(currentSettings);
+                }, VOLUME_DEBOUNCE_DELAY);
+            }
+
+            // Retry function with exponential backoff
+            async function retryWithBackoff(fn, description) {
+                for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+                    try {
+                        const result = await fn();
+                        if (result) {
+                            return result;
+                        }
+                    } catch (e) {
+                        console.warn(`${description} attempt ${attempt} failed:`, e);
+                    }
+
+                    if (attempt < RETRY_CONFIG.maxAttempts) {
+                        const delay = Math.min(
+                            RETRY_CONFIG.baseDelay * Math.pow(RETRY_CONFIG.backoffFactor, attempt - 1),
+                            RETRY_CONFIG.maxDelay
+                        );
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+                console.error(`${description} failed after ${RETRY_CONFIG.maxAttempts} attempts`);
+                return null;
+            }
+
+            // Find TTS elements with stable selectors and fallbacks
+            async function findTTSElements() {
+                return new Promise((resolve) => {
+                    // Primary selectors using elem_id
+                    const ttsCheckbox = document.querySelector('#tts-enable-checkbox input[type="checkbox"]') ||
+                                       document.querySelector('[data-testid="tts-enable-checkbox"] input[type="checkbox"]');
+
+                    const volumeSlider = document.querySelector('#tts-volume-slider input[type="range"]') ||
+                                        document.querySelector('[data-testid="tts-volume-slider"] input[type="range"]');
+
+                    // Fallback selectors (less reliable but better than text-based)
+                    const fallbackCheckbox = !ttsCheckbox ? document.querySelector('input[type="checkbox"]') : null;
+                    const fallbackSlider = !volumeSlider ? document.querySelector('input[type="range"]') : null;
+
+                    // Validate fallback elements by checking nearby text content
+                    let validatedCheckbox = ttsCheckbox;
+                    let validatedSlider = volumeSlider;
+
+                    if (!validatedCheckbox && fallbackCheckbox) {
+                        const checkboxContainer = fallbackCheckbox.closest('.gr-form, .gradio-container, [class*="checkbox"]');
+                        if (checkboxContainer && checkboxContainer.textContent.includes('Enable Voice')) {
+                            validatedCheckbox = fallbackCheckbox;
+                        }
+                    }
+
+                    if (!validatedSlider && fallbackSlider) {
+                        const sliderContainer = fallbackSlider.closest('.gr-form, .gradio-container, [class*="slider"]');
+                        if (sliderContainer && sliderContainer.textContent.includes('Voice Volume')) {
+                            validatedSlider = fallbackSlider;
+                        }
+                    }
+
+                    resolve({
+                        checkbox: validatedCheckbox,
+                        slider: validatedSlider,
+                        found: !!(validatedCheckbox && validatedSlider)
+                    });
+                });
+            }
+            
+            // Initialize settings on page load with retry logic
+            async function initializeTTSSettings() {
+                const settings = loadTTSSettings();
+
+                const elements = await retryWithBackoff(findTTSElements, 'Finding TTS elements for initialization');
+                if (!elements || !elements.found) {
+                    console.warn('Could not find TTS elements for initialization');
+                    return;
+                }
+
+                // Set checkbox value
+                if (elements.checkbox) {
+                    elements.checkbox.checked = settings.tts_enabled;
+                    elements.checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Set slider value
+                if (elements.slider) {
+                    elements.slider.value = settings.volume;
+                    elements.slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+
+            // Set up event listeners for settings persistence with retry logic
+            async function setupTTSPersistence() {
+                const elements = await retryWithBackoff(findTTSElements, 'Finding TTS elements for persistence setup');
+                if (!elements || !elements.found) {
+                    console.warn('Could not find TTS elements for persistence setup');
+                    return;
+                }
+
+                // Set up checkbox change listener
+                if (elements.checkbox) {
+                    elements.checkbox.addEventListener('change', function() {
+                        const currentSettings = loadTTSSettings();
+                        currentSettings.tts_enabled = this.checked;
+                        saveTTSSettings(currentSettings);
+                    });
+                }
+
+                // Set up volume slider input listener with debouncing
+                if (elements.slider) {
+                    elements.slider.addEventListener('input', function() {
+                        const volume = parseFloat(this.value);
+                        debouncedSaveVolume(volume);
+                    });
+                }
+            }
+            
+            // Initialize on page load
+            (async function() {
+                await initializeTTSSettings();
+                await setupTTSPersistence();
+            })();
+
+            // Re-initialize when Gradio updates the interface
+            const observer = new MutationObserver(function(mutations) {
+                let shouldReinitialize = false;
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Check if any added nodes contain TTS-related elements
+                        for (const node of mutation.addedNodes) {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                if (node.querySelector && (
+                                    node.querySelector('#tts-enable-checkbox, #tts-volume-slider') ||
+                                    node.id === 'tts-enable-checkbox' ||
+                                    node.id === 'tts-volume-slider'
+                                )) {
+                                    shouldReinitialize = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (shouldReinitialize) {
+                    // Debounce re-initialization to avoid excessive calls
+                    clearTimeout(window.ttsReinitTimer);
+                    window.ttsReinitTimer = setTimeout(async () => {
+                        await initializeTTSSettings();
+                        await setupTTSPersistence();
+                    }, 100);
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
         }
         """,
     ) as interface:
@@ -471,19 +910,21 @@ def create_bitcoin_assistant_ui():
                     with gr.Row():
                         tts_enabled = gr.Checkbox(
                             label="Enable Voice",
-                            value=True,
-                            info="Toggle text-to-speech for responses"
+                            value=True,  # Default value, will be overridden by JS
+                            info="Toggle text-to-speech for responses",
+                            elem_id="tts-enable-checkbox"
                         )
-                        
+
                     with gr.Row():
                         with gr.Column(scale=4):
                             volume_slider = gr.Slider(
                                 minimum=0.0,
                                 maximum=1.0,
-                                value=0.7,
+                                value=0.7,  # Default value, will be overridden by JS
                                 step=0.1,
                                 label="Voice Volume",
-                                info="Adjust audio playback volume"
+                                info="Adjust audio playback volume",
+                                elem_id="tts-volume-slider"
                             )
                         with gr.Column(scale=1):
                             volume_display = gr.Textbox(
@@ -563,24 +1004,45 @@ def create_bitcoin_assistant_ui():
                     sources_btn = gr.Button("List Sources", size="sm")
 
         # Event handlers
-        def submit_question(question, tts_enabled_val, volume_val):
-            """Submit question with TTS streaming support and comprehensive error handling"""
+        def submit_question_with_progress(question, tts_enabled_val, volume_val):
+            """Submit question with real-time progress updates and enhanced visual feedback"""
             if not question.strip():
-                return "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False)
+                yield "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False)
+                return
+            
+            # Skip TTS synthesis entirely if voice is disabled (Requirement 2.3)
+            if not tts_enabled_val:
+                # Show processing state briefly
+                yield "", "", get_tts_status_display(False, is_loading=True), None, gr.update(visible=False)
+                
+                # Query the assistant without TTS
+                answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
+                    question, False, volume_val
+                )
+                
+                # Return with disabled status using enhanced styling
+                disabled_status = get_tts_status_display(False, is_disabled=True)
+                yield answer, sources, disabled_status, None, gr.update(visible=False)
+                return
+            
+            # Show initial loading state
+            yield "", "", get_tts_status_display(False, is_loading=True), None, gr.update(visible=False)
             
             # Check TTS status before starting
             has_tts_error, error_info = check_tts_status()
             
-            # Show synthesis animation if TTS is enabled and no errors
-            if tts_enabled_val and not has_tts_error:
-                tts_state.start_synthesis()
-                synthesis_status = get_tts_status_display(True)
-            elif has_tts_error:
-                synthesis_status = get_tts_status_display(False, has_error=True, error_info=error_info)
-            else:
-                synthesis_status = get_tts_status_display(False)
+            if has_tts_error:
+                # Show error immediately if TTS service is unavailable
+                error_status = get_tts_status_display(False, has_error=True, error_info=error_info)
+                yield "", "", error_status, None, gr.update(visible=True)
+                return
             
-            # Query the assistant with streaming support
+            # Show synthesis animation during processing
+            tts_state.start_synthesis()
+            synthesis_status = get_tts_status_display(True)  # Show waveform animation
+            yield "", "", synthesis_status, None, gr.update(visible=False)
+            
+            # Query the assistant with streaming support (TTS enabled)
             answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
                 question, tts_enabled_val, volume_val
             )
@@ -591,33 +1053,118 @@ def create_bitcoin_assistant_ui():
             # Check TTS status again after query to catch any new errors
             has_tts_error_after, error_info_after = check_tts_status()
             
-            # Prepare audio output based on streaming info and error state
+            # Prepare final results with enhanced visual feedback
             audio_output_val = None
             final_status = get_tts_status_display(False)
             show_recovery_button = False
             
-            if has_tts_error_after and tts_enabled_val:
+            if has_tts_error_after:
                 # TTS error occurred during synthesis
                 final_status = get_tts_status_display(False, has_error=True, error_info=error_info_after)
                 show_recovery_button = True
-            elif audio_data and tts_enabled_val:
+            elif audio_data:
+                # Apply volume control to audio data (Requirement 2.5)
                 audio_output_val = audio_data
                 
-                # Update status based on whether it was cached (instant replay)
-                if streaming_info and streaming_info.get("instant_replay"):
+                # Determine if this was cached audio (instant replay) per requirement 3.5
+                is_cached_audio = streaming_info and streaming_info.get("instant_replay", False)
+                
+                # Show appropriate playback status with enhanced visual feedback
+                if is_cached_audio:
+                    # Hide animation for cached audio (Requirement 3.5) and show instant replay status
+                    final_status = get_tts_status_display(False, is_playing=True, is_cached=True)
+                else:
+                    # Show synthesis completion status for new audio
+                    synthesis_time = streaming_info.get("synthesis_time", 0) if streaming_info else 0
+                    final_status = get_tts_status_display(False, is_playing=True, synthesis_time=synthesis_time)
+            else:
+                # TTS was enabled but no audio was returned (likely due to error)
+                final_status = get_tts_status_display(False, has_error=True, error_info={"error_type": "SYNTHESIS_FAILED", "error_message": "Audio synthesis failed"})
+                show_recovery_button = True
+            
+            yield answer, sources, final_status, audio_output_val, gr.update(visible=show_recovery_button)
+
+        def submit_question(question, tts_enabled_val, volume_val):
+            """Submit question with enhanced TTS visual feedback and smooth state transitions"""
+            if not question.strip():
+                return "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False)
+            
+            # Skip TTS synthesis entirely if voice is disabled (Requirement 2.3)
+            if not tts_enabled_val:
+                # Query the assistant without TTS
+                answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
+                    question, False, volume_val
+                )
+                
+                # Return with disabled status using enhanced styling
+                disabled_status = """
+                <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                    <span style="color: #6b7280; font-size: 13px; font-weight: 500;">🔇 Voice disabled</span>
+                </div>
+                """
+                return answer, sources, disabled_status, None, gr.update(visible=False)
+            
+            # Check TTS status before starting (only if TTS is enabled)
+            has_tts_error, error_info = check_tts_status()
+            
+            # Show loading indicator first, then synthesis animation if TTS is enabled and no errors
+            if not has_tts_error:
+                tts_state.start_synthesis()
+                # Start with loading indicator for initial processing
+                loading_status = get_tts_status_display(False, is_loading=True)
+            else:
+                loading_status = get_tts_status_display(False, has_error=True, error_info=error_info)
+            
+            # Query the assistant with streaming support (TTS enabled)
+            answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
+                question, tts_enabled_val, volume_val
+            )
+            
+            # Stop synthesis animation
+            tts_state.stop_synthesis()
+            
+            # Check TTS status again after query to catch any new errors
+            has_tts_error_after, error_info_after = check_tts_status()
+            
+            # Prepare audio output and final status based on streaming info and error state
+            audio_output_val = None
+            final_status = get_tts_status_display(False)
+            show_recovery_button = False
+            
+            if has_tts_error_after:
+                # TTS error occurred during synthesis
+                final_status = get_tts_status_display(False, has_error=True, error_info=error_info_after)
+                show_recovery_button = True
+            elif audio_data:
+                # Apply volume control to audio data (Requirement 2.5)
+                audio_output_val = audio_data
+                
+                # Determine if this was cached audio (instant replay) per requirement 3.5
+                is_cached_audio = streaming_info and streaming_info.get("instant_replay", False)
+                
+                # Show appropriate playback status with enhanced visual feedback
+                if is_cached_audio:
+                    # Hide animation for cached audio (Requirement 3.5) and show instant replay status
                     final_status = """
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-                        <span style="color: #10b981; font-size: 12px;">⚡ Instant replay (cached)</span>
+                    <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 0; height: 0; border-left: 8px solid #10b981; border-top: 6px solid transparent; border-bottom: 6px solid transparent;"></div>
+                            <span style="color: #10b981; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">⚡ Instant replay (cached)</span>
+                        </div>
                     </div>
                     """
                 else:
+                    # Show synthesis completion status for new audio
                     synthesis_time = streaming_info.get("synthesis_time", 0) if streaming_info else 0
                     final_status = f"""
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-                        <span style="color: #3b82f6; font-size: 12px;">🔊 Synthesized in {synthesis_time:.1f}s</span>
+                    <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 0; height: 0; border-left: 8px solid #3b82f6; border-top: 6px solid transparent; border-bottom: 6px solid transparent;"></div>
+                            <span style="color: #3b82f6; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">🔊 Synthesized in {synthesis_time:.1f}s</span>
+                        </div>
                     </div>
                     """
-            elif tts_enabled_val:
+            else:
                 # TTS was enabled but no audio was returned (likely due to error)
                 final_status = get_tts_status_display(False, has_error=True, error_info={"error_type": "SYNTHESIS_FAILED", "error_message": "Audio synthesis failed"})
                 show_recovery_button = True
@@ -648,7 +1195,7 @@ def create_bitcoin_assistant_ui():
                 return get_tts_status_display(False, has_error=True, error_info={"error_type": "CONNECTION_ERROR", "error_message": str(e)}), gr.update(visible=True)
 
         def update_tts_status(tts_enabled_val):
-            """Update TTS status when toggle changes"""
+            """Update TTS status when toggle changes with smooth transitions"""
             if tts_enabled_val:
                 # Check for errors when enabling TTS
                 has_error, error_info = check_tts_status()
@@ -659,16 +1206,18 @@ def create_bitcoin_assistant_ui():
                     )
                 else:
                     return (
-                        get_tts_status_display(False),
+                        get_tts_status_display(False),  # Ready state with enhanced styling
                         gr.update(visible=False)  # Hide recovery button
                     )
             else:
+                # Enhanced disabled status with smooth transitions
+                disabled_status = """
+                <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
+                    <span style="color: #6b7280; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">🔇 Voice disabled</span>
+                </div>
+                """
                 return (
-                    """
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
-                        <span style="color: #6b7280; font-size: 12px;">🔇 Voice disabled</span>
-                    </div>
-                    """,
+                    disabled_status,
                     gr.update(visible=False)  # Hide recovery button
                 )
 
@@ -677,15 +1226,15 @@ def create_bitcoin_assistant_ui():
             volume_percent = int(volume_val * 100)
             return f"Volume: {volume_percent}%"
 
-        # Wire up the interface
+        # Wire up the interface with progressive visual feedback
         submit_btn.click(
-            fn=submit_question,
+            fn=submit_question_with_progress,
             inputs=[question_input, tts_enabled, volume_slider],
             outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn],
         )
 
         question_input.submit(
-            fn=submit_question,
+            fn=submit_question_with_progress,
             inputs=[question_input, tts_enabled, volume_slider],
             outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn],
         )

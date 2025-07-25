@@ -16,7 +16,6 @@ from pydantic import BaseModel
 
 # Import TTS components
 from ..utils.tts_service import get_tts_service, TTSError
-from utils.tts_service import get_tts_service, TTSError
 from utils.audio_utils import (
     extract_tts_content, 
     prepare_audio_for_gradio, 
@@ -38,6 +37,33 @@ app = FastAPI(
 class QueryRequest(BaseModel):
     question: str
     enable_tts: Optional[bool] = False
+from typing import Optional
+-from pydantic import BaseModel
++from pydantic import BaseModel, Field
+
+class QueryRequest(BaseModel):
+    question: str
+    enable_tts: Optional[bool]f=rFalse
+-om   typing import Optional
++    volume: Optional[float] = Field(
++        default=0.7,
++        ge=0.0,
++        le=1.0,
++        description="Audio volume level (0.0 to 1.0)",
++    )
+-from pydantic import BaseModel
++from pydantic import BaseModel, Field
+
+class QueryRequest(BaseModel):
+    question: str
+    enable_tts: Optional[bool] = False
+-    volume: Optional[float] = 0.7
++    volume: Optional[float] = Field(
++        default=0.7,
++        ge=0.0,
++        le=1.0,
++        description="Audio volume level (0.0 to 1.0)",
++    )
 
 
 class QueryResponse(BaseModel):
@@ -136,12 +162,13 @@ class BitcoinAssistantService:
 
         return formatted_response
 
-    async def synthesize_response_audio(self, response_text: str) -> Optional[Dict[str, any]]:
+    async def synthesize_response_audio(self, response_text: str, volume: float = 0.7) -> Optional[Dict[str, any]]:
         """
         Synthesize audio for response text using TTS service with streaming support.
         
         Args:
             response_text: The formatted response text
+            volume: Audio volume level (0.0 to 1.0)
             
         Returns:
             Dictionary with audio data, streaming data, and metadata, or None if TTS fails
@@ -182,7 +209,7 @@ class BitcoinAssistantService:
             synthesis_start = asyncio.get_event_loop().time()
             logger.info(f"Synthesizing audio for {len(clean_content)} characters")
             
-            audio_bytes = await self.tts_service.synthesize_text(clean_content)
+            audio_bytes = await self.tts_service.synthesize_text(clean_content, volume=volume)
             synthesis_time = asyncio.get_event_loop().time() - synthesis_start
             
             # Prepare streaming data for new synthesis
@@ -287,7 +314,7 @@ async def query_bitcoin_knowledge(request: QueryRequest):
         # Process TTS if enabled
         if request.enable_tts and bitcoin_service.tts_service:
             try:
-                tts_result = await bitcoin_service.synthesize_response_audio(answer)
+                tts_result = await bitcoin_service.synthesize_response_audio(answer, request.volume)
                 if tts_result:
                     audio_data = tts_result["audio_data"]
                     audio_streaming_data = tts_result.get("streaming_data")
@@ -304,9 +331,6 @@ async def query_bitcoin_knowledge(request: QueryRequest):
             audio_data=audio_data,
             audio_streaming_data=audio_streaming_data,
             tts_enabled=request.enable_tts and bitcoin_service.tts_service.is_enabled(),
-            tts_enabled=request.enable_tts 
-                and bitcoin_service.tts_service 
-                and bitcoin_service.tts_service.is_enabled(),
             tts_synthesis_time=tts_synthesis_time
         )
 
@@ -451,7 +475,7 @@ async def test_streaming_audio(request: StreamingTestRequest):
 
     try:
         # Synthesize test audio
-        tts_result = await bitcoin_service.synthesize_response_audio(request.text)
+        tts_result = await bitcoin_service.synthesize_response_audio(request.text, 0.7)
         
         if not tts_result:
             raise HTTPException(status_code=500, detail="Failed to synthesize test audio")

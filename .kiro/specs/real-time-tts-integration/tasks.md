@@ -85,14 +85,14 @@
     - Reset retry counters on successful API responses to allow recovery
   - _Requirements: 4.1, 4.2, 4.3, 6.3, 6.4_
 
-- [ ] 8. Implement user control functionality
+- [x] 8. Implement user control functionality
   - Connect "Enable Voice" toggle to TTS synthesis control
   - Connect volume slider to audio playback volume control
   - Ensure controls persist user preferences during the session
   - Add logic to skip TTS synthesis when voice is disabled
   - _Requirements: 2.3, 2.4, 2.5_
 
-- [ ] 9. Add visual feedback and animations
+- [x] 9. Add visual feedback and animations
   - Implement waveform animation that displays during TTS synthesis
   - Hide animation when playing cached audio (instant replay)
   - Add loading indicators for TTS processing state
