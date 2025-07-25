@@ -1,0 +1,138 @@
+# Implementation Plan
+
+- [x] 1. Set up core TTS service infrastructure
+  - Create the main TTS service module with ElevenLabs integration
+  - Implement basic text-to-speech functionality using the elevenlabs Python SDK
+  - Add environment variable configuration for API key management
+  - _Requirements: 6.1, 6.2, 6.3_
+
+- [x] 2. Implement robust audio caching system
+  - **Evaluate and implement multi-tier caching strategy:**
+    - **Primary cache:** In-memory LRU cache for fastest access (existing implementation)
+    - **Secondary cache:** Persistent storage layer for cross-restart persistence
+    - **Distributed cache (optional):** For horizontal scaling support
+  - **Persistent cache implementation options (choose one):**
+    - **Option A - SQLite:** Lightweight embedded database with BLOB storage for audio data, TTL support, and automatic cleanup
+    - **Option B - diskcache:** Python library with built-in LRU/LFU policies, size limits, and automatic expiration
+    - **Option C - File-based:** Custom implementation using filesystem with metadata JSON files
+  - **Distributed cache implementation (for production scaling):**
+    - **Redis integration:** Configure with LRU/LFU eviction policies, binary data support, and TTL expiration
+    - **Cluster-wide sharing:** Enable multiple application instances to share cached audio
+    - **Fallback strategy:** Graceful degradation to local cache if Redis unavailable
+  - **Cache layer coordination:**
+    - Implement cache hierarchy: Memory → Persistent → Distributed → API call
+    - Add cache warming strategies for frequently accessed content
+    - Implement cache invalidation and cleanup mechanisms
+  - **Configuration and deployment:**
+    - Add environment variables for cache backend selection (CACHE_BACKEND=memory|sqlite|redis)
+    - Implement cache statistics and monitoring endpoints
+    - Add cache size and performance metrics logging
+  - Write comprehensive unit tests for all cache backends and failover scenarios
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
+
+- [x] 3. Create audio processing utilities
+  - Implement function to extract main response content and filter out sources
+  - Create audio format conversion utilities for Gradio compatibility
+  - Add function to prepare audio bytes for streaming to the UI
+  - Write unit tests for content extraction and audio format handling
+  - _Requirements: 5.1, 5.2, 5.3_
+
+- [x] 4. Integrate TTS service with existing API
+  - Modify the Bitcoin Assistant API to include TTS processing
+  - Add async TTS synthesis to the query response handler
+  - Implement response content filtering before TTS synthesis
+  - Update API response model to include audio data when TTS is enabled
+  - _Requirements: 1.1, 1.2, 5.1, 5.2_
+
+- [x] 5. Enhance Gradio UI with TTS controls
+  - Add "Enable Voice" toggle switch beneath the chatbot window
+  - Add "Voice Volume" slider beneath the chatbot window
+  - Create audio output component with streaming capability
+  - Implement waveform animation display during synthesis
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [x] 6. Implement audio streaming functionality
+  - Create streaming audio component that plays generated TTS audio
+  - Implement automatic audio playback when synthesis completes
+  - Add support for cached audio instant replay without re-synthesis
+  - Ensure audio streaming works with Gradio's streaming audio components
+  - _Requirements: 1.3, 1.4, 3.4_
+
+- [ ] 7. Add comprehensive error handling
+  - Implement graceful fallback to muted state when ElevenLabs API fails
+  - Create unobtrusive red error icon with tooltip for API errors
+  - Add error handling for missing or invalid API keys
+  - Ensure text display and other functionality continue during TTS errors
+  - **Implement rate-limit and retry strategy with exponential back-off:**
+    - Handle HTTP 429 (Too Many Requests) responses with exponential back-off starting at 1 second, doubling up to maximum 16 seconds
+    - Handle HTTP 5xx server errors with exponential back-off starting at 0.5 seconds, doubling up to maximum 8 seconds
+    - Add jitter (random delay of ±25% of calculated back-off time) to prevent thundering herd effect
+    - Implement maximum retry attempts: 3 retries for 429 errors, 2 retries for 5xx errors
+    - Log retry attempts with timestamps, error codes, and back-off delays for debugging
+    - After exhausting retries, fall back to muted state with appropriate error messaging
+    - Reset retry counters on successful API responses to allow recovery
+  - _Requirements: 4.1, 4.2, 4.3, 6.3, 6.4_
+
+- [ ] 8. Implement user control functionality
+  - Connect "Enable Voice" toggle to TTS synthesis control
+  - Connect volume slider to audio playback volume control
+  - Ensure controls persist user preferences during the session
+  - Add logic to skip TTS synthesis when voice is disabled
+  - _Requirements: 2.3, 2.4, 2.5_
+
+- [ ] 9. Add visual feedback and animations
+  - Implement waveform animation that displays during TTS synthesis
+  - Hide animation when playing cached audio (instant replay)
+  - Add loading indicators for TTS processing state
+  - Create smooth transitions between synthesis and playback states
+  - _Requirements: 1.3, 3.3_
+
+- [ ] 10. Create comprehensive test suite
+  - **Unit tests:**
+    - Write unit tests for TTS service with mocked ElevenLabs API calls
+    - Test text cleaning algorithm with various input formats and edge cases
+    - Validate cache key generation (SHA-256 hashing) consistency
+    - Test retry logic and exponential back-off calculations
+  - **Integration tests:**
+    - Create integration tests for the complete query-to-audio flow
+    - Test multi-tier cache coordination (memory → persistent → distributed)
+    - Validate Gradio UI integration with audio streaming components
+  - **Error scenario tests:**
+    - Add tests for error scenarios including API failures and network issues
+    - Test rate-limit handling with simulated 429 responses
+    - Validate graceful degradation when cache backends fail
+    - Test API key validation and missing credential scenarios
+  - **Caching tests:**
+    - Write tests for audio caching functionality and cache eviction
+    - Test LRU/LFU policies under various access patterns
+    - Validate TTL expiration and cleanup mechanisms
+    - Test cache persistence across application restarts
+  - **Load and concurrency stress tests:**
+    - **High concurrency simulation:** 100 simultaneous TTS synthesis requests to detect race conditions
+    - **Memory leak detection:** Long-running tests with continuous synthesis and cache operations
+    - **Cache contention testing:** Multiple threads accessing and modifying cache simultaneously
+    - **API rate-limit stress testing:** Sustained high-volume requests to validate retry mechanisms
+    - **Resource exhaustion scenarios:** Test behavior when cache size limits are exceeded rapidly
+    - **Concurrent cache operations:** Simultaneous read/write/evict operations across all cache tiers
+    - **Performance benchmarking:** Measure response times under various load levels (1, 10, 50, 100 concurrent users)
+    - **Memory usage profiling:** Monitor memory consumption patterns during sustained load
+    - **Thread safety validation:** Ensure all shared resources are properly synchronized
+  - **Performance and reliability tests:**
+    - Test audio streaming performance with various buffer sizes
+    - Validate system behavior under network latency and packet loss
+    - Test recovery mechanisms after temporary service outages
+  - _Requirements: All requirements validation_
+
+- [ ] 11. Optimize performance and finalize integration
+  - Implement connection pooling for ElevenLabs API requests
+  - Add memory monitoring and cleanup for audio cache
+  - Optimize audio streaming buffer sizes for smooth playback
+  - Ensure proper cleanup of temporary audio files and resources
+  - _Requirements: Performance optimization for all requirements_
+
+- [ ] 12. Add configuration and deployment preparation
+  - Create configuration validation for ElevenLabs API key
+  - Add logging for TTS operations and error tracking
+  - Update requirements.txt with elevenlabs dependency
+  - Create documentation for TTS feature configuration and usage
+  - _Requirements: 6.1, 6.2, 6.4_

@@ -30,7 +30,7 @@ if _src_path not in _sys.path:
 # Define the submodules we need to forward
 _SUBMODULES = [
     "url_utils", "url_metadata_logger", "url_error_handler",
-    "config", "result_formatter"
+    "config", "result_formatter", "audio_utils"
 ]
 
 # Explicitly define what is exported to prevent namespace pollution

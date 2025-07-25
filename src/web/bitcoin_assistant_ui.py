@@ -6,7 +6,9 @@ Bitcoin Knowledge Assistant Web UI using Gradio
 import os
 import sys
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
+import time
+import threading
 
 import gradio as gr
 import requests
@@ -30,16 +32,21 @@ _add_project_root_to_path()
 API_BASE_URL = "http://localhost:8000"
 
 
-def query_bitcoin_assistant(question: str) -> Tuple[str, str]:
-    """Query the Bitcoin Assistant API"""
+def query_bitcoin_assistant(question: str, tts_enabled: bool = False) -> Tuple[str, str, Optional[str]]:
+    """Query the Bitcoin Assistant API with optional TTS (legacy function)"""
 
     if not question.strip():
-        return "Please enter a question about Bitcoin or blockchain technology.", ""
+        return "Please enter a question about Bitcoin or blockchain technology.", "", None
 
     try:
+        # Prepare request payload
+        payload = {"question": question}
+        if tts_enabled:
+            payload["enable_tts"] = True
+
         response = requests.post(
             f"{API_BASE_URL}/query",
-            json={"question": question},
+            json=payload,
             timeout=30,
         )
         response.raise_for_status()
@@ -47,7 +54,7 @@ def query_bitcoin_assistant(question: str) -> Tuple[str, str]:
         try:
             data = response.json()
         except ValueError:
-            return "❌ API returned non-JSON payload.", ""
+            return "❌ API returned non-JSON payload.", "", None
 
         answer = data.get("answer", "No answer received")
 
@@ -59,26 +66,113 @@ def query_bitcoin_assistant(question: str) -> Tuple[str, str]:
             for i, source in enumerate(sources[:5], 1):
                 sources_text += f"{i}. {source.get('name', 'Unknown')}\n"
 
-        return answer, sources_text
+        # Get audio data if available
+        audio_data = data.get("audio_data")
+
+        return answer, sources_text, audio_data
 
     except requests.exceptions.ConnectionError:
         return (
             "❌ Cannot connect to Bitcoin Assistant API. Make sure the FastAPI server is running on port 8000.",
             "",
+            None,
         )
     except requests.exceptions.RequestException as e:
         if hasattr(e, 'response') and e.response is not None:
             error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
-            return error_msg, ""
+            return error_msg, "", None
         else:
-            return f"❌ Request Error: {str(e)}", ""
+            return f"❌ Request Error: {str(e)}", "", None
     except requests.exceptions.ConnectionError:
         return (
             "❌ Cannot connect to Bitcoin Assistant API. Make sure the FastAPI server is running on port 8000.",
             "",
+            None,
         )
     except Exception as e:
-        return f"❌ Error: {str(e)}", ""
+        return f"❌ Error: {str(e)}", "", None
+
+
+def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = False, volume: float = 0.7) -> Tuple[str, str, Optional[str], Optional[Dict]]:
+    """Query the Bitcoin Assistant API with streaming TTS support"""
+
+    if not question.strip():
+        return "Please enter a question about Bitcoin or blockchain technology.", "", None, None
+
+    try:
+        # Prepare request payload
+        payload = {"question": question}
+        if tts_enabled:
+            payload["enable_tts"] = True
+
+        response = requests.post(
+            f"{API_BASE_URL}/query",
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+        except ValueError:
+            return "❌ API returned non-JSON payload.", "", None, None
+
+        answer = data.get("answer", "No answer received")
+
+        # Format sources
+        sources = data.get("sources", [])
+        sources_text = ""
+        if sources:
+            sources_text = "**Sources:**\n"
+            for i, source in enumerate(sources[:5], 1):
+                sources_text += f"{i}. {source.get('name', 'Unknown')}\n"
+
+        # Get audio data and streaming info
+        audio_data = data.get("audio_data")
+        streaming_data = data.get("audio_streaming_data")
+        
+        # Create streaming info for UI
+        streaming_info = None
+        if streaming_data:
+            streaming_info = {
+                "instant_replay": streaming_data.get("instant_replay", False),
+                "is_cached": streaming_data.get("is_cached", False),
+                "synthesis_time": streaming_data.get("synthesis_time", 0.0),
+                "duration": streaming_data.get("duration"),
+                "size_bytes": streaming_data.get("size_bytes")
+            }
+        elif data.get("tts_cached"):
+            # Fallback for legacy cached responses
+            streaming_info = {
+                "instant_replay": True,
+                "is_cached": True,
+                "synthesis_time": 0.0
+            }
+
+        # Process audio for streaming playback
+        processed_audio = None
+        if audio_data and tts_enabled:
+            # For Gradio, we can use the audio_data directly
+            # The streaming manager has already prepared it in the right format
+            processed_audio = audio_data
+
+        return answer, sources_text, processed_audio, streaming_info
+
+    except requests.exceptions.ConnectionError:
+        return (
+            "❌ Cannot connect to Bitcoin Assistant API. Make sure the FastAPI server is running on port 8000.",
+            "",
+            None,
+            None,
+        )
+    except requests.exceptions.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
+            return error_msg, "", None, None
+        else:
+            return f"❌ Request Error: {str(e)}", "", None, None
+    except Exception as e:
+        return f"❌ Error: {str(e)}", "", None, None
 
 
 def get_available_sources() -> str:
@@ -123,6 +217,7 @@ def check_api_health() -> str:
 
 
 # Sample questions for quick testing
+# Sample questions for quick testing
 SAMPLE_QUESTIONS = [
     "What is Bitcoin and how does it work?",
     "Explain the Lightning Network",
@@ -133,6 +228,114 @@ SAMPLE_QUESTIONS = [
     "What is the difference between Bitcoin and traditional currency?",
     "Explain Bitcoin's proof-of-work consensus mechanism",
 ]
+
+
+# TTS State Management
+class TTSState:
+    """Manages TTS state and animations with thread-safe operations"""
+    def __init__(self):
+        self.is_synthesizing = False
+        self.synthesis_start_time = None
+        self.stop_animation = False
+        self._lock = threading.Lock()
+
+    def start_synthesis(self):
+        """Start synthesis animation (thread-safe)"""
+        with self._lock:
+            self.is_synthesizing = True
+            self.synthesis_start_time = time.time()
+            self.stop_animation = False
+
+    def stop_synthesis(self):
+        """Stop synthesis animation (thread-safe)"""
+        with self._lock:
+            self.is_synthesizing = False
+            self.stop_animation = True
+
+
+# Global TTS state
+tts_state = TTSState()
+
+
+def create_waveform_animation() -> str:
+    """Create animated waveform SVG for TTS synthesis"""
+    return """
+    <div style="display: flex; align-items: center; justify-content: center; padding: 10px;">
+        <svg width="100" height="30" viewBox="0 0 100 30">
+            <rect x="5" y="10" width="3" height="10" fill="#3b82f6" opacity="0.8">
+                <animate attributeName="height" values="10;20;10" dur="0.8s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="10;5;10" dur="0.8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="12" y="8" width="3" height="14" fill="#3b82f6" opacity="0.7">
+                <animate attributeName="height" values="14;24;14" dur="1.2s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="8;3;8" dur="1.2s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="19" y="12" width="3" height="6" fill="#3b82f6" opacity="0.9">
+                <animate attributeName="height" values="6;16;6" dur="0.6s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="12;7;12" dur="0.6s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="26" y="9" width="3" height="12" fill="#3b82f6" opacity="0.6">
+                <animate attributeName="height" values="12;22;12" dur="1.0s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="9;4;9" dur="1.0s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="33" y="11" width="3" height="8" fill="#3b82f6" opacity="0.8">
+                <animate attributeName="height" values="8;18;8" dur="0.9s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="11;6;11" dur="0.9s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="40" y="7" width="3" height="16" fill="#3b82f6" opacity="0.7">
+                <animate attributeName="height" values="16;26;16" dur="1.1s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="7;2;7" dur="1.1s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="47" y="10" width="3" height="10" fill="#3b82f6" opacity="0.9">
+                <animate attributeName="height" values="10;20;10" dur="0.7s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="10;5;10" dur="0.7s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="54" y="13" width="3" height="4" fill="#3b82f6" opacity="0.6">
+                <animate attributeName="height" values="4;14;4" dur="1.3s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="13;8;13" dur="1.3s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="61" y="9" width="3" height="12" fill="#3b82f6" opacity="0.8">
+                <animate attributeName="height" values="12;22;12" dur="0.8s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="9;4;9" dur="0.8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="68" y="11" width="3" height="8" fill="#3b82f6" opacity="0.7">
+                <animate attributeName="height" values="8;18;8" dur="1.0s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="11;6;11" dur="1.0s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="75" y="8" width="3" height="14" fill="#3b82f6" opacity="0.9">
+                <animate attributeName="height" values="14;24;14" dur="0.9s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="82" y="12" width="3" height="6" fill="#3b82f6" opacity="0.6">
+                <animate attributeName="height" values="6;16;6" dur="1.1s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="12;7;12" dur="1.1s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="89" y="10" width="3" height="10" fill="#3b82f6" opacity="0.8">
+                <animate attributeName="height" values="10;20;10" dur="0.7s" repeatCount="indefinite"/>
+                <animate attributeName="y" values="10;5;10" dur="0.7s" repeatCount="indefinite"/>
+            </rect>
+        </svg>
+        <span style="margin-left: 10px; color: #3b82f6; font-size: 14px;">Synthesizing speech...</span>
+    </div>
+    """
+
+
+def get_tts_status_display(is_synthesizing: bool, has_error: bool = False) -> str:
+    """Get TTS status display HTML"""
+    if has_error:
+        return """
+        <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+            <span style="color: #ef4444; font-size: 12px;">🔴 TTS Error - Check API key</span>
+        </div>
+        """
+    elif is_synthesizing:
+        return create_waveform_animation()
+    else:
+        return """
+        <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+            <span style="color: #6b7280; font-size: 12px;">🔊 Ready for voice synthesis</span>
+        </div>
+        """
 
 
 # Create Gradio interface
@@ -151,6 +354,22 @@ def create_bitcoin_assistant_ui():
         }
         .answer-box {
             min-height: 200px;
+        }
+        .tts-controls {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .tts-status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+        }
+        .audio-component {
+            margin-top: 10px;
         }
         """,
     ) as interface:
@@ -184,6 +403,50 @@ def create_bitcoin_assistant_ui():
                             "Ask Question", variant="primary", size="lg"
                         )
                         clear_btn = gr.Button("Clear", variant="secondary")
+
+                # TTS Controls - positioned beneath the chatbot window
+                with gr.Group(elem_classes=["tts-controls"]):
+                    gr.Markdown("### 🔊 Voice Controls")
+                    
+                    with gr.Row():
+                        tts_enabled = gr.Checkbox(
+                            label="Enable Voice",
+                            value=True,
+                            info="Toggle text-to-speech for responses"
+                        )
+                        
+                    with gr.Row():
+                        with gr.Column(scale=4):
+                            volume_slider = gr.Slider(
+                                minimum=0.0,
+                                maximum=1.0,
+                                value=0.7,
+                                step=0.1,
+                                label="Voice Volume",
+                                info="Adjust audio playback volume"
+                            )
+                        with gr.Column(scale=1):
+                            volume_display = gr.Textbox(
+                                value="Volume: 70%",
+                                interactive=False,
+                                show_label=False,
+                                container=False
+                            )
+                    
+                    # TTS Status and Animation Display
+                    tts_status = gr.HTML(
+                        value=get_tts_status_display(False),
+                        elem_classes=["tts-status"]
+                    )
+                    
+                    # Audio Output Component
+                    audio_output = gr.Audio(
+                        label="Generated Speech",
+                        autoplay=True,
+                        visible=True,
+                        interactive=False,
+                        elem_classes=["audio-component"]
+                    )
 
                 # Sample questions
                 with gr.Group():
@@ -231,30 +494,103 @@ def create_bitcoin_assistant_ui():
                     sources_btn = gr.Button("List Sources", size="sm")
 
         # Event handlers
-        def submit_question(question):
+        def submit_question(question, tts_enabled_val, volume_val):
+            """Submit question with TTS streaming support"""
             if not question.strip():
-                return "Please enter a question.", ""
-            return query_bitcoin_assistant(question)
+                return "Please enter a question.", "", get_tts_status_display(False), None
+            
+            # Show synthesis animation if TTS is enabled
+            if tts_enabled_val:
+                tts_state.start_synthesis()
+                synthesis_status = get_tts_status_display(True)
+            else:
+                synthesis_status = get_tts_status_display(False)
+            
+            # Query the assistant with streaming support
+            answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
+                question, tts_enabled_val, volume_val
+            )
+            
+            # Stop synthesis animation
+            tts_state.stop_synthesis()
+            
+            # Prepare audio output based on streaming info
+            audio_output_val = None
+            final_status = get_tts_status_display(False)
+            
+            if audio_data and tts_enabled_val:
+                audio_output_val = audio_data
+                
+                # Update status based on whether it was cached (instant replay)
+                if streaming_info and streaming_info.get("instant_replay"):
+                    final_status = """
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+                        <span style="color: #10b981; font-size: 12px;">⚡ Instant replay (cached)</span>
+                    </div>
+                    """
+                else:
+                    synthesis_time = streaming_info.get("synthesis_time", 0) if streaming_info else 0
+                    final_status = f"""
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+                        <span style="color: #3b82f6; font-size: 12px;">🔊 Synthesized in {synthesis_time:.1f}s</span>
+                    </div>
+                    """
+            
+            return answer, sources, final_status, audio_output_val
 
         def set_sample_question(sample_q):
             return sample_q
 
+        def clear_all():
+            """Clear all inputs and outputs"""
+            return ("", "Ask a question to get started!", "", get_tts_status_display(False), None)
+
+        def update_tts_status(tts_enabled_val):
+            """Update TTS status when toggle changes"""
+            if tts_enabled_val:
+                return get_tts_status_display(False)
+            else:
+                return """
+                <div style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+                    <span style="color: #6b7280; font-size: 12px;">🔇 Voice disabled</span>
+                </div>
+                """
+
+        def update_volume_display(volume_val):
+            """Update volume display when slider changes"""
+            volume_percent = int(volume_val * 100)
+            return f"Volume: {volume_percent}%"
+
         # Wire up the interface
         submit_btn.click(
             fn=submit_question,
-            inputs=[question_input],
-            outputs=[answer_output, sources_output],
+            inputs=[question_input, tts_enabled, volume_slider],
+            outputs=[answer_output, sources_output, tts_status, audio_output],
         )
 
         question_input.submit(
             fn=submit_question,
-            inputs=[question_input],
-            outputs=[answer_output, sources_output],
+            inputs=[question_input, tts_enabled, volume_slider],
+            outputs=[answer_output, sources_output, tts_status, audio_output],
         )
 
         clear_btn.click(
-            fn=lambda: ("", "Ask a question to get started!", ""),
-            outputs=[question_input, answer_output, sources_output],
+            fn=clear_all,
+            outputs=[question_input, answer_output, sources_output, tts_status, audio_output],
+        )
+
+        # Update TTS status when toggle changes
+        tts_enabled.change(
+            fn=update_tts_status,
+            inputs=[tts_enabled],
+            outputs=[tts_status]
+        )
+
+        # Update volume display when slider changes
+        volume_slider.change(
+            fn=update_volume_display,
+            inputs=[volume_slider],
+            outputs=[volume_display]
         )
 
         status_btn.click(fn=check_api_health, outputs=status_output)
