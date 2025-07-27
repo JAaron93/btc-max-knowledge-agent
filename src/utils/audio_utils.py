@@ -10,6 +10,11 @@ import base64
 import io
 import logging
 import threading
+import tempfile
+import os
+import weakref
+import atexit
+import time
 from typing import Iterator, Optional, Dict, Any, Union
 from urllib.parse import urlparse
 
@@ -17,6 +22,44 @@ logger = logging.getLogger(__name__)
 
 # Audio processing constants
 MAX_AUDIO_SIZE = 50 * 1024 * 1024  # 50MB maximum audio file size
+
+# Optimized streaming buffer sizes for different scenarios
+STREAMING_BUFFER_SIZES = {
+    'default': 8192,      # 8KB - good balance for most cases
+    'low_latency': 4096,  # 4KB - for real-time applications
+    'high_throughput': 16384,  # 16KB - for large files
+    'mobile': 2048,       # 2KB - for mobile/low bandwidth
+    'desktop': 12288      # 12KB - for desktop applications
+}
+
+# Buffer size selection based on audio characteristics
+def get_optimal_buffer_size(audio_size: int, is_cached: bool = False, connection_type: str = 'default') -> int:
+    """
+    Calculate optimal buffer size based on audio characteristics and connection type.
+    
+    Args:
+        audio_size: Size of audio data in bytes
+        is_cached: Whether audio is from cache (instant replay)
+        connection_type: Type of connection ('default', 'low_latency', 'high_throughput', 'mobile', 'desktop')
+    
+    Returns:
+        Optimal buffer size in bytes
+    """
+    base_size = STREAMING_BUFFER_SIZES.get(connection_type, STREAMING_BUFFER_SIZES['default'])
+    
+    # For cached audio, use smaller buffers for instant playback
+    if is_cached:
+        return min(base_size, 4096)
+    
+    # For very small audio files, use smaller buffers
+    if audio_size < 32768:  # Less than 32KB
+        return min(base_size, 2048)
+    
+    # For large audio files, use larger buffers for efficiency
+    if audio_size > 1024 * 1024:  # Greater than 1MB
+        return max(base_size, 16384)
+    
+    return base_size
 
 
 class ContentExtractionError(Exception):
@@ -97,7 +140,10 @@ class ResponseContentExtractor:
             ContentExtractionError: If extraction fails
         """
         if not response_text or not isinstance(response_text, str):
+            logger.warning("Content extraction attempted with invalid response text")
             raise ContentExtractionError("Invalid response text provided")
+        
+        logger.info(f"Starting content extraction from {len(response_text)} characters")
         
         try:
             # Start with the original text
@@ -105,6 +151,7 @@ class ResponseContentExtractor:
             
             # Clean up markdown formatting first (before removing sources)
             clean_text = ResponseContentExtractor._clean_markdown(clean_text)
+            logger.debug(f"After markdown cleaning: {len(clean_text)} characters")
             
             # Remove source sections and citations using pre-compiled patterns
             # Apply multiline patterns first (for sections that span multiple lines)
@@ -114,20 +161,24 @@ class ResponseContentExtractor:
             # Apply single-line patterns (more efficient without DOTALL)
             for pattern in ResponseContentExtractor._SINGLE_LINE_SOURCE_PATTERNS:
                 clean_text = pattern.sub('', clean_text)
+            
+            logger.debug(f"After source removal: {len(clean_text)} characters")
 
             # Remove metadata patterns using pre-compiled patterns
             for pattern in ResponseContentExtractor._METADATA_PATTERNS:
                 clean_text = pattern.sub('', clean_text)
+            
+            logger.debug(f"After metadata removal: {len(clean_text)} characters")
             
             # Normalize whitespace
             clean_text = ResponseContentExtractor._normalize_whitespace(clean_text)
             
             # Validate result
             if not clean_text.strip():
-                logger.warning("Content extraction resulted in empty text")
+                logger.warning("Content extraction resulted in empty text after processing")
                 return "No content available for synthesis."
             
-            logger.debug(f"Extracted {len(clean_text)} characters from {len(response_text)} original characters")
+            logger.info(f"Content extraction successful: {len(clean_text)} characters extracted from {len(response_text)} original characters")
             return clean_text.strip()
             
         except Exception as e:
@@ -285,13 +336,16 @@ class AudioFormatConverter:
             raise AudioProcessingError(f"Failed to convert audio format: {e}")
     
     @staticmethod
-    def prepare_for_streaming(audio_bytes: bytes, chunk_size: int = 8192) -> Iterator[bytes]:
+    def prepare_for_streaming(audio_bytes: bytes, chunk_size: Optional[int] = None, 
+                            is_cached: bool = False, connection_type: str = 'default') -> Iterator[bytes]:
         """
-        Prepare audio bytes for streaming to UI.
+        Prepare audio bytes for streaming to UI with optimized buffer sizes.
         
         Args:
             audio_bytes: Raw audio data
-            chunk_size: Size of each chunk in bytes
+            chunk_size: Size of each chunk in bytes (auto-calculated if None)
+            is_cached: Whether audio is from cache (affects buffer size)
+            connection_type: Type of connection for buffer optimization
             
         Yields:
             Audio data chunks for streaming
@@ -303,17 +357,23 @@ class AudioFormatConverter:
             raise AudioProcessingError("No audio data provided for streaming")
         
         try:
+            # Calculate optimal chunk size if not provided
+            if chunk_size is None:
+                chunk_size = get_optimal_buffer_size(len(audio_bytes), is_cached, connection_type)
+            
             # Create a BytesIO object for streaming
             audio_stream = io.BytesIO(audio_bytes)
             
-            # Yield chunks of the specified size
+            # Yield chunks of the optimized size
+            chunks_yielded = 0
             while True:
                 chunk = audio_stream.read(chunk_size)
                 if not chunk:
                     break
                 yield chunk
+                chunks_yielded += 1
             
-            logger.debug(f"Prepared {len(audio_bytes)} bytes for streaming in {chunk_size}-byte chunks")
+            logger.debug(f"Prepared {len(audio_bytes)} bytes for streaming in {chunks_yielded} chunks of {chunk_size} bytes (cached: {is_cached})")
             
         except Exception as e:
             logger.error(f"Audio streaming preparation failed: {e}")
@@ -403,22 +463,160 @@ class AudioStreamProcessor:
             return None
 
 
+class TempFileWrapper:
+    """Wrapper for temporary files with cleanup capability."""
+    
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.created_at = time.time()
+    
+    def cleanup(self) -> bool:
+        """Clean up the temporary file."""
+        try:
+            if os.path.exists(self.file_path):
+                os.unlink(self.file_path)
+                return True
+            return False
+        except Exception:
+            return False
+    
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - cleanup the temporary file."""
+        self.cleanup()
+        return False  # Don't suppress exceptions
+    
+    def __del__(self):
+        """Cleanup on destruction."""
+        try:
+            self.cleanup()
+        except Exception:
+            pass
+
+
+class TemporaryFileManager:
+    """Manages temporary audio files with automatic cleanup."""
+    
+    def __init__(self):
+        self._temp_files: weakref.WeakSet = weakref.WeakSet()
+        self._lock = threading.Lock()
+        
+        # Register cleanup on exit
+        atexit.register(self.cleanup_all)
+    
+    def create_temp_file(self, audio_data: bytes, suffix: str = '.mp3') -> str:
+        """
+        Create a temporary file for audio data.
+        
+        Args:
+            audio_data: Audio data to write
+            suffix: File suffix
+            
+        Returns:
+            Path to temporary file
+        """
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                temp_file.write(audio_data)
+                temp_path = temp_file.name
+            
+            # Register for cleanup
+            with self._lock:
+                self._temp_files.add(TempFileWrapper(temp_path))
+            
+            logger.debug(f"Created temporary audio file: {temp_path}")
+            return temp_path
+            
+        except Exception as e:
+            logger.error(f"Failed to create temporary file: {e}")
+            raise AudioProcessingError(f"Temporary file creation failed: {e}")
+    
+    def cleanup_file(self, file_path: str) -> bool:
+        """
+        Clean up a specific temporary file.
+        
+        Args:
+            file_path: Path to file to clean up
+            
+        Returns:
+            True if cleaned up successfully
+        """
+        try:
+            if os.path.exists(file_path):
+                os.unlink(file_path)
+                logger.debug(f"Cleaned up temporary file: {file_path}")
+                return True
+            return False
+        except Exception as e:
+            logger.warning(f"Failed to cleanup temporary file {file_path}: {e}")
+            return False
+    
+    def cleanup_all(self) -> int:
+        """
+        Clean up all registered temporary files.
+        
+        Returns:
+            Number of files cleaned up
+        """
+        cleaned_count = 0
+        with self._lock:
+            for temp_file in list(self._temp_files):
+                try:
+                    if hasattr(temp_file, 'cleanup') and callable(temp_file.cleanup):
+                        if temp_file.cleanup():
+                            cleaned_count += 1
+                except Exception as e:
+                    logger.debug(f"Error during temp file cleanup: {e}")
+        
+        if cleaned_count > 0:
+            logger.info(f"Cleaned up {cleaned_count} temporary audio files")
+        
+        return cleaned_count
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get temporary file statistics."""
+        with self._lock:
+            active_files = len(self._temp_files)
+            
+        return {
+            'active_temp_files': active_files,
+            'temp_dir': tempfile.gettempdir()
+        }
+
+
 class AudioStreamingManager:
-    """Manages audio streaming for real-time TTS playback."""
+    """Manages audio streaming for real-time TTS playback with resource management."""
     
     def __init__(self):
         self._lock = threading.Lock()
         self.current_stream = None
         self.is_streaming = False
         self.stream_callbacks = []
+        self.temp_file_manager = TemporaryFileManager()
+        
+        # Performance tracking
+        self._stream_stats = {
+            'streams_started': 0,
+            'streams_completed': 0,
+            'total_bytes_streamed': 0,
+            'average_stream_duration': 0.0,
+            'temp_files_created': 0,
+            'temp_files_cleaned': 0
+        }
+        self._stats_lock = threading.Lock()
     
-    def prepare_streaming_audio(self, audio_bytes: bytes, is_cached: bool = False) -> Dict[str, Any]:
+    def prepare_streaming_audio(self, audio_bytes: bytes, is_cached: bool = False, 
+                              connection_type: str = 'default') -> Dict[str, Any]:
         """
-        Prepare audio for streaming playback.
+        Prepare audio for streaming playback with optimized buffer sizes.
         
         Args:
             audio_bytes: Raw audio data
             is_cached: Whether this audio is from cache (instant replay)
+            connection_type: Connection type for buffer optimization
             
         Returns:
             Dictionary with streaming audio data and metadata
@@ -430,7 +628,10 @@ class AudioStreamingManager:
             # Estimate duration for UI feedback
             duration = AudioStreamProcessor.estimate_duration(audio_bytes)
             
-            # Create streaming data structure
+            # Calculate optimal buffer size for this audio
+            optimal_buffer_size = get_optimal_buffer_size(len(audio_bytes), is_cached, connection_type)
+            
+            # Create streaming data structure with optimization metadata
             streaming_data = {
                 "audio_bytes": audio_bytes,
                 "duration": duration,
@@ -438,7 +639,10 @@ class AudioStreamingManager:
                 "format": "mp3",  # ElevenLabs default
                 "sample_rate": 44100,
                 "size_bytes": len(audio_bytes),
-                "streaming_ready": True
+                "streaming_ready": True,
+                "optimal_buffer_size": optimal_buffer_size,
+                "connection_type": connection_type,
+                "estimated_chunks": len(audio_bytes) // optimal_buffer_size + (1 if len(audio_bytes) % optimal_buffer_size else 0)
             }
             
             # Convert to Gradio-compatible format
@@ -449,7 +653,7 @@ class AudioStreamingManager:
             gradio_tuple = AudioFormatConverter.create_gradio_audio_component_data(audio_bytes)
             streaming_data["gradio_tuple"] = gradio_tuple
             
-            logger.info(f"Prepared streaming audio: {len(audio_bytes)} bytes, duration: {duration:.1f}s, cached: {is_cached}")
+            logger.info(f"Prepared streaming audio: {len(audio_bytes)} bytes, duration: {duration:.1f}s, cached: {is_cached}, buffer: {optimal_buffer_size}")
             return streaming_data
             
         except Exception as e:
@@ -495,22 +699,25 @@ class AudioStreamingManager:
         logger.debug(f"Created synthesized audio data (synthesis time: {synthesis_time:.2f}s)")
         return streaming_data
     
-    def get_streaming_chunks(self, audio_bytes: bytes, chunk_size: int = 8192) -> Iterator[bytes]:
+    def get_streaming_chunks(self, audio_bytes: bytes, chunk_size: Optional[int] = None, 
+                           is_cached: bool = False, connection_type: str = 'default') -> Iterator[bytes]:
         """
-        Get audio chunks for streaming playback.
+        Get audio chunks for streaming playback with optimized buffer sizes.
         
         Args:
             audio_bytes: Audio data to stream
-            chunk_size: Size of each chunk
+            chunk_size: Size of each chunk (auto-calculated if None)
+            is_cached: Whether audio is from cache
+            connection_type: Connection type for optimization
             
         Yields:
             Audio chunks for streaming
         """
-        return AudioFormatConverter.prepare_for_streaming(audio_bytes, chunk_size)
+        return AudioFormatConverter.prepare_for_streaming(audio_bytes, chunk_size, is_cached, connection_type)
     
     def start_streaming(self, streaming_data: Dict[str, Any]) -> bool:
         """
-        Start streaming audio playback.
+        Start streaming audio playback with performance tracking.
         
         Args:
             streaming_data: Prepared streaming data
@@ -522,6 +729,11 @@ class AudioStreamingManager:
             with self._lock:
                 self.current_stream = streaming_data
                 self.is_streaming = True
+                
+                # Track performance
+                with self._stats_lock:
+                    self._stream_stats['streams_started'] += 1
+                    self._stream_stats['total_bytes_streamed'] += streaming_data.get('size_bytes', 0)
 
                 # Notify callbacks
                 for callback in self.stream_callbacks:
@@ -538,10 +750,14 @@ class AudioStreamingManager:
             return False
     
     def stop_streaming(self):
-        """Stop current audio streaming."""
+        """Stop current audio streaming with cleanup."""
         with self._lock:
             if self.is_streaming:
                 self.is_streaming = False
+                
+                # Track completion
+                with self._stats_lock:
+                    self._stream_stats['streams_completed'] += 1
 
                 # Notify callbacks
                 for callback in self.stream_callbacks:
@@ -564,17 +780,97 @@ class AudioStreamingManager:
             if callback in self.stream_callbacks:
                 self.stream_callbacks.remove(callback)
     
+    def cleanup_resources(self) -> Dict[str, int]:
+        """Clean up all streaming resources."""
+        cleanup_results = {
+            'temp_files_cleaned': 0,
+            'streams_stopped': 0
+        }
+        
+        # Stop current streaming
+        if self.is_streaming:
+            self.stop_streaming()
+            cleanup_results['streams_stopped'] = 1
+        
+        # Clean up temporary files
+        cleanup_results['temp_files_cleaned'] = self.temp_file_manager.cleanup_all()
+        
+        # Reset performance stats
+        with self._stats_lock:
+            self._stream_stats = {
+                'streams_started': 0,
+                'streams_completed': 0,
+                'total_bytes_streamed': 0,
+                'average_stream_duration': 0.0,
+                'temp_files_created': 0,
+                'temp_files_cleaned': cleanup_results['temp_files_cleaned']
+            }
+        
+        logger.info(f"Streaming resources cleaned up: {cleanup_results}")
+        return cleanup_results
+    
+    def optimize_streaming_performance(self, force_gc: bool = False) -> Dict[str, Any]:
+        """
+        Optimize streaming performance by cleaning up resources.
+        
+        Args:
+            force_gc: Whether to force garbage collection. Defaults to False
+                     to avoid performance impact in production. Set to True
+                     only when memory cleanup is specifically needed.
+        
+        Returns:
+            Dictionary with optimization results including cleanup stats
+        """
+        optimization_results = {
+            'temp_files_cleaned': 0,
+            'memory_freed': False,
+            'gc_performed': False
+        }
+        
+        # Clean up temporary files
+        optimization_results['temp_files_cleaned'] = self.temp_file_manager.cleanup_all()
+        
+        # Conditionally perform garbage collection
+        if force_gc:
+            try:
+                import gc
+                collected = gc.collect()
+                optimization_results['memory_freed'] = collected > 0
+                optimization_results['objects_collected'] = collected
+                optimization_results['gc_performed'] = True
+            except ImportError:
+                optimization_results['memory_freed'] = False
+                optimization_results['gc_performed'] = False
+        else:
+            optimization_results['objects_collected'] = 0
+        
+        return optimization_results
+    
     def get_stream_status(self) -> Dict[str, Any]:
-        """Get current streaming status."""
+        """Get current streaming status with performance metrics."""
         with self._lock:
+            current_stream_info = None
+            if self.current_stream:
+                current_stream_info = {
+                    "duration": self.current_stream.get("duration"),
+                    "is_cached": self.current_stream.get("is_cached"),
+                    "size_bytes": self.current_stream.get("size_bytes"),
+                    "optimal_buffer_size": self.current_stream.get("optimal_buffer_size"),
+                    "connection_type": self.current_stream.get("connection_type"),
+                    "estimated_chunks": self.current_stream.get("estimated_chunks")
+                }
+            
+            with self._stats_lock:
+                performance_stats = self._stream_stats.copy()
+            
+            temp_file_stats = self.temp_file_manager.get_stats()
+            
             return {
                 "is_streaming": self.is_streaming,
                 "has_current_stream": self.current_stream is not None,
-                "current_stream_info": {
-                    "duration": self.current_stream.get("duration") if self.current_stream else None,
-                    "is_cached": self.current_stream.get("is_cached") if self.current_stream else None,
-                    "size_bytes": self.current_stream.get("size_bytes") if self.current_stream else None
-                } if self.current_stream else None
+                "current_stream_info": current_stream_info,
+                "performance": performance_stats,
+                "temp_files": temp_file_stats
             }
 
 
@@ -618,23 +914,27 @@ def prepare_audio_for_gradio(audio_bytes: bytes, format_type: str = "mp3") -> st
     return AudioFormatConverter.convert_to_gradio_format(audio_bytes, format_type)
 
 
-def stream_audio_chunks(audio_bytes: bytes, chunk_size: int = 8192) -> Iterator[bytes]:
+def stream_audio_chunks(audio_bytes: bytes, chunk_size: Optional[int] = None, 
+                       is_cached: bool = False, connection_type: str = 'default') -> Iterator[bytes]:
     """
-    Convenience function to stream audio in chunks.
+    Convenience function to stream audio in chunks with optimized buffer sizes.
     
     Args:
         audio_bytes: Raw audio data
-        chunk_size: Size of each chunk
+        chunk_size: Size of each chunk (auto-calculated if None)
+        is_cached: Whether audio is from cache
+        connection_type: Connection type for optimization
         
     Yields:
         Audio data chunks
     """
-    return AudioFormatConverter.prepare_for_streaming(audio_bytes, chunk_size)
+    return AudioFormatConverter.prepare_for_streaming(audio_bytes, chunk_size, is_cached, connection_type)
 
 
-def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False) -> Dict[str, Any]:
+def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False, 
+                              connection_type: str = 'default') -> Dict[str, Any]:
     """
-    Convenience function to prepare audio for streaming playback.
+    Convenience function to prepare audio for streaming playback with optimized buffers.
     
     This function delegates to the AudioStreamingManager prepare_streaming_audio method
     to avoid confusion between the manager method and convenience wrapper.
@@ -642,11 +942,10 @@ def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False) -> 
     Args:
         audio_bytes: Raw audio data
         is_cached: Whether audio is from cache
+        connection_type: Connection type for buffer optimization
         
     Returns:
         Streaming-ready audio data
     """
     manager = get_audio_streaming_manager()
-    return manager.prepare_streaming_audio(audio_bytes, is_cached)
-
-
+    return manager.prepare_streaming_audio(audio_bytes, is_cached, connection_type)

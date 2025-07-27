@@ -6,6 +6,7 @@ Bitcoin Knowledge Assistant API using FastAPI and Pinecone Assistant
 import asyncio
 import os
 import logging
+import time
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -362,7 +363,7 @@ async def list_available_sources():
 
 @app.get("/tts/status")
 async def get_tts_status():
-    """Get TTS service status and configuration"""
+    """Get TTS service status and configuration with performance metrics"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
@@ -377,6 +378,7 @@ async def get_tts_status():
         tts_service = bitcoin_service.tts_service
         cache_stats = tts_service.get_cache_stats()
         error_state = tts_service.get_error_state()
+        performance_stats = tts_service.get_performance_stats()
         
         return {
             "enabled": tts_service.is_enabled(),
@@ -385,6 +387,7 @@ async def get_tts_status():
             "model_id": tts_service.config.model_id,
             "cache_stats": cache_stats,
             "error_state": error_state,
+            "performance": performance_stats,
             "config": {
                 "cache_size": tts_service.config.cache_size,
                 "output_format": tts_service.config.output_format,
@@ -430,11 +433,56 @@ async def clear_tts_cache():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to clear TTS cache: {str(e)}")
 
+
+@app.post("/tts/optimize")
+async def optimize_tts_performance():
+    """Optimize TTS service performance"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+
+    if not bitcoin_service.tts_service:
+        raise HTTPException(status_code=503, detail="TTS service not initialized")
+
     try:
-        bitcoin_service.tts_service.clear_cache()
-        return {"message": "TTS cache cleared successfully"}
+        optimization_results = bitcoin_service.tts_service.optimize_performance()
+        
+        # Also optimize streaming manager if available
+        streaming_optimization = {}
+        if bitcoin_service.streaming_manager:
+            streaming_optimization = bitcoin_service.streaming_manager.optimize_streaming_performance()
+        
+        return {
+            "message": "Performance optimization completed",
+            "tts_optimization": optimization_results,
+            "streaming_optimization": streaming_optimization
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to clear TTS cache: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Performance optimization failed: {str(e)}")
+
+
+@app.get("/tts/performance")
+async def get_tts_performance_metrics():
+    """Get detailed TTS performance metrics"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+
+    if not bitcoin_service.tts_service:
+        raise HTTPException(status_code=503, detail="TTS service not initialized")
+
+    try:
+        performance_stats = bitcoin_service.tts_service.get_performance_stats()
+        streaming_status = {}
+        
+        if bitcoin_service.streaming_manager:
+            streaming_status = bitcoin_service.streaming_manager.get_stream_status()
+        
+        return {
+            "tts_performance": performance_stats,
+            "streaming_status": streaming_status,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get performance metrics: {str(e)}")
 
 @app.get("/tts/streaming/status")
 async def get_streaming_status():

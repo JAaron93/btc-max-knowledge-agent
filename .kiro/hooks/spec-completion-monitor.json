@@ -1,0 +1,46 @@
+{
+  "name": "Spec Completion Monitor",
+  "description": "Automatically creates completion status when all tasks in a spec are completed",
+  "version": "1.0",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [".kiro/specs/*/tasks.md"],
+    "description": "Triggers when tasks.md files are saved in any spec directory"
+  },
+  "conditions": [
+    {
+      "type": "custom_check",
+      "description": "Verify all tasks are marked as completed with [x]",
+      "script": ".kiro/hooks/spec-completion-agent.py"
+    }
+  ],
+  "actions": [
+    {
+      "type": "agent_execution",
+      "description": "Create completion status files for completed specs",
+      "prompt": "I need you to run the spec completion monitor to check if all tasks in the recently modified spec are completed. If they are, create the appropriate completion status files.\n\nPlease execute: python .kiro/hooks/spec-completion-agent.py {spec_directory}\n\nWhere {spec_directory} is the directory containing the modified tasks.md file.\n\nThe agent will:\n1. Parse the tasks.md file to count completed vs total tasks\n2. If all tasks are completed, create a .completed status file\n3. Generate a completion summary document\n4. Provide feedback on the completion status\n\nContext files to consider:",
+      "context_files": [
+        "{spec_directory}/tasks.md",
+        "{spec_directory}/requirements.md", 
+        "{spec_directory}/design.md"
+      ],
+      "context_files": [
+        "{spec_directory}/tasks.md",
+        "{spec_directory}/requirements.md", 
+        "{spec_directory}/design.md"
+      ]
+    }
+  ],
+  "settings": {
+    "enabled": true,
+    "auto_approve": false,
+    "notification": true,
+    "log_level": "INFO"
+  },
+  "metadata": {
+    "author": "Kiro AI Assistant",
+    "created": "2025-01-26",
+    "category": "spec_management",
+    "tags": ["specs", "completion", "automation", "project_management"]
+  }
+}
