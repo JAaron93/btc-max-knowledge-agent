@@ -27,8 +27,12 @@ def parse_tasks_file(tasks_file_path: str) -> Tuple[int, int, List[str]]:
     if not os.path.exists(tasks_file_path):
         return 0, 0, []
     
-    with open(tasks_file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    try:
+        with open(tasks_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except (IOError, UnicodeDecodeError) as e:
+        print(f"⚠️  Error reading tasks file {tasks_file_path}: {e}")
+        return 0, 0, []
     
     # Find all task lines (both completed and incomplete)
     # More robust pattern that handles:
@@ -109,8 +113,11 @@ def create_completion_file(spec_dir: str, total_tasks: int, completed_tasks: int
     ]
     
     # Add task entries
+    # Add task entries
     for i, task_title in enumerate(task_titles, 1):
-        content_lines.append(f"TASK_{i}={task_title}")
+        # Sanitize task title to prevent issues in shell-like format
+        sanitized_title = task_title.replace('\n', ' ').replace('\r', '').strip()
+        content_lines.append(f"TASK_{i}={sanitized_title}")
     
     # Add description if available
     if 'description' in spec_info:
@@ -248,8 +255,6 @@ def check_spec_completion(spec_dir: str) -> bool:
 
 def main():
     """Main entry point for the agent hook."""
-def main():
-    """Main entry point for the agent hook."""
     if len(sys.argv) != 2:
         print("❌ Invalid number of arguments")
         print("Usage:")
@@ -261,12 +266,18 @@ def main():
     if sys.argv[1] == '--scan-all':
         # Scan all specs in .kiro/specs/
         specs_dir = '.kiro/specs'
-        if not os.path.exists(specs_dir):
+        try:
+            spec_names = os.listdir(specs_dir)
+        except FileNotFoundError:
             print(f"❌ Specs directory not found: {specs_dir}")
             sys.exit(1)
-        
-        completed_count = 0
-        completed_count = 0
+        except PermissionError:
+            print(f"❌ Permission denied accessing specs directory: {specs_dir}")
+            sys.exit(1)
+        except OSError as e:
+            print(f"❌ Error reading specs directory: {e}")
+            sys.exit(1)
+        try:
         try:
             spec_names = os.listdir(specs_dir)
         except OSError as e:

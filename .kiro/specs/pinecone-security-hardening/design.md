@@ -104,11 +104,18 @@ class IAuthenticationManager(ABC):
 **Key Features**:
 - API key validation (32-64 character alphanumeric) within 100ms
 - JWT token validation (RS256/HS256 with exp claim)
-- Rate limiting (100 requests/minute per API key, 10 requests/second burst)
+- Rate limiting using token-bucket algorithm (bucket capacity: 10 tokens, refill rate: 1.67 tokens/second, sustained rate: 100 requests/minute)
 - Progressive rate limiting with exponential backoff (1s, 2s, 4s, 8s)
 - Temporary blocking (15 minutes after 5 violations)
 - Suspicious pattern detection (>5 failed attempts in 60s, >10 IPs in 5 minutes)
 - Client identification and tracking with risk scoring
+
+**Token-Bucket Rate Limiting Design**:
+- **Bucket Capacity**: 10 tokens (allows burst of up to 10 requests)
+- **Refill Rate**: 1.67 tokens/second (100 tokens/minute ÷ 60 seconds)
+- **Sustained Rate**: 100 requests/minute maximum
+- **Burst Behavior**: Client can make 10 requests immediately, then limited to 1.67 requests/second
+- **Mathematical Consistency**: Burst capacity (10) + sustained rate (1.67/sec) = 100 requests/minute maximum
 
 ### 4. SecurePineconeClient
 
@@ -174,16 +181,14 @@ CREATE TABLE security_events (
     client_id VARCHAR(255),
     details JSONB NOT NULL,
     mitigation_action VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    -- Indexes for performance
-    INDEX idx_security_events_timestamp (timestamp),
-    INDEX idx_security_events_type (event_type),
-    INDEX idx_security_events_severity (severity),
-    INDEX idx_security_events_source_ip (source_ip),
-    INDEX idx_security_events_client_id (client_id)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 ) PARTITION BY RANGE (timestamp);
 
+CREATE INDEX idx_security_events_timestamp   ON security_events (timestamp);
+CREATE INDEX idx_security_events_type        ON security_events (event_type);
+CREATE INDEX idx_security_events_severity    ON security_events (severity);
+CREATE INDEX idx_security_events_source_ip   ON security_events (source_ip);
+CREATE INDEX idx_security_events_client_id   ON security_events (client_id);
 -- Create monthly partitions for efficient data management
 CREATE TABLE security_events_y2024m01 PARTITION OF security_events
     FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
@@ -219,9 +224,17 @@ CREATE TABLE security_alerts (
 
 **Logging Implementation**:
 ```python
+import json
+from datetime import datetime, timedelta
+from typing import Optional
+
 class PostgreSQLSecurityLogger:
-    def __init__(self, connection_string: str):
-        self.pool = asyncpg.create_pool(connection_string)
+    def __init__(self, dsn: str):
+        self._dsn = dsn
+        self.pool: Optional[asyncpg.Pool] = None
+
+    async def init(self) -> None:
+        self.pool = await asyncpg.create_pool(self._dsn)
         
     async def log_security_event(self, event: SecurityEvent) -> None:
         async with self.pool.acquire() as conn:
@@ -243,7 +256,6 @@ class PostgreSQLSecurityLogger:
                 "DELETE FROM security_events WHERE timestamp < $1", 
                 cutoff_date
             )
-```
 
 **Required Dependencies**:
 ```python
@@ -405,6 +417,8 @@ class AuthenticationContext:
 
 ### SecurityConfiguration
 ```python
+from dataclasses import dataclass, field
+
 @dataclass
 class SecurityConfiguration:
     # Input validation limits
@@ -439,17 +453,13 @@ class SecurityConfiguration:
     anomaly_detection_time_seconds: int = 300
     
     # Security thresholds
-    alert_thresholds: Dict[str, float] = None
-    
-    def __post_init__(self):
-        if self.alert_thresholds is None:
-            self.alert_thresholds = {
-                "error_rate_percent": 10.0,
-                "response_time_seconds": 5.0,
-                "memory_usage_percent": 80.0,
-                "failed_auth_attempts": 5,
-                "suspicious_ip_count": 10
-            }
+    alert_thresholds: Dict[str, float] = field(default_factory=lambda: {
+        "error_rate_percent": 10.0,
+        "response_time_seconds": 5.0,
+        "memory_usage_percent": 80.0,
+        "failed_auth_attempts": 5,
+        "suspicious_ip_count": 10
+    })
 ```
 
 ## Error Handling

@@ -18,12 +18,24 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 fi
 
 # Change to project root
-cd "$(dirname "$0")/../.."
+PROJECT_ROOT="$(dirname "$0")/../.."
+if ! cd "$PROJECT_ROOT"; then
+    echo "❌ Failed to change to project root directory"
+    exit 1
+fi
+
+# Check if the Python agent exists
+AGENT_SCRIPT=".kiro/hooks/spec-completion-agent.py"
+if [ ! -f "$AGENT_SCRIPT" ]; then
+    echo "❌ Error: Python agent script not found: $AGENT_SCRIPT"
+    echo "Please ensure the spec completion agent is properly installed."
+    exit 1
+fi
 
 if [ -z "$1" ] || [ "$1" = "--scan-all" ]; then
     # No arguments or explicit scan all - scan all specs
     echo "🔍 Scanning all specs for completion..."
-    python .kiro/hooks/spec-completion-agent.py --scan-all
+    python "$AGENT_SCRIPT" --scan-all
 else
     # Check specific spec
     # Validate spec name (no path traversal)
@@ -44,7 +56,7 @@ else
     fi
     
     echo "🔍 Checking spec: $1"
-    python .kiro/hooks/spec-completion-agent.py "$SPEC_DIR"
+    python "$AGENT_SCRIPT" "$SPEC_DIR"
 fi
 
 echo ""

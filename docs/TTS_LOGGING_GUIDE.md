@@ -30,18 +30,44 @@ export CACHE_LOG_LEVEL=INFO
 export ERROR_HANDLER_LOG_LEVEL=WARNING
 ```
 
+**Note**: The application startup code is responsible for reading each environment variable (e.g., using `os.getenv('TTS_LOG_LEVEL')`) and explicitly setting the log level on the corresponding logger via `logging.getLogger(...).setLevel()`. The Python logging library does not automatically detect these environment variables.
+
 ### Programmatic Configuration
 
 For development and testing, configure logging programmatically:
 
 ```python
 import logging
+import sys
 
-# Enable debug logging for TTS components
-logging.getLogger('utils.tts_service').setLevel(logging.DEBUG)
-logging.getLogger('utils.tts_error_handler').setLevel(logging.DEBUG)
-logging.getLogger('utils.multi_tier_audio_cache').setLevel(logging.DEBUG)
-logging.getLogger('utils.audio_utils').setLevel(logging.DEBUG)
+# Create a formatter for consistent log output
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Create a console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(formatter)
+
+# Configure TTS component loggers
+tts_loggers = [
+    'utils.tts_service',
+    'utils.tts_error_handler', 
+    'utils.multi_tier_audio_cache',
+    'utils.audio_utils'
+]
+
+for logger_name in tts_loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(console_handler)
+    logger.propagate = False  # Prevent duplicate logs from root logger
+
+# Example usage - these will now output logs
+tts_logger = logging.getLogger('utils.tts_service')
+tts_logger.info("TTS service initialized")
+tts_logger.debug("Debug information will be visible")
 ```
 
 ## Log Categories
@@ -182,14 +208,33 @@ Configure log rotation for production:
 
 ```python
 import logging.handlers
+import gzip
+import os
 
-# Time-based rotation
+# Custom namer function to add .gz extension
+def namer(name):
+    return name + ".gz"
+
+# Custom rotator function to compress rotated files
+def rotator(source, dest):
+    with open(source, "rb") as sf:
+        with gzip.open(dest, "wb") as df:
+            df.writelines(sf)
+    os.remove(source)
+
+# Time-based rotation with compression
 handler = logging.handlers.TimedRotatingFileHandler(
     'logs/tts.log',
     when='midnight',
     interval=1,
-    backupCount=7
+    backupCount=7,
+    encoding='utf-8',
+    delay=True
 )
+
+# Enable compression for rotated files
+handler.namer = namer
+handler.rotator = rotator
 ```
 
 ### Structured Logging
@@ -221,6 +266,21 @@ class JSONFormatter(logging.Formatter):
             log_entry['error_code'] = record.error_code
             
         return json.dumps(log_entry)
+
+# Usage example: Attach JSONFormatter to a handler
+json_handler = logging.StreamHandler()
+json_handler.setFormatter(JSONFormatter())
+
+# Add the handler to the TTS service logger
+tts_logger = logging.getLogger('utils.tts_service')
+tts_logger.addHandler(json_handler)
+tts_logger.setLevel(logging.INFO)
+
+# Example log output (will be in JSON format)
+tts_logger.info("TTS synthesis completed", extra={
+    'synthesis_time': 1.23,
+    'cache_key': 'hello_world_voice1'
+})
 ```
 
 ## Troubleshooting with Logs

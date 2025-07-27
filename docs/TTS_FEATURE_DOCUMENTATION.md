@@ -45,7 +45,7 @@ ELEVEN_LABS_API_KEY=your_api_key_here
 TTS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
 TTS_MODEL_ID=eleven_multilingual_v2
 TTS_OUTPUT_FORMAT=mp3_44100_128
-TTS_DEFAULT_VOLUME=0.7
+TTS_VOLUME=0.7
 TTS_CACHE_SIZE=100
 LOG_LEVEL=INFO
 ```
@@ -53,6 +53,8 @@ LOG_LEVEL=INFO
 ### TTSConfig Class
 
 The main configuration is handled by the `TTSConfig` dataclass:
+
+**Note**: Environment variables map directly to dataclass fields with the `TTS_` prefix. For example, `TTS_VOLUME` maps to the `volume` field, `TTS_VOICE_ID` maps to `voice_id`, etc.
 
 ```python
 @dataclass
@@ -120,6 +122,7 @@ Content-Type: application/json
 The system uses aiohttp connection pooling for optimal performance:
 
 ```python
+import aiohttp
 class ConnectionPool:
     def __init__(self, max_connections: int = 10, connection_timeout: float = 10.0):
         self.connector = aiohttp.TCPConnector(
@@ -254,6 +257,65 @@ The system applies a standardized text cleaning process:
 7. **Length Validation**: Ensure content within API limits
 
 ```python
+import re
+import unicodedata
+
+def _clean_markdown(text: str) -> str:
+    """
+    Remove markdown formatting for TTS-friendly text.
+    
+    Handles common markdown syntax like bold, italic, headers, links, etc.
+    """
+    # Remove headers (# ## ### etc.)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    
+    # Remove bold and italic formatting
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **bold**
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)      # *italic*
+    text = re.sub(r'__([^_]+)__', r'\1', text)      # __bold__
+    text = re.sub(r'_([^_]+)_', r'\1', text)        # _italic_
+    
+    # Remove links but keep text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)  # [text](url)
+    text = re.sub(r'<([^>]+)>', r'\1', text)              # <url>
+    
+    # Remove code blocks and inline code
+    text = re.sub(r'```[^`]*```', '', text, flags=re.DOTALL)  # ```code```
+    text = re.sub(r'`([^`]+)`', r'\1', text)                  # `code`
+    
+    # Remove list markers
+    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)  # - * +
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE) # 1. 2. 3.
+    
+    # Remove horizontal rules
+    text = re.sub(r'^[-*_]{3,}$', '', text, flags=re.MULTILINE)
+    
+    return text
+
+def _normalize_whitespace(text: str) -> str:
+    """
+    Normalize whitespace and unicode characters for consistent TTS output.
+    
+    Handles multiple spaces, line breaks, and unicode normalization.
+    """
+    # Normalize unicode characters (NFD -> NFC)
+    text = unicodedata.normalize('NFC', text)
+    
+    # Replace multiple whitespace characters with single spaces
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Remove leading/trailing whitespace from each line
+    text = '\n'.join(line.strip() for line in text.split('\n'))
+    
+    # Collapse multiple newlines into single newlines
+    text = re.sub(r'\n\s*\n', '\n', text)
+    
+    # Final cleanup: strip and ensure single spaces
+    text = text.strip()
+    text = re.sub(r' +', ' ', text)
+    
+    return text
+
 def extract_main_content(response_text: str) -> str:
     """Extract clean content for TTS synthesis."""
     # Pre-compiled regex patterns for performance
@@ -370,8 +432,10 @@ def create_waveform_animation():
 Visual error feedback system:
 
 ```python
-def create_error_indicator(error_type: str, consecutive_failures: int) -> str:
-    """Create error indicator HTML."""
+def create_error_indicator(error_type: str, consecutive_failures: int) -> gr.HTML:
+    """Create error indicator HTML component."""
+    import gradio as gr
+    
     error_configs = {
         "API_KEY_ERROR": {
             "icon": "🔴",
@@ -383,8 +447,42 @@ def create_error_indicator(error_type: str, consecutive_failures: int) -> str:
             "message": "Rate limited - Retrying automatically",
             "color": "#f59e0b"
         },
-        # ... additional error types
+        "NETWORK_ERROR": {
+            "icon": "🟠",
+            "message": f"Network error - {consecutive_failures} consecutive failures",
+            "color": "#ea580c"
+        },
+        "QUOTA_EXCEEDED": {
+            "icon": "🔴",
+            "message": "Quota exceeded - Voice temporarily disabled",
+            "color": "#dc2626"
+        }
     }
+    
+    config = error_configs.get(error_type, {
+        "icon": "⚠️",
+        "message": f"Unknown error - {consecutive_failures} failures",
+        "color": "#6b7280"
+    })
+    
+    html_content = f"""
+    <div style="
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        background-color: {config['color']}15;
+        border: 1px solid {config['color']};
+        border-radius: 6px;
+        margin: 4px 0;
+        font-size: 14px;
+        color: {config['color']};
+    ">
+        <span style="margin-right: 8px; font-size: 16px;">{config['icon']}</span>
+        <span>{config['message']}</span>
+    </div>
+    """
+    
+    return gr.HTML(value=html_content)
 ```
 
 ## Testing Strategy
@@ -530,9 +628,10 @@ Enable detailed logging for troubleshooting:
 
 ```python
 import logging
-logging.getLogger('utils.tts_service').setLevel(logging.DEBUG)
-logging.getLogger('utils.tts_error_handler').setLevel(logging.DEBUG)
-logging.getLogger('utils.multi_tier_audio_cache').setLevel(logging.DEBUG)
+logging.getLogger('src.utils.tts_service').setLevel(logging.DEBUG)
+logging.getLogger('src.utils.tts_error_handler').setLevel(logging.DEBUG)
+logging.getLogger('src.utils.multi_tier_audio_cache').setLevel(logging.DEBUG)
+logging.getLogger('src.utils.audio_utils').setLevel(logging.DEBUG)
 ```
 
 ### Performance Profiling

@@ -485,7 +485,19 @@ class TempFileWrapper:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - cleanup the temporary file."""
+        """
+        Context manager exit - cleanup the temporary file.
+        
+        Args:
+            exc_type: Exception type if an exception occurred, None otherwise
+            exc_val: Exception value if an exception occurred, None otherwise
+            exc_tb: Exception traceback if an exception occurred, None otherwise
+            
+        Returns:
+            False: Exceptions are intentionally not suppressed. Any exceptions
+                  that occurred within the context manager will be re-raised,
+                  allowing proper error handling by the calling code.
+        """
         self.cleanup()
         return False  # Don't suppress exceptions
     
@@ -603,7 +615,6 @@ class AudioStreamingManager:
             'streams_completed': 0,
             'total_bytes_streamed': 0,
             'average_stream_duration': 0.0,
-            'temp_files_created': 0,
             'temp_files_cleaned': 0
         }
         self._stats_lock = threading.Lock()
@@ -802,7 +813,6 @@ class AudioStreamingManager:
                 'streams_completed': 0,
                 'total_bytes_streamed': 0,
                 'average_stream_duration': 0.0,
-                'temp_files_created': 0,
                 'temp_files_cleaned': cleanup_results['temp_files_cleaned']
             }
         

@@ -23,11 +23,6 @@
         "{spec_directory}/tasks.md",
         "{spec_directory}/requirements.md", 
         "{spec_directory}/design.md"
-      ],
-      "context_files": [
-        "{spec_directory}/tasks.md",
-        "{spec_directory}/requirements.md", 
-        "{spec_directory}/design.md"
       ]
     }
   ],

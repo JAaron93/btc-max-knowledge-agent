@@ -96,6 +96,8 @@ async def test_connection_pooling():
         assert perf_stats is not None, "Performance stats should not be None"
         
     finally:
+        if tts_service:
+            await tts_service.cleanup_resources()
 def create_test_config():
     """Create a test configuration."""
     return TTSConfig(
@@ -122,18 +124,10 @@ def test_memory_monitoring():
         print(f"Memory cleanup results: {cleanup_results}")
         assert cleanup_results is not None, "Cleanup results should not be None"
     finally:
-        # Ensure service cleanup if it has async cleanup method
+        # Cleanup is handled by garbage collection for sync resources
         pass
         
     print("✅ Memory monitoring test completed")
-    print(f"Memory usage: {memory_stats}")
-    
-    # Test cleanup
-    cleanup_results = tts_service.memory_monitor.cleanup_memory(tts_service.cache)
-    print(f"Memory cleanup results: {cleanup_results}")
-    
-    print("✅ Memory monitoring test completed")
-
 
 def test_buffer_optimization():
     """Test optimized buffer sizes."""
@@ -170,6 +164,12 @@ def test_streaming_manager():
         
         # Test optimization
         optimization_results = manager.optimize_streaming_performance()
+        print(f"Streaming optimization results: {optimization_results}")
+        assert optimization_results is not None, "Optimization results should not be None"
+        
+    finally:
+        # Cleanup streaming manager resources if needed
+        pass
 async def test_performance_optimization():
     """Test overall performance optimization."""
     print("Testing performance optimization...")
@@ -194,16 +194,6 @@ async def test_performance_optimization():
             await tts_service.cleanup_resources()
             
     print("✅ Performance optimization test completed")
-    
-    # Test optimization
-    optimization_results = tts_service.optimize_performance()
-    print(f"TTS optimization results: {optimization_results}")
-    
-    # Test comprehensive stats
-    comprehensive_stats = tts_service.get_performance_stats()
-    print(f"Comprehensive performance stats: {comprehensive_stats}")
-    
-    # Cleanup
     await tts_service.cleanup_resources()
     print("✅ Performance optimization test completed")
 
