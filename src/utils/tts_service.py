@@ -203,24 +203,14 @@ class ConnectionPool:
         """Get connection pool statistics."""
         if self._session and not self._session.closed:
             connector = self._session.connector
+            try:
+                active_conns = len(connector._conns) if hasattr(connector, '_conns') else 0
+            except AttributeError:
+                active_conns = 0
             return {
                 'max_connections': self.max_connections,
-def get_stats(self) -> Dict[str, Any]:
-    """Get connection pool statistics."""
-    if self._session and not self._session.closed:
-        connector = self._session.connector
-        try:
-            active_conns = len(connector._conns) if hasattr(connector, '_conns') else 0
-        except AttributeError:
-            active_conns = 0
-        return {
-            'max_connections': self.max_connections,
-            'active_connections': active_conns,
-            'available_connections': connector.limit - active_conns,
-            'session_closed': self._session.closed,
-            'last_cleanup': self._last_cleanup
-        }
-                'available_connections': connector.limit - len(connector._conns),
+                'active_connections': active_conns,
+                'available_connections': connector.limit - active_conns,
                 'session_closed': self._session.closed,
                 'last_cleanup': self._last_cleanup
             }
@@ -710,12 +700,14 @@ class TTSService:
             else:
                 # Run synchronously if not in async context
                 loop.run_until_complete(self.connection_pool._cleanup_connections())
-            optimization_results['connection_cleanup'] = True
+    def optimize_performance(self) -> Dict[str, Any]:
+        """Perform performance optimization operations."""
+        optimization_results = {
             'cache_cleanup': {},
             'memory_cleanup': {},
             'connection_cleanup': False
         }
-        
+
         try:
             # Clean up expired cache entries
             optimization_results['cache_cleanup'] = self.cleanup_expired_cache()
@@ -724,9 +716,17 @@ class TTSService:
             optimization_results['memory_cleanup'] = self.memory_monitor.cleanup_memory(self.cache)
             
             # Clean up connection pool
-            asyncio.create_task(self.connection_pool._cleanup_connections())
-            optimization_results['connection_cleanup'] = True
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(self.connection_pool._cleanup_connections())
+                else:
+                    loop.run_until_complete(self.connection_pool._cleanup_connections())
+            except RuntimeError:
+                # No event loop available
+                logger.warning("Could not perform connection cleanup - no event loop")
             
+            optimization_results['connection_cleanup'] = True
             logger.info(f"Performance optimization completed: {optimization_results}")
             
         except Exception as e:
@@ -734,17 +734,6 @@ class TTSService:
             optimization_results['error'] = str(e)
         
         return optimization_results
-    
-    async def cleanup_resources(self):
-        """Clean up all resources including connections and temporary files."""
-        try:
-            # Close connection pool
-            await self.connection_pool.close()
-            
-            # Perform final memory cleanup
-            self.memory_monitor.cleanup_memory(self.cache)
-            
-            # Clear performance stats
             with self._stats_lock:
                 self._performance_stats = {
                     'requests_made': 0,
@@ -762,7 +751,7 @@ class TTSService:
     
     def __del__(self):
         """Log warning if resources weren't cleaned up properly."""
-        if hasattr(self, '_session') and self._session and not self._session.closed:
+        if hasattr(self, 'connection_pool') and self.connection_pool._session and not self.connection_pool._session.closed:
             logger.warning("TTSService deleted without proper cleanup. Call cleanup_resources() explicitly.")
 
 
@@ -813,6 +802,28 @@ async def cleanup_tts_service():
             _tts_service = None
 
 
+def _sync_cleanup_tts_service():
+    """Synchronous wrapper for async cleanup function to work with atexit."""
+    try:
+        # Try to get the current event loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is running, we can't use run_until_complete
+            # Create a new task instead (best effort cleanup)
+            asyncio.create_task(cleanup_tts_service())
+        else:
+            # Loop exists but not running, we can use it
+            loop.run_until_complete(cleanup_tts_service())
+    except RuntimeError:
+        # No event loop exists, create a new one
+        try:
+            asyncio.run(cleanup_tts_service())
+        except Exception as e:
+            logger.warning(f"Failed to run async cleanup during exit: {e}")
+    except Exception as e:
+        logger.warning(f"Error during synchronous TTS service cleanup: {e}")
+
+
 # Register cleanup on module exit
 import atexit
-atexit.register(cleanup_tts_service)
+atexit.register(_sync_cleanup_tts_service)

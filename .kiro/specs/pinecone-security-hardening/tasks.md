@@ -15,7 +15,7 @@ last-updated: "2025-07-26"
 
 - [ ] 2. Implement input validation and sanitization system
 - [ ] 2.1 Create SecurityValidator component using proven security libraries
-  - Implement input length validation (≤4 KB maximum) with basic Python validation
+  - Implement input length validation (≤MAX_REQUEST_SIZE) with basic Python validation
   - Integrate libinjection Python bindings for SQL injection and XSS detection with built-in confidence scoring
   - Add ModSecurity Core Rule Set (CRS) integration via pymodsecurity or equivalent for comprehensive OWASP pattern detection
   - Implement UTF-8 validation using Python's built-in codecs.decode with error handling
@@ -24,7 +24,7 @@ last-updated: "2025-07-26"
   - Implement confidence score aggregation from multiple detection engines (libinjection scores + CRS rule weights)
   - Create fallback detection for specific high-risk patterns (`<script>`, `'; DROP`, `$(`, `{{`, backticks, null bytes) when libraries are unavailable
   - Add library health monitoring and graceful degradation when external detection engines fail
-  - Write comprehensive unit tests covering library integration, fallback scenarios, and 4KB boundary conditions
+  - Write comprehensive unit tests covering library integration, fallback scenarios, and MAX_REQUEST_SIZE boundary conditions
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
 - [ ] 2.2 Implement validation middleware for FastAPI
@@ -61,7 +61,7 @@ last-updated: "2025-07-26"
   - Create revoked keys cache (in-memory and Redis) to prevent reuse of invalidated tokens
   - Implement batch asynchronous key validation for multiple concurrent requests to improve performance
   - Add graceful degradation when external key services are unavailable (cached validation with warnings)
-  - Create rate limiting (100 requests/minute per API key, 10 requests/second burst)
+  - Create token-bucket rate limiting (bucket capacity: 10 tokens, refill rate: 1.67 tokens/second, sustained rate: 100 requests/minute)
   - Implement progressive rate limiting with exponential backoff (1s, 2s, 4s, 8s)
   - Add temporary blocking (15 minutes after 5 violations)
   - Implement suspicious pattern detection (>5 failed attempts in 60s, >10 IPs in 5 minutes)
@@ -74,7 +74,7 @@ last-updated: "2025-07-26"
   - Implement token-bucket algorithm for rate limiting or integrate async-ratelimiter library for proven implementation
   - Create in-memory token bucket storage with Redis fallback for distributed deployments
   - Implement leaky-bucket algorithm as alternative option for smoother traffic shaping when needed
-  - Create middleware enforcing specific limits (100 requests/minute per API key, 10 requests/second burst) using token bucket refill rates
+  - Create middleware enforcing token-bucket limits (bucket capacity: 10 tokens, refill rate: 1.67 tokens/second, sustained rate: 100 requests/minute)
   - Add automatic blocking and throttling with HTTP 429 responses when token buckets are exhausted
   - Implement temporary blocking (15 minutes after 5 violations) with separate violation tracking buckets
   - Add exponential backoff implementation (1s, 2s, 4s, 8s progression) integrated with token bucket recovery timing
@@ -170,6 +170,16 @@ last-updated: "2025-07-26"
   - Write integration tests for configuration management
   - _Requirements: 7.1, 7.2, 7.3_
 
+- [ ] 8.3 Implement dependency integrity verification
+  - Enforce `pip install --require-hashes` with pinned dependency hashes in requirements.txt
+  - Implement SLSA provenance verification for critical dependencies where available
+  - Add automated SBOM (Software Bill of Materials) scanning using Syft or SPDX generators
+  - Create CVE blocking mechanism for dependencies with CVSS scores above 7.0
+  - Implement dependency security scanning in CI/CD pipeline
+  - Add dependency update validation and approval workflow
+  - Write tests validating hash verification, SLSA attestation checking, and CVE blocking
+  - _Requirements: 7.3_
+
 - [ ] 9. Build comprehensive error handling system
 - [ ] 9.1 Implement secure error handling framework
   - Create standardized security error responses
@@ -188,18 +198,18 @@ last-updated: "2025-07-26"
 - [ ] 10. Create comprehensive security test suite
 - [ ] 10.1 Implement security unit tests
   - Create unit tests for all security components with specific threshold validation
-  - Add boundary condition tests (4KB input limits, rate limit edges, timeout boundaries)
+  - Add boundary condition tests (MAX_REQUEST_SIZE input limits, token-bucket rate limit edges, AUTH_CACHE_VALIDATION_TIMEOUT/AUTH_REMOTE_FETCH_TIMEOUT boundaries)
   - Test OWASP CRS pattern detection accuracy (≥95% for prompt injection, ≥0.8 confidence)
   - Implement mock-based testing for external dependencies
-  - Write performance tests ensuring security overhead <100ms for validation
+  - Write performance tests ensuring security overhead <AUTH_CACHE_VALIDATION_TIMEOUT for cached validation and <AUTH_REMOTE_FETCH_TIMEOUT for remote fetches
   - Add compliance tests for all specified numeric thresholds and timing requirements
   - _Requirements: All requirements validation_
 
 - [ ] 10.2 Build integration and penetration tests
   - Create integration tests validating complete security flows with realistic timing
   - Add simulated attack scenarios testing all specified injection patterns
-  - Implement fuzzing tests for 4KB input validation and OWASP CRS pattern coverage
-  - Test rate limiting accuracy under concurrent load (100 req/min, 10 req/sec burst)
+  - Implement fuzzing tests for MAX_REQUEST_SIZE input validation and OWASP CRS pattern coverage
+  - Test token-bucket rate limiting accuracy under concurrent load (bucket capacity: 10, refill rate: 1.67/sec, sustained: 100 req/min)
   - Validate alert generation timing (10 seconds for attacks, 5 minutes for anomalies)
   - Write compliance validation tests for all OWASP CRS v3.3.5 requirements
   - _Requirements: All requirements validation_

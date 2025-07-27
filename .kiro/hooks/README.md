@@ -26,10 +26,10 @@ The hook automatically triggers when you save changes to any `tasks.md` file in 
 **Manual Execution:**
 ```bash
 # Check all specs
-./kiro/hooks/check-spec-completion.sh
+.kiro/hooks/check-spec-completion.sh
 
 # Check specific spec
-./kiro/hooks/check-spec-completion.sh real-time-tts-integration
+.kiro/hooks/check-spec-completion.sh real-time-tts-integration
 
 # Direct Python execution
 python .kiro/hooks/spec-completion-agent.py .kiro/specs/real-time-tts-integration

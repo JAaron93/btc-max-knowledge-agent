@@ -46,6 +46,7 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
    ```env
    PINECONE_API_KEY="your_pinecone_api_key"
    PINECONE_ASSISTANT_HOST="https://prod-1-data.ke.pinecone.io/mcp/assistants/genius"
+   ELEVEN_LABS_API_KEY="your_elevenlabs_api_key"
    ```
 
 ## 🚀 Quick Start
@@ -171,6 +172,7 @@ Response:
 |----------|-------------|---------|
 | `PINECONE_API_KEY` | Pinecone API key | Required |
 | `PINECONE_ASSISTANT_HOST` | Assistant endpoint | Required |
+| `ELEVEN_LABS_API_KEY` | ElevenLabs API key for text-to-speech functionality ([Get API key](https://elevenlabs.io/docs/api-reference/authentication)) | Required |
 | `API_HOST` | API server host | `0.0.0.0` (all interfaces) |
 | `API_PORT` | API server port | 8000 |
 | `UI_HOST` | UI server host | `0.0.0.0` (all interfaces) |

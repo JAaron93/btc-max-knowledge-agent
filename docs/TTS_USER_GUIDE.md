@@ -31,13 +31,15 @@ The TTS feature requires the `elevenlabs` Python package, which is included in t
 2. Navigate to your profile settings to find your API key
 3. Copy the API key for the next step
 
+**Note:** The free ElevenLabs tier has rate limits that may interrupt long-running sessions or background batch jobs. For heavy usage, consider upgrading to a paid plan to avoid service interruptions.
+
 ### 3. Configure Environment Variables
 
 Create or update your `.env` file with your ElevenLabs API key:
 
 ```bash
 # ElevenLabs TTS Configuration
-ELEVEN_LABS_API_KEY=your_api_key_here
+ELEVEN_LABS_API_KEY="your_api_key_here"   # remember to `source .env` after editing
 ```
 
 **Important**: Never commit your API key to version control. The `.env` file should be in your `.gitignore`.
@@ -177,6 +179,15 @@ The TTS system includes intelligent caching:
 - **Persistent Cache**: Audio survives application restarts
 - **Smart Eviction**: Automatically manages memory usage
 
+**Cache Storage Location**: By default, persistent cache files are stored in `./cache/audio_cache.db` relative to your project directory. You can customize this location by setting the `CACHE_PERSISTENT_PATH` environment variable in your `.env` file:
+
+```bash
+# Custom cache location (optional)
+CACHE_PERSISTENT_PATH=/path/to/your/cache/directory
+```
+
+To clear the persistent cache, you can safely delete the cache directory or restart the application with cache clearing enabled.
+
 ### Best Practices
 
 1. **Keep Voice Enabled**: Caching works best when voice stays enabled
@@ -219,7 +230,7 @@ The TTS system includes intelligent caching:
 
 - [ElevenLabs API Documentation](https://docs.elevenlabs.io/)
 - [Project README](../README.md)
-- [TTS Feature Documentation](TTS_FEATURE_DOCUMENTATION.md)
+- [TTS Feature Documentation](./TTS_FEATURE_DOCUMENTATION.md)
 
 ### Getting Help
 
