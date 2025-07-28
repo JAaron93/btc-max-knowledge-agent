@@ -77,7 +77,7 @@ class SecurityConfigurationManager(IConfigurationValidator):
         else:
             return ("configuration_error", SecuritySeverity.ERROR, 0.8, SecurityAction.BLOCK)
 
-    async def validate_config(self, config: SecurityConfiguration) -> ValidationResult:
+    def validate_config(self, config: SecurityConfiguration) -> ValidationResult:
         """
         Validate security configuration for correctness and safety.
         
@@ -215,7 +215,7 @@ class SecurityConfigurationManager(IConfigurationValidator):
             )
         }
 
-    async def load_secure_config(self) -> SecurityConfiguration:
+    def load_secure_config(self) -> SecurityConfiguration:
         """
         Load and validate security configuration from environment.
         
@@ -331,7 +331,7 @@ class SecurityConfigurationManager(IConfigurationValidator):
         config.alert_thresholds.update(self._load_alert_thresholds(env_vars))
         
         # Validate configuration
-        validation_result = await self.validate_config(config)
+        validation_result = self.validate_config(config)
         if not validation_result.is_valid:
             error_messages = [v.description for v in validation_result.violations]
             raise ValueError(f"Invalid security configuration: {'; '.join(error_messages)}")
@@ -340,7 +340,7 @@ class SecurityConfigurationManager(IConfigurationValidator):
         logger.info("Security configuration loaded and validated successfully")
         return config
     
-    async def reload_config(self) -> SecurityConfiguration:
+    def reload_config(self) -> SecurityConfiguration:
         """
         Reload configuration from environment variables.
         
@@ -349,9 +349,9 @@ class SecurityConfigurationManager(IConfigurationValidator):
         """
         # Clear cache to force reload
         self._environment_cache.clear()
-        return await self.load_secure_config()
+        return self.load_secure_config()
     
-    async def validate_environment_variables(self) -> ValidationResult:
+    def validate_environment_variables(self) -> ValidationResult:
         """
         Validate that all required environment variables are present and valid.
         
@@ -498,7 +498,7 @@ class SecurityConfigurationManager(IConfigurationValidator):
         config_dict = asdict(self._config)
         
         # Remove sensitive information
-        sensitive_keys = ['database_url']
+        sensitive_keys = ['database_url', 'pinecone_api_key', 'api_key_min_length', 'api_key_max_length']
         for key in sensitive_keys:
             if key in config_dict and config_dict[key]:
                 config_dict[key] = "***REDACTED***"

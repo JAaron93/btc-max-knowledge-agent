@@ -79,19 +79,17 @@ class TestSecurityConfigurationManager:
         """Create a configuration manager instance."""
         return SecurityConfigurationManager()
     
-    @pytest.mark.asyncio
-    async def test_load_default_config(self, config_manager):
+    def test_load_default_config(self, config_manager):
         """Test loading default configuration."""
         with patch.dict(os.environ, {'DATABASE_URL': 'postgresql://test:test@localhost/test'}, clear=False):
-            config = await config_manager.load_secure_config()
+            config = config_manager.load_secure_config()
             
             assert isinstance(config, SecurityConfiguration)
             assert config.max_query_length == 4096
             assert config.rate_limit_per_minute == 100
             assert config.environment == "development"
     
-    @pytest.mark.asyncio
-    async def test_environment_variable_override(self, config_manager):
+    def test_environment_variable_override(self, config_manager):
         """Test that environment variables override defaults."""
         env_vars = {
             'DATABASE_URL': 'postgresql://test:test@localhost/test',
@@ -101,14 +99,13 @@ class TestSecurityConfigurationManager:
         }
         
         with patch.dict(os.environ, env_vars, clear=False):
-            config = await config_manager.load_secure_config()
+            config = config_manager.load_secure_config()
             
             assert config.max_query_length == 8192
             assert config.rate_limit_per_minute == 200
             assert config.environment == "production"
     
-    @pytest.mark.asyncio
-    async def test_invalid_config_raises_error(self, config_manager):
+    def test_invalid_config_raises_error(self, config_manager):
         """Test that invalid configuration raises ValueError."""
         env_vars = {
             'DATABASE_URL': 'postgresql://test:test@localhost/test',
@@ -117,14 +114,13 @@ class TestSecurityConfigurationManager:
         
         with patch.dict(os.environ, env_vars, clear=False):
             with pytest.raises(ValueError, match="Invalid security configuration"):
-                await config_manager.load_secure_config()
+                config_manager.load_secure_config()
     
-    @pytest.mark.asyncio
-    async def test_validate_environment_variables(self, config_manager):
+    def test_validate_environment_variables(self, config_manager):
         """Test environment variable validation."""
         # Test with missing required variable
         with patch.dict(os.environ, {}, clear=True):
-            result = await config_manager.validate_environment_variables()
+            result = config_manager.validate_environment_variables()
             
             assert not result.is_valid
             assert any(v.violation_type == "missing_environment_variable" for v in result.violations)
@@ -136,7 +132,7 @@ class TestSecurityConfigurationManager:
         }
         
         with patch.dict(os.environ, env_vars, clear=False):
-            result = await config_manager.validate_environment_variables()
+            result = config_manager.validate_environment_variables()
             
             assert not result.is_valid
             assert any("not a valid number" in v.description for v in result.violations)

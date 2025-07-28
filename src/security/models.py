@@ -68,13 +68,56 @@ class RateLimitStatus(Enum):
 
 @dataclass
 class SecurityViolation:
-    """Represents a specific security violation detected during validation."""
+    """
+    Represents a specific security violation detected during validation.
+    
+    Attributes:
+        violation_type: Type of security violation (e.g., "sql_injection", "xss")
+        severity: Severity level of the violation
+        description: Human-readable description of the violation
+        detected_pattern: The specific pattern that triggered the violation
+        confidence_score: Confidence level of the detection (0.0 to 1.0)
+        location: Where in the input the violation was detected
+        suggested_fix: Recommended action to fix the violation
+    """
     violation_type: str
     severity: SecuritySeverity
     description: str
     detected_pattern: Optional[str] = None
     confidence_score: float = 0.0
-    location: Optional[str] = None  # Where in the input the violation was found
+    location: Optional[str] = None
+    # Location field documentation:
+    # Indicates where in the input the security violation was detected.
+    # This field helps pinpoint the exact location of a security issue for debugging
+    # and providing specific feedback to users. The format varies depending on the
+    # type of input being validated:
+    #
+    # Common format patterns:
+    # - Field names: "query_parameter", "metadata_field", "header_value", "api_key"
+    # - Text positions: "line:column" format, e.g., "5:12", "1:45"
+    # - JSON paths: JSONPath notation, e.g., "$.query.filters[0].value", "$.metadata.tags[2]"
+    # - Query components: "vector_values", "namespace", "filter_expression", "top_k"
+    # - HTTP components: "request_body", "query_string", "authorization_header"
+    # - Character ranges: "chars:10-25" for specific character positions in text
+    #
+    # Examples:
+    # - "query_parameter" - violation found in main query parameter
+    # - "3:15" - violation at line 3, column 15 of input text
+    # - "$.filters[0].field" - violation in first filter's field property
+    # - "vector_values" - violation in the vector embedding values
+    # - "chars:45-67" - violation in characters 45 through 67
+    #
+    # Set to None when:
+    # - Location cannot be determined (e.g., system-wide violations)
+    # - Location is not applicable (e.g., rate limiting violations)
+    # - Multiple locations are involved (described in violation description instead)
+    #
+    # This information is used for:
+    # - Debugging security issues during development
+    # - Providing specific error messages to API users
+    # - Security monitoring and pattern analysis
+    # - Automated remediation suggestions
+    
     suggested_fix: Optional[str] = None
     
     def __post_init__(self):
@@ -224,6 +267,11 @@ class AnomalyMetrics(TypedDict, total=False):
     deviation_percent: float
 
 
+def _create_empty_anomaly_metrics() -> AnomalyMetrics:
+    """Create an empty AnomalyMetrics dictionary."""
+    return {}
+
+
 @dataclass
 class Anomaly:
     """Represents a detected security anomaly."""
@@ -232,7 +280,7 @@ class Anomaly:
     anomaly_type: str = "unknown"
     severity: SecuritySeverity = SecuritySeverity.WARNING
     description: str = ""
-    metrics: AnomalyMetrics = field(default_factory=dict)
+    metrics: AnomalyMetrics = field(default_factory=_create_empty_anomaly_metrics)
     threshold_exceeded: Optional[str] = None
     recommended_actions: List[str] = field(default_factory=list)
 
@@ -261,6 +309,41 @@ class SecureQuery:
         
         if len(self.query_text.encode('utf-8')) > self.MAX_QUERY_SIZE:
             raise ValueError(f"Query text exceeds maximum size of {self.MAX_QUERY_SIZE // 1024}KB")
+
+
+class PineconeResponse(TypedDict, total=False):
+    """
+    Type definition for raw Pinecone API response structure.
+    
+    This TypedDict defines the expected structure of responses from Pinecone API
+    before security validation and filtering. All fields are optional (total=False)
+    to accommodate different response types and API versions.
+    """
+    # Query response fields
+    matches: List[Dict[str, Any]]
+    namespace: str
+    
+    # Usage and metadata
+    usage: Dict[str, Any]
+    
+    # Vector operations
+    vectors: Dict[str, Any]
+    
+    # Index operations
+    dimension: int
+    index_fullness: float
+    total_vector_count: int
+    
+    # Upsert/delete operations
+    upserted_count: int
+    
+    # Statistics
+    namespaces: Dict[str, Any]
+    
+    # Error information (if present)
+    error: Dict[str, Any]
+    message: str
+    code: int
 
 
 @dataclass
