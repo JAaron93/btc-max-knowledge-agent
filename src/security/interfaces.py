@@ -7,7 +7,6 @@ ensuring consistent behavior and enabling dependency injection for testing.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
-from datetime import datetime
 
 from .models import (
     ValidationResult,
@@ -18,6 +17,7 @@ from .models import (
     Anomaly,
     SecureQuery,
     SecureResponse,
+    PineconeResponse,
     AuthResult,
     RateLimitResult
 )
@@ -128,6 +128,23 @@ class IAuthenticationManager(ABC):
         pass
     
     @abstractmethod
+    async def get_authentication_context(self, client_id: str) -> Optional[AuthenticationContext]:
+        """
+        Retrieve authentication context for a client.
+        
+        Args:
+            client_id: Unique identifier for the client
+            
+        Returns:
+            AuthenticationContext if found, None otherwise
+        """
+        pass
+
+
+class IRateLimitManager(ABC):
+    """Interface for rate limiting services."""
+    
+    @abstractmethod
     async def check_rate_limit(self, client_id: str, endpoint: str = "default") -> RateLimitResult:
         """
         Check if client has exceeded rate limits.
@@ -151,19 +168,6 @@ class IAuthenticationManager(ABC):
             endpoint: Specific endpoint being accessed
         """
         pass
-    
-    @abstractmethod
-    async def get_authentication_context(self, client_id: str) -> Optional[AuthenticationContext]:
-        """
-        Retrieve authentication context for a client.
-        
-        Args:
-            client_id: Unique identifier for the client
-            
-        Returns:
-            AuthenticationContext if found, None otherwise
-        """
-        pass
 
 
 class ISecurePineconeClient(ABC):
@@ -183,12 +187,12 @@ class ISecurePineconeClient(ABC):
         pass
     
     @abstractmethod
-    async def validate_response(self, response: Any) -> ValidationResult:
+    async def validate_response(self, response: PineconeResponse) -> ValidationResult:
         """
         Validate Pinecone response for security issues.
         
         Args:
-            response: Raw response from Pinecone API
+            response: Raw response from Pinecone API with structured type
             
         Returns:
             ValidationResult indicating response safety
@@ -260,7 +264,7 @@ class IConfigurationValidator(ABC):
     """Interface for security configuration management."""
     
     @abstractmethod
-    async def validate_config(self, config: SecurityConfiguration) -> ValidationResult:
+    def validate_config(self, config: SecurityConfiguration) -> ValidationResult:
         """
         Validate security configuration for correctness and safety.
         
@@ -273,7 +277,7 @@ class IConfigurationValidator(ABC):
         pass
     
     @abstractmethod
-    async def load_secure_config(self) -> SecurityConfiguration:
+    def load_secure_config(self) -> SecurityConfiguration:
         """
         Load and validate security configuration from environment.
         
@@ -283,7 +287,7 @@ class IConfigurationValidator(ABC):
         pass
     
     @abstractmethod
-    async def reload_config(self) -> SecurityConfiguration:
+    def reload_config(self) -> SecurityConfiguration:
         """
         Reload configuration from environment variables.
         
@@ -293,7 +297,7 @@ class IConfigurationValidator(ABC):
         pass
     
     @abstractmethod
-    async def validate_environment_variables(self) -> ValidationResult:
+    def validate_environment_variables(self) -> ValidationResult:
         """
         Validate that all required environment variables are present and valid.
         
