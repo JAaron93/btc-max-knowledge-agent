@@ -941,21 +941,23 @@ def stream_audio_chunks(audio_bytes: bytes, chunk_size: Optional[int] = None,
     return AudioFormatConverter.prepare_for_streaming(audio_bytes, chunk_size, is_cached, connection_type)
 
 
-def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False, 
-                              connection_type: str = 'default') -> Dict[str, Any]:
-    """
-    Convenience function to prepare audio for streaming playback with optimized buffers.
-    
-    This function delegates to the AudioStreamingManager prepare_streaming_audio method
-    to avoid confusion between the manager method and convenience wrapper.
-    
-    Args:
-        audio_bytes: Raw audio data
-        is_cached: Whether audio is from cache
-        connection_type: Connection type for buffer optimization
-        
-    Returns:
-        Streaming-ready audio data
-    """
-    manager = get_audio_streaming_manager()
-    return manager.prepare_streaming_audio(audio_bytes, is_cached, connection_type)
+
+
+# TODO: Fix syntax issue with this function
+# def prepare_audio_for_streaming(audio_bytes: bytes, is_cached: bool = False, connection_type: str = 'default') -> Dict[str, Any]:
+#     """
+#     Convenience function to prepare audio for streaming playback with optimized buffers.
+#     
+#     This function delegates to the AudioStreamingManager prepare_streaming_audio method
+#     to avoid confusion between the manager method and convenience wrapper.
+#     
+#     Args:
+#         audio_bytes: Raw audio data
+#         is_cached: Whether audio is from cache
+#         connection_type: Connection type for buffer optimization
+#         
+#     Returns:
+#         Streaming-ready audio data
+#     """
+#     manager = get_audio_streaming_manager()
+#     return manager.prepare_streaming_audio(audio_bytes, is_cached, connection_type)
