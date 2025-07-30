@@ -138,11 +138,23 @@ class TestSecurityValidator:
     
     def test_utf8_validation_invalid_input(self, validator):
         """Test UTF-8 validation with invalid input."""
-        # This test is tricky because Python strings are always valid UTF-8
-        # We test the validation logic by directly calling the method
+    # Test with invalid UTF-8 byte sequences if the validator accepts bytes
+    # For example, invalid continuation bytes
+    try:
+        # If validator can handle bytes, test invalid sequences
+        invalid_bytes = b'\x80\x81'  # Invalid UTF-8 sequence
+        # This would require the validator to accept bytes or have a separate method
+        # violation = validator._validate_utf8_bytes(invalid_bytes)
+        # assert violation is not None
+        
+        # For now, just test the validation logic with valid strings
         violation = validator._validate_utf8_encoding("valid string")
         assert violation is None
-    
+    except Exception:
+        # If bytes not supported, keep current test
+        violation = validator._validate_utf8_encoding("valid string")
+        assert violation is None
+
     @pytest.mark.asyncio
     async def test_fallback_pattern_detection(self, validator):
         """Test fallback pattern detection for high-risk patterns."""

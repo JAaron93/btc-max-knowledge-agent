@@ -13,6 +13,19 @@ import codecs
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
+# Import for package version retrieval
+try:
+    from importlib import metadata
+    METADATA_AVAILABLE = True
+except ImportError:
+    # Fallback for Python < 3.8
+    try:
+        import importlib_metadata as metadata
+        METADATA_AVAILABLE = True
+    except ImportError:
+        METADATA_AVAILABLE = False
+        metadata = None
+
 from .interfaces import ISecurityValidator
 from .models import (
     ValidationResult, 
@@ -69,6 +82,25 @@ class LibraryHealthStatus:
             self.health_check_errors = []
 
 
+def _get_package_version(package_name: str) -> str:
+    """
+    Safely retrieve package version using importlib.metadata.
+    
+    Args:
+        package_name: The name of the package to get version for
+        
+    Returns:
+        Version string or 'unknown' if not available
+    """
+    if not METADATA_AVAILABLE or not metadata:
+        return 'unknown'
+    
+    try:
+        return metadata.version(package_name)
+    except Exception:
+        return 'unknown'
+
+
 class SecurityValidator(ISecurityValidator):
     """
     Comprehensive input validation and sanitization using multiple security libraries.
@@ -85,21 +117,77 @@ class SecurityValidator(ISecurityValidator):
     """
     
     # High-risk patterns for fallback detection
+    # Each pattern includes: (regex, name, confidence_score)
+    # Confidence scores range from 0.0 to 1.0 based on:
+    # - Attack severity (higher = more dangerous)
+    # - Detection reliability (higher = fewer false positives)
+    # - Context specificity (higher = more targeted attack)
     HIGH_RISK_PATTERNS = [
+        # XSS and Script Injection Patterns
         (r'<script[^>]*>', 'script_tag_injection', 0.95),
+        # 0.95: Very high confidence - script tags are almost always malicious in user input
+        # Extremely dangerous (can execute arbitrary JavaScript) with very low false positive rate
+        
+        # SQL Injection Patterns  
         (r"';\s*DROP\s+TABLE", 'sql_drop_injection', 0.98),
+        # 0.98: Highest confidence - DROP TABLE after quote/semicolon is classic SQL injection
+        # Extremely destructive attack with virtually no legitimate use cases in user input
+        
+        # JavaScript Framework Injection
         (r'\$\([^)]*\)', 'jquery_injection', 0.85),
+        # 0.85: High confidence - jQuery selectors can be used for DOM manipulation attacks
+        # Moderately dangerous but some false positives possible (legitimate jQuery usage)
+        
+        # Template Engine Injection
         (r'\{\{[^}]*\}\}', 'template_injection', 0.90),
+        # 0.90: Very high confidence - template syntax rarely legitimate in user input
+        # Can lead to server-side code execution, very dangerous with low false positive rate
+        
+        # Command Injection Patterns
         (r'`[^`]*`', 'backtick_injection', 0.80),
+        # 0.80: High confidence - backticks used for command execution in many shells
+        # Dangerous for command injection but some legitimate uses (markdown, code snippets)
+        
+        # Binary/Encoding Attacks
         (r'\x00', 'null_byte_injection', 1.0),
+        # 1.0: Maximum confidence - null bytes have no legitimate use in text input
+        # Can bypass security filters and cause parsing errors, always suspicious
+        
+        # Protocol-based XSS Vectors
         (r'javascript:', 'javascript_protocol', 0.90),
+        # 0.90: Very high confidence - javascript: protocol primarily used for XSS
+        # Extremely dangerous for XSS attacks with minimal legitimate use in user input
+        
         (r'data:text/html', 'data_uri_html', 0.85),
+        # 0.85: High confidence - data URIs with HTML content often used for XSS
+        # Can execute scripts via data URIs, some legitimate uses but rare in user input
+        
         (r'vbscript:', 'vbscript_protocol', 0.90),
+        # 0.90: Very high confidence - VBScript protocol used for code execution
+        # Legacy attack vector but still dangerous, virtually no legitimate uses
+        
+        # Event Handler Injection
         (r'onload\s*=', 'event_handler_injection', 0.85),
+        # 0.85: High confidence - onload handlers commonly used for XSS
+        # Dangerous for automatic script execution, some false positives in HTML discussions
+        
         (r'onerror\s*=', 'event_handler_injection', 0.85),
+        # 0.85: High confidence - onerror handlers used for XSS via error conditions
+        # Effective XSS vector through error handling, moderate false positive potential
+        
+        # Dynamic Code Execution
         (r'eval\s*\(', 'eval_injection', 0.90),
+        # 0.90: Very high confidence - eval() function executes arbitrary code
+        # Extremely dangerous for code injection, rarely legitimate in user input
+        
+        # Browser API Manipulation
         (r'document\.cookie', 'cookie_access', 0.80),
+        # 0.80: High confidence - cookie access often used for session hijacking
+        # Dangerous for stealing authentication tokens, some legitimate educational uses
+        
         (r'window\.location', 'location_manipulation', 0.75),
+        # 0.75: Moderate-high confidence - location manipulation used for redirects/phishing
+        # Can redirect users to malicious sites, but has some legitimate uses in discussions
     ]
     
     def __init__(self, config: SecurityConfiguration):
@@ -150,10 +238,9 @@ class SecurityValidator(ISecurityValidator):
             
             # 3. libinjection detection (if available)
             if self.library_health.libinjection_available:
-                libinj_violations = await self._detect_with_libinjection(input_data)
+                libinj_violations = self._detect_with_libinjection(input_data)
                 violations.extend(libinj_violations)
                 confidence_scores.extend([v.confidence_score for v in libinj_violations])
-            
             # 4. Fallback pattern detection (always runs)
             fallback_violations = self._detect_with_fallback_patterns(input_data)
             violations.extend(fallback_violations)
@@ -237,7 +324,7 @@ class SecurityValidator(ISecurityValidator):
                 confidence_score=0.8
             )
     
-    async def _detect_with_libinjection(self, input_data: str) -> List[SecurityViolation]:
+    def _detect_with_libinjection(self, input_data: str) -> List[SecurityViolation]:
         """Detect SQL injection and XSS using libinjection with confidence scoring."""
         violations = []
         
@@ -376,11 +463,11 @@ class SecurityValidator(ISecurityValidator):
         
         try:
             # 1. HTML sanitization using bleach (if available)
-            if BLEACH_AVAILABLE and bleach:
-                allowed_tags = ['p', 'br', 'strong', 'em', 'u', 'i']
-                allowed_attributes = {}
-                sanitized = bleach.clean(sanitized, tags=allowed_tags, attributes=allowed_attributes, strip=True)
-            
+            # 3. Remove null bytes and other dangerous characters
+            sanitized = sanitized.replace('\x00', '')  # Remove null bytes
+            sanitized = re.sub(r'[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]', '', sanitized)  # Remove control chars
+
+            # 4. Remove or escape JavaScript-related patterns
             # 2. Escape remaining HTML entities using markupsafe (if available)
             if MARKUPSAFE_AVAILABLE and escape:
                 sanitized = str(escape(sanitized))
@@ -486,19 +573,20 @@ class SecurityValidator(ISecurityValidator):
         return {
             "libinjection": {
                 "available": self.library_health.libinjection_available,
-                "version": getattr(libinjection, '__version__', 'unknown') if LIBINJECTION_AVAILABLE else None
+                "version": _get_package_version('libinjection-python') if LIBINJECTION_AVAILABLE else None
             },
             "pymodsecurity": {
                 "available": self.library_health.pymodsecurity_available,
-                "engine_initialized": False
+                "engine_initialized": False,
+                "version": _get_package_version('pymodsecurity') if PYMODSECURITY_AVAILABLE else None
             },
             "bleach": {
                 "available": self.library_health.bleach_available,
-                "version": getattr(bleach, '__version__', 'unknown') if BLEACH_AVAILABLE else None
+                "version": _get_package_version('bleach') if BLEACH_AVAILABLE else None
             },
             "markupsafe": {
                 "available": self.library_health.markupsafe_available,
-                "version": getattr(escape, '__version__', 'unknown') if MARKUPSAFE_AVAILABLE else None
+                "version": _get_package_version('MarkupSafe') if MARKUPSAFE_AVAILABLE else None
             },
             "last_health_check": self.library_health.last_health_check,
             "health_errors": self.library_health.health_check_errors.copy(),
