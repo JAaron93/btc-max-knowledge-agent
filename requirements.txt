@@ -10,3 +10,9 @@ pinecone>=6.0.0
 pinecone-plugin-assistant>=0.1.0
 aiohttp>=3.9.0
 elevenlabs>=1.0.0,<2.0.0
+
+# Security libraries for SecurityValidator
+bleach>=6.1.0
+markupsafe>=2.1.0
+libinjection-python>=3.10.0
+pymodsecurity>=1.0.4
