@@ -18,6 +18,7 @@ class SecurityEventType(Enum):
     AUTHENTICATION_SUCCESS = "authentication_success"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
     INPUT_VALIDATION_FAILURE = "input_validation_failure"
+    INPUT_VALIDATION_SUCCESS = "input_validation_success"
     PROMPT_INJECTION_DETECTED = "prompt_injection_detected"
     SUSPICIOUS_QUERY_PATTERN = "suspicious_query_pattern"
     API_ACCESS_DENIED = "api_access_denied"
@@ -26,6 +27,7 @@ class SecurityEventType(Enum):
     DATA_EXFILTRATION_ATTEMPT = "data_exfiltration_attempt"
     RESOURCE_EXHAUSTION = "resource_exhaustion"
     UNAUTHORIZED_ACCESS_ATTEMPT = "unauthorized_access_attempt"
+    REQUEST_COMPLETED = "request_completed"
 
 
 class SecuritySeverity(Enum):
