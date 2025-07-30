@@ -42,7 +42,7 @@ def demonstrate_type_safety_improvement():
     
     print("BEFORE (Poor Type Safety):")
     print("```python")
-    print("async def validate_response(self, response: Any) -> "
+    print("async def validate_response(self, response: Any) -> " +
           "ValidationResult:")
     print("    # ❌ No type information about response structure")
     print("    # ❌ IDE cannot provide autocomplete")
@@ -53,7 +53,7 @@ def demonstrate_type_safety_improvement():
     
     print("AFTER (Improved Type Safety):")
     print("```python")
-    print("async def validate_response(self, response: PineconeResponse) -> "
+    print("async def validate_response(self, response: PineconeResponse) -> " +
           "ValidationResult:")
     print("    # ✅ Clear type information about response structure")
     print("    # ✅ IDE provides autocomplete for response fields")

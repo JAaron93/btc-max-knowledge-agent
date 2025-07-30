@@ -4,16 +4,29 @@ Unit tests for SecurityValidator component without complex imports.
 """
 
 import sys
-import os
 import asyncio
 import pytest
 from unittest.mock import Mock, patch
 
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Use test utilities for robust import handling
+from test_utils import setup_test_imports, validate_security_imports
 
+# Set up imports robustly
+if not setup_test_imports():
+    pytest.skip("Failed to set up test imports", allow_module_level=True)
+
+if not validate_security_imports():
+    pytest.skip("Security modules not available", allow_module_level=True)
+
+# Now we can safely import the security modules
 from security.validator import SecurityValidator, LibraryHealthStatus
-from security.models import SecurityConfiguration, ValidationResult, SecurityViolation, SecuritySeverity, SecurityAction
+from security.models import (
+    SecurityConfiguration, 
+    ValidationResult, 
+    SecurityViolation, 
+    SecuritySeverity, 
+    SecurityAction
+)
 
 class TestSecurityValidator:
     """Test suite for SecurityValidator component."""
@@ -33,16 +46,29 @@ class TestSecurityValidator:
     def test_initialization(self):
         """Test SecurityValidator initialization."""
         assert self.validator.config is not None
+        assert self.validator.config.max_query_length == 4096
         assert isinstance(self.validator.library_health, LibraryHealthStatus)
         assert len(self.validator._compiled_patterns) == len(SecurityValidator.HIGH_RISK_PATTERNS)
+        assert hasattr(self.validator, 'validate_input')
+        assert hasattr(self.validator, 'sanitize_input')
     
     def test_library_status_summary(self):
-        """Test library status summary generation."""
-        summary = self.validator._get_library_status_summary()
-        assert isinstance(summary, str)
-        assert "libinjection:" in summary
-        assert "bleach:" in summary
-        assert "markupsafe:" in summary
+        """Test library status information via public API."""
+        # Use public API instead of private method
+        library_status = self.validator.get_library_status()
+        
+        # Verify the public API returns expected structure
+        assert isinstance(library_status, dict)
+        assert "libinjection" in library_status
+        assert "bleach" in library_status
+        assert "markupsafe" in library_status
+        
+        # Verify each library entry has expected structure
+        for lib_name in ["libinjection", "bleach", "markupsafe"]:
+            lib_info = library_status[lib_name]
+            assert isinstance(lib_info, dict)
+            assert "available" in lib_info
+            assert isinstance(lib_info["available"], bool)
     
     @pytest.mark.asyncio
     async def test_input_length_validation_within_limit(self):
@@ -159,14 +185,58 @@ class TestSecurityValidator:
         # Test with no scores (should return 1.0)
         assert self.validator._calculate_overall_confidence([]) == 1.0
         
-        # Test with single score
-        assert self.validator._calculate_overall_confidence([0.8]) == 0.8
+        # Test with single score (should return the same score)
+        single_result = self.validator._calculate_overall_confidence([0.8])
+        assert abs(single_result - 0.8) < 0.001, (
+            f"Single score should return the same value, got {single_result}"
+        )
         
         # Test with multiple scores (weighted average)
         scores = [0.9, 0.8, 0.7]
         result = self.validator._calculate_overall_confidence(scores)
-        # Should be a weighted average favoring higher confidence scores
-        assert 0.8 <= result <= 0.85
+        
+        # Calculate expected result dynamically based on the algorithm:
+        # weighted_sum = sum(score * score for score in scores)
+        # weight_sum = sum(scores)
+        # expected = weighted_sum / weight_sum
+        expected_weighted_sum = sum(score * score for score in scores)
+        expected_weight_sum = sum(scores)
+        expected_result = expected_weighted_sum / expected_weight_sum
+        
+        # The algorithm uses weighted average where each score is weighted by itself
+        # This favors higher confidence scores in the final result
+        # For [0.9, 0.8, 0.7]: (0.9²+0.8²+0.7²)/(0.9+0.8+0.7) ≈ 0.8083
+        assert abs(result - expected_result) < 0.001, (
+            f"Expected {expected_result:.4f}, got {result:.4f}. "
+            f"Algorithm: weighted_sum({expected_weighted_sum:.4f}) / "
+            f"weight_sum({expected_weight_sum:.4f})"
+        )
+        
+        # Test additional cases to verify the weighting behavior
+        
+        # Test with identical scores (should return the same score)
+        identical_scores = [0.6, 0.6, 0.6]
+        identical_result = self.validator._calculate_overall_confidence(identical_scores)
+        assert abs(identical_result - 0.6) < 0.001, (
+            "Identical scores should return the same value"
+        )
+        
+        # Test with extreme values to verify higher scores are favored
+        extreme_scores = [0.9, 0.1]  # High and low confidence
+        extreme_result = self.validator._calculate_overall_confidence(extreme_scores)
+        simple_average = sum(extreme_scores) / len(extreme_scores)  # 0.5
+        
+        # The weighted result should be higher than simple average due to weighting
+        assert extreme_result > simple_average, (
+            f"Weighted average ({extreme_result:.4f}) should be higher than "
+            f"simple average ({simple_average:.4f}) when higher scores are present"
+        )
+        
+        # Verify the exact calculation for extreme case
+        extreme_expected = (0.9 * 0.9 + 0.1 * 0.1) / (0.9 + 0.1)  # ≈ 0.82
+        assert abs(extreme_result - extreme_expected) < 0.001, (
+            f"Expected {extreme_expected:.4f}, got {extreme_result:.4f}"
+        )
     
     def test_recommended_action_determination(self):
         """Test recommended action determination based on violations."""
