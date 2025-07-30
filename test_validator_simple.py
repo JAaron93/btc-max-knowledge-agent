@@ -91,8 +91,9 @@ async def test_validator():
             print(f"  Violations: {len(result.violations)}")
             
             if result.violations:
-                # Show first 2 violations
-                for violation in result.violations[:2]:
+                # Show first few violations (configurable)
+                max_violations_to_show = 2  # Could be made configurable
+                for violation in result.violations[:max_violations_to_show]:
                     desc = violation.description[:80]
                     if len(violation.description) > 80:
                         desc += "..."

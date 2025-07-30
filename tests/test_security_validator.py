@@ -136,24 +136,60 @@ class TestSecurityValidator:
             utf8_violations = [v for v in result.violations if v.violation_type == "invalid_utf8_encoding"]
             assert len(utf8_violations) == 0, f"Valid UTF-8 input '{test_input}' should not have encoding violations"
     
-    def test_utf8_validation_invalid_input(self, validator):
-        """Test UTF-8 validation with invalid input."""
-    # Test with invalid UTF-8 byte sequences if the validator accepts bytes
-    # For example, invalid continuation bytes
-    try:
-        # If validator can handle bytes, test invalid sequences
-        invalid_bytes = b'\x80\x81'  # Invalid UTF-8 sequence
-        # This would require the validator to accept bytes or have a separate method
-        # violation = validator._validate_utf8_bytes(invalid_bytes)
-        # assert violation is not None
+    def test_utf8_validation_edge_cases(self, validator):
+        """Test UTF-8 validation with edge cases and boundary conditions."""
+        # Test with various valid UTF-8 strings including edge cases
+        test_cases = [
+            ("valid string", "Basic ASCII string"),
+            ("", "Empty string"),
+            ("Hello 世界", "Mixed ASCII and Unicode"),
+            ("🚀🌟💻", "Emoji characters (4-byte UTF-8)"),
+            ("Ñoño café", "Latin characters with accents"),
+            ("Здравствуй мир", "Cyrillic characters"),
+            ("مرحبا بالعالم", "Arabic characters (RTL)"),
+            ("こんにちは世界", "Japanese characters"),
+            ("\u0000", "Null character"),
+            ("\uffff", "Maximum BMP character"),
+            ("A" * 1000, "Long ASCII string"),
+            ("世" * 500, "Long Unicode string")
+        ]
         
-        # For now, just test the validation logic with valid strings
-        violation = validator._validate_utf8_encoding("valid string")
-        assert violation is None
-    except Exception:
-        # If bytes not supported, keep current test
-        violation = validator._validate_utf8_encoding("valid string")
-        assert violation is None
+        for test_input, description in test_cases:
+            violation = validator._validate_utf8_encoding(test_input)
+            assert violation is None, f"Valid UTF-8 input should not produce violations: {description}"
+        
+        # Test the encoding/decoding process directly
+        # Since Python strings are already valid Unicode, we test the validation logic
+        test_string = "Test with various UTF-8 characters: 🌍 ñ ü ß"
+        violation = validator._validate_utf8_encoding(test_string)
+        assert violation is None, "Complex UTF-8 string should validate successfully"
+    
+    def test_utf8_validation_error_handling(self, validator):
+        """Test UTF-8 validation error handling by mocking encoding errors."""
+        from unittest.mock import patch, MagicMock
+        
+        # Mock a UnicodeDecodeError to test error handling
+        mock_error = UnicodeDecodeError('utf-8', b'invalid', 0, 1, 'invalid start byte')
+        mock_error.start = 0
+        mock_error.end = 1
+        
+        with patch('codecs.decode', side_effect=mock_error):
+            violation = validator._validate_utf8_encoding("test string")
+            assert violation is not None, "Mocked UTF-8 error should produce a violation"
+            assert violation.violation_type == "invalid_utf8_encoding"
+            assert violation.severity == SecuritySeverity.WARNING
+            assert "Invalid UTF-8 encoding detected" in violation.description
+            assert violation.confidence_score == 1.0
+            assert "byte_position:0-1" in violation.location
+        
+        # Test general exception handling
+        with patch('codecs.decode', side_effect=Exception("General encoding error")):
+            violation = validator._validate_utf8_encoding("test string")
+            assert violation is not None, "General encoding error should produce a violation"
+            assert violation.violation_type == "encoding_validation_error"
+            assert violation.severity == SecuritySeverity.ERROR
+            assert "Error validating encoding" in violation.description
+            assert violation.confidence_score == 0.8
 
     @pytest.mark.asyncio
     async def test_fallback_pattern_detection(self, validator):
