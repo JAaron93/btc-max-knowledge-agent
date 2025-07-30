@@ -6,11 +6,46 @@ Shows the before/after comparison and benefits achieved.
 
 import sys
 import os
+from pathlib import Path
 from unittest.mock import patch
-sys.path.append('src')
 
-from security.config import SecurityConfigurationManager
-from security.models import SecurityConfiguration
+# Add src directory to path using absolute path based on script location
+script_dir = Path(__file__).parent.absolute()
+src_dir = script_dir / 'src'
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
+# Try to import the security modules with detailed error handling
+MODULES_AVAILABLE = True
+SecurityConfigurationManager = None
+SecurityConfiguration = None
+
+try:
+    from security.config import SecurityConfigurationManager
+except ImportError as e:
+    print("⚠️  IMPORT ERROR: Failed to import SecurityConfigurationManager")
+    print(f"   Module: security.config")
+    print(f"   Error: {e}")
+    print("   This module contains the configuration management logic.")
+    MODULES_AVAILABLE = False
+
+try:
+    from security.models import SecurityConfiguration
+except ImportError as e:
+    print("⚠️  IMPORT ERROR: Failed to import SecurityConfiguration")
+    print(f"   Module: security.models")
+    print(f"   Error: {e}")
+    print("   This module contains the security configuration data models.")
+    MODULES_AVAILABLE = False
+
+if not MODULES_AVAILABLE:
+    print("\n📋 DEMO STATUS:")
+    print("This demo requires the security infrastructure to be implemented.")
+    print("The missing modules should contain:")
+    print("  • SecurityConfigurationManager: Configuration management class")
+    print("  • SecurityConfiguration: Configuration data model")
+    print("\nThis demonstration will show the conceptual improvements")
+    print("that would be achieved with async to sync conversion.")
 
 def demonstrate_async_to_sync_conversion():
     """Demonstrate the async to sync conversion benefits."""
@@ -19,31 +54,47 @@ def demonstrate_async_to_sync_conversion():
     print("🔄 Async to Sync Configuration Methods Conversion Demonstration")
     print("=" * 80)
     
+    # Early return if modules aren't available
+    if not MODULES_AVAILABLE:
+        print("\nThe actual implementation would provide:")
+        print("  ✅ Performance: No async overhead for sync operations")
+        print("  ✅ Simplicity: Direct function calls without await")
+        print("  ✅ Debugging: Easier to trace synchronous execution")
+        print("  ✅ Testing: No need for @pytest.mark.asyncio")
+        return
+    
     print("\n📋 PROBLEM ADDRESSED:")
-    print("The async methods in SecurityConfigurationManager did not perform any")
-    print("asynchronous operations, creating unnecessary async overhead:")
+    print("The async methods in SecurityConfigurationManager did not perform")
+    print("any asynchronous operations, creating unnecessary async overhead:")
     print("• validate_config() - only performed synchronous validation")
-    print("• load_secure_config() - only read environment variables and validated")
-    print("• reload_config() - only cleared cache and called load_secure_config()")
-    print("• validate_environment_variables() - only checked env vars synchronously")
+    print("• load_secure_config() - only read environment variables and "
+          "validated")
+    print("• reload_config() - only cleared cache and called "
+          "load_secure_config()")
+    print("• validate_environment_variables() - only checked env vars "
+          "synchronously")
     
     print("\n❌ BEFORE (Unnecessary Async):")
     print("```python")
     print("class SecurityConfigurationManager(IConfigurationValidator):")
-    print("    async def validate_config(self, config: SecurityConfiguration) -> ValidationResult:")
+    print("    async def validate_config(self, config: "
+          "SecurityConfiguration) -> ValidationResult:")
     print("        errors = config.validate()  # Synchronous operation")
     print("        # ... more synchronous processing ...")
     print("        return ValidationResult(...)")
     print("")
     print("    async def load_secure_config(self) -> SecurityConfiguration:")
-    print("        env_vars = self._load_environment_variables()  # Synchronous")
+    print("        env_vars = self._load_environment_variables()  "
+          "# Synchronous")
     print("        config = SecurityConfiguration(...)  # Synchronous")
-    print("        validation_result = await self.validate_config(config)  # Unnecessary await")
+    print("        validation_result = await self.validate_config(config)  "
+          "# Unnecessary await")
     print("        return config")
     print("")
     print("# Usage required async/await:")
     print("config_manager = SecurityConfigurationManager()")
-    print("config = await config_manager.load_secure_config()  # Unnecessary await")
+    print("config = await config_manager.load_secure_config()  "
+          "# Unnecessary await")
     print("```")
     print("• ❌ Unnecessary async overhead for synchronous operations")
     print("• ❌ Required await calls for no async benefit")
@@ -53,15 +104,18 @@ def demonstrate_async_to_sync_conversion():
     print("\n✅ AFTER (Efficient Synchronous):")
     print("```python")
     print("class SecurityConfigurationManager(IConfigurationValidator):")
-    print("    def validate_config(self, config: SecurityConfiguration) -> ValidationResult:")
+    print("    def validate_config(self, config: SecurityConfiguration) -> "
+          "ValidationResult:")
     print("        errors = config.validate()  # Synchronous operation")
     print("        # ... more synchronous processing ...")
     print("        return ValidationResult(...)")
     print("")
     print("    def load_secure_config(self) -> SecurityConfiguration:")
-    print("        env_vars = self._load_environment_variables()  # Synchronous")
+    print("        env_vars = self._load_environment_variables()  "
+          "# Synchronous")
     print("        config = SecurityConfiguration(...)  # Synchronous")
-    print("        validation_result = self.validate_config(config)  # Direct call")
+    print("        validation_result = self.validate_config(config)  "
+          "# Direct call")
     print("        return config")
     print("")
     print("# Usage is now straightforward:")
@@ -71,11 +125,38 @@ def demonstrate_async_to_sync_conversion():
     
     print("\n🧪 PRACTICAL DEMONSTRATION:")
     
-    config_manager = SecurityConfigurationManager()
+    if not MODULES_AVAILABLE:
+        print("   ⚠️  Modules not available - showing conceptual examples")
+        print("   This would demonstrate direct synchronous calls")
+        print("   without async overhead or await requirements.")
+        return
+    
+    # Additional safety check for class availability
+    if SecurityConfigurationManager is None:
+        print("   ⚠️  SecurityConfigurationManager class not available")
+        print("   Cannot create instance for demonstration")
+        return
+    
+    try:
+        config_manager = SecurityConfigurationManager()
+    except Exception as e:
+        print(f"   ⚠️  Failed to create SecurityConfigurationManager: {e}")
+        print("   This may indicate missing dependencies or configuration")
+        return
     
     print("\n1. Synchronous validate_config:")
-    config = SecurityConfiguration()
-    result = config_manager.validate_config(config)
+    if SecurityConfiguration is None:
+        print("   ⚠️  SecurityConfiguration class not available")
+        print("   Cannot create configuration for demonstration")
+        return
+    
+    try:
+        config = SecurityConfiguration()
+        result = config_manager.validate_config(config)
+    except Exception as e:
+        print(f"   ⚠️  Failed to create or validate configuration: {e}")
+        print("   This may indicate missing dependencies or invalid setup")
+        return
     print(f"   ✅ Direct call: validate_config() → {result.is_valid}")
     print("   ✅ No await needed, immediate result")
     
@@ -89,20 +170,21 @@ def demonstrate_async_to_sync_conversion():
     
     with patch.dict(os.environ, env_vars, clear=False):
         config = config_manager.load_secure_config()
-        print(f"   ✅ Direct call: load_secure_config() → config loaded")
+        print("   ✅ Direct call: load_secure_config() → config loaded")
         print(f"   ✅ Max query length: {config.max_query_length}")
         print("   ✅ No await needed, immediate result")
     
     print("\n3. Synchronous validate_environment_variables:")
     with patch.dict(os.environ, env_vars, clear=False):
         result = config_manager.validate_environment_variables()
-        print(f"   ✅ Direct call: validate_environment_variables() → {result.is_valid}")
+        print("   ✅ Direct call: validate_environment_variables() → "
+              f"{result.is_valid}")
         print("   ✅ No await needed, immediate result")
     
     print("\n4. Synchronous reload_config:")
     with patch.dict(os.environ, env_vars, clear=False):
         config = config_manager.reload_config()
-        print(f"   ✅ Direct call: reload_config() → config reloaded")
+        print("   ✅ Direct call: reload_config() → config reloaded")
         print(f"   ✅ Environment: {config.environment}")
         print("   ✅ No await needed, immediate result")
     
@@ -168,6 +250,7 @@ def demonstrate_async_to_sync_conversion():
     print("\n" + "=" * 80)
     print("✨ Configuration methods are now efficiently synchronous!")
     print("=" * 80)
+
 
 if __name__ == "__main__":
     demonstrate_async_to_sync_conversion()

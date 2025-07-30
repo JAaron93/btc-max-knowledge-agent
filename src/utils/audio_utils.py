@@ -425,7 +425,6 @@ class AudioStreamProcessor:
         # (ElevenLabs API should return valid audio)
         logger.warning(f"Could not identify audio format, assuming valid. First 16 bytes: {audio_bytes[:16].hex()}")
         return True
-        return True
     
     @staticmethod
     def estimate_duration(audio_bytes: bytes, format_type: str = "mp3") -> Optional[float]:
