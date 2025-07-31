@@ -22,7 +22,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+# Add src directory to Python path using pathlib for robust path resolution
+from pathlib import Path
+src_dir = Path(__file__).parent / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
 # Direct imports from modules
 from src.utils.config import Config

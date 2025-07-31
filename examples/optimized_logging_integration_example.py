@@ -11,7 +11,10 @@ import time
 from typing import List, Dict, Any
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+from pathlib import Path
+src_dir = Path(__file__).parent.parent / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
 from utils.optimized_logging import (
     PerformanceOptimizedLogger,

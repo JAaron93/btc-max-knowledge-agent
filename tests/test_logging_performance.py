@@ -13,7 +13,11 @@ import pytest
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+# Import test utilities for robust module importing
+from test_utils import setup_src_path
+
+# Set up src directory for importing project modules
+setup_src_path()
 
 from utils.optimized_logging import (
     PerformanceOptimizedLogger,

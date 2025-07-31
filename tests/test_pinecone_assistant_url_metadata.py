@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Import from the package using absolute import
-import sys
-sys.path.append('src')
+from test_utils import setup_src_path
+setup_src_path()
 from agents.pinecone_assistant_agent import PineconeAssistantAgent
 from btc_max_knowledge_agent.utils.url_error_handler import RetryExhaustedError
 

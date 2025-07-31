@@ -14,8 +14,11 @@ import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Import test utilities for robust module importing
+from test_utils import setup_src_path
+
+# Set up src directory for importing project modules
+setup_src_path()
 
 from utils.multi_tier_audio_cache import (
     MultiTierAudioCache,
