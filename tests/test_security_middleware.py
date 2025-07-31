@@ -178,14 +178,19 @@ class TestSecurityValidationMiddleware:
         assert response.json() == {"message": "Hello World"}
         
         # Check that validation was called
-        assert len(mock_validator.validate_input_calls) >= 0  # May be 0 for GET with no body
+        # For GET requests without body, validation may not be called
+        # No assertion needed here, or use:
+        # assert isinstance(mock_validator.validate_input_calls, list)
         
         # Check that success event was logged
         success_events = [
             event for event in mock_monitor.logged_events
             if event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
         ]
-        assert len(success_events) >= 0  # May be 0 for exempt paths
+        # Success events may not be logged for certain paths
+        # No assertion needed here, or check the event content when present
+        # if success_events:
+        #     assert success_events[0].event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
     
     def test_invalid_request_blocked(self, test_app, mock_validator, mock_monitor):
         """Test that invalid requests are blocked."""
@@ -439,7 +444,7 @@ class TestMiddlewareIntegration:
         
         # Should have validation success and request completion events
         event_types = [event.event_type for event in mock_monitor.logged_events]
-        assert SecurityEventType.REQUEST_COMPLETED in event_types
+        assert SecurityEventType.REQUEST_SUCCESS in event_types
     
     def test_middleware_factory_function(self, mock_validator, mock_monitor, security_config):
         """Test middleware factory function."""

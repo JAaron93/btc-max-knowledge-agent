@@ -9,6 +9,18 @@ The security middleware provides comprehensive input validation, request logging
 1. **SecurityValidationMiddleware**: Validates all incoming requests for malicious content
 2. **SecurityHeadersMiddleware**: Adds security headers to all responses
 
+## Key Components
+
+The security system consists of several key classes that work together:
+
+- **SecurityValidator** (`src/security/validator.py`): Performs comprehensive input validation and sanitization using multiple security libraries (libinjection, bleach, etc.)
+- **SecurityConfigurationManager** (`src/security/config.py`): Handles loading and validating security configuration from environment variables with proper type conversion and validation
+- **ISecurityMonitor** (`src/security/interfaces.py`): Interface for security monitoring implementations that log events, detect anomalies, and generate alerts
+- **SecurityValidationMiddleware** (`src/security/middleware.py`): FastAPI middleware that intercepts requests and applies security validation
+- **SecurityHeadersMiddleware** (`src/security/middleware.py`): FastAPI middleware that adds standard security headers to responses
+
+> **Note**: For a complete working example with a mock security monitor, see `src/security/demo_integration.py`
+
 ## Quick Start
 
 ### Basic Integration
@@ -23,20 +35,47 @@ from src.security.config import SecurityConfigurationManager
 app = FastAPI()
 
 # Load security configuration
+# SecurityConfigurationManager: Handles loading and validating security settings from environment variables
 config_manager = SecurityConfigurationManager()
 security_config = config_manager.load_secure_config()
 
 # Initialize security components
+# SecurityValidator: Performs input validation and sanitization using multiple security libraries
 validator = SecurityValidator(security_config)
+# YourSecurityMonitor: Implement ISecurityMonitor interface for logging events and detecting anomalies
+# For demo purposes, you can use MockSecurityMonitor from demo_integration.py
 monitor = YourSecurityMonitor()  # Implement ISecurityMonitor
 
-# Create and apply middleware
+# Create middleware factory functions (returns classes, not instances)
 validation_middleware, headers_middleware = create_security_middleware(
     validator, monitor, security_config
 )
 
+# Add middleware classes to FastAPI (FastAPI will instantiate them)
 app.add_middleware(validation_middleware)
 app.add_middleware(headers_middleware)
+```
+
+**Important Note:** The `create_security_middleware` function returns middleware classes (factory functions), not instances. This is exactly what FastAPI's `add_middleware()` method expects. FastAPI will automatically instantiate the middleware classes when processing requests.
+
+#### ✅ Correct Usage:
+```python
+# This is correct - add_middleware expects classes
+validation_middleware, headers_middleware = create_security_middleware(validator, monitor, config)
+app.add_middleware(validation_middleware)  # Pass the class directly
+app.add_middleware(headers_middleware)     # Pass the class directly
+```
+
+#### ❌ Incorrect Usage:
+```python
+# This will cause TypeError - don't instantiate manually
+validation_middleware, headers_middleware = create_security_middleware(validator, monitor, config)
+app.add_middleware(validation_middleware())  # Don't call it!
+app.add_middleware(headers_middleware())     # Don't call it!
+
+# This will also cause TypeError - don't wrap in Middleware class
+from fastapi import Middleware
+app.add_middleware(Middleware(validation_middleware))  # Don't wrap it!
 ```
 
 ### Integration with Existing Bitcoin Assistant API
@@ -46,6 +85,7 @@ To integrate with the existing `bitcoin_assistant_api.py`:
 ```python
 # Add to the top of bitcoin_assistant_api.py
 from src.security.integration_example import integrate_security_with_bitcoin_api
+from logging import getLogger
 
 # After creating the FastAPI app
 app = FastAPI(...)
@@ -154,18 +194,47 @@ All security events are logged with structured data:
 }
 ```
 
+#### Event Types and Severity Levels
+
+The middleware logs various types of security events with appropriate severity levels:
+
+**Informational Events (INFO):**
+- `input_validation_success`: Successful input validation (for monitoring)
+- `authentication_success`: Successful authentication
+- `configuration_change`: Security configuration changes
+- `request_success`: Normal request completion
+
+**Warning Events (WARNING):**
+- `rate_limit_exceeded`: Rate limiting triggered
+- `suspicious_query_pattern`: Unusual query patterns detected
+- `resource_exhaustion`: System resource limits approached
+
+**Error Events (ERROR):**
+- `input_validation_failure`: Malicious input detected
+- `authentication_failure`: Failed authentication attempts
+- `api_access_denied`: Unauthorized API access
+- `system_error`: Internal security system errors
+- `unauthorized_access_attempt`: Access control violations
+
+**Critical Events (CRITICAL):**
+- `prompt_injection_detected`: AI prompt injection attempts
+- `data_exfiltration_attempt`: Potential data theft attempts
+
+Events marked as INFO (like `input_validation_success`) are logged for monitoring and metrics but do not trigger alerts. Error and Critical events automatically trigger security alerts.
+
 ## Error Handling
 
 ### Validation Failures
 
 When validation fails, the middleware returns appropriate HTTP status codes:
 
-- `400 Bad Request`: Input validation failed
-- `400 Bad Request`: Input sanitization required
+- `400 Bad Request`: Input validation failed (malicious content detected)
+- `422 Unprocessable Entity`: Input sanitization required (content needs cleaning)
 - `500 Internal Server Error`: Internal security error
 
-Example error response:
+Example error responses:
 
+**400 Bad Request (Input validation failed):**
 ```json
 {
   "error": "input_validation_failed",
@@ -173,6 +242,17 @@ Example error response:
   "request_id": "uuid",
   "violations": 2,
   "confidence_score": 0.95
+}
+```
+
+**422 Unprocessable Entity (Input sanitization required):**
+```json
+{
+  "error": "input_sanitization_required",
+  "message": "Request content requires sanitization",
+  "request_id": "uuid",
+  "violations": 1,
+  "confidence_score": 0.8
 }
 ```
 
@@ -242,6 +322,8 @@ Monitor these key metrics:
 2. **Configuration Errors**: Check environment variables are set correctly
 3. **Performance Issues**: Monitor validation response times
 4. **False Positives**: Adjust confidence thresholds if needed
+5. **Middleware TypeError**: If you get "TypeError: 'SecurityValidationMiddleware' object is not callable", you're trying to pass middleware instances instead of classes to `add_middleware()`. Use `create_security_middleware()` which returns classes, not instances.
+6. **Middleware Not Applied**: Ensure middleware is added in the correct order - validation middleware should be added before headers middleware
 
 ### Debug Mode
 
@@ -256,9 +338,9 @@ logging.getLogger('src.security').setLevel(logging.DEBUG)
 
 Check security library status:
 
-```python
 validator = SecurityValidator(config)
-health_status = await validator.check_library_health()
+import asyncio
+health_status = asyncio.run(validator.check_library_health())
 print(health_status)
 ```
 
@@ -279,3 +361,31 @@ The middleware adds minimal overhead:
 - Headers: ~0.1ms per request
 
 Monitor performance in production and adjust configuration as needed.
+
+## Quick Reference
+
+### Key Classes and Their Locations
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `SecurityValidator` | `src/security/validator.py` | Input validation and sanitization |
+| `SecurityConfigurationManager` | `src/security/config.py` | Configuration loading and validation |
+| `ISecurityMonitor` | `src/security/interfaces.py` | Security monitoring interface |
+| `SecurityValidationMiddleware` | `src/security/middleware.py` | Request validation middleware |
+| `SecurityHeadersMiddleware` | `src/security/middleware.py` | Security headers middleware |
+| `MockSecurityMonitor` | `src/security/demo_integration.py` | Demo monitoring implementation |
+
+### Essential Functions
+
+- `create_security_middleware()`: Factory function to create middleware classes
+- `integrate_security_with_bitcoin_api()`: Helper for Bitcoin API integration
+- `setup_src_path()`: Test utility for robust imports (in `tests/test_utils.py`)
+
+### Quick Integration
+
+```python
+from src.security.demo_integration import create_secure_bitcoin_api
+
+# Create secure FastAPI app with all security components
+app = create_secure_bitcoin_api()
+```

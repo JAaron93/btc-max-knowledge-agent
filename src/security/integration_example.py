@@ -39,17 +39,21 @@ class SecurityIntegration:
         self.app = app
         self.config = config or self._load_security_config()
         
-        # Initialize security components
-        self.validator = SecurityValidator(self.config)
-        self.monitor = self._create_security_monitor()
-        
-        # Create middleware
-        self.validation_middleware, self.headers_middleware = create_security_middleware(
-            self.validator,
-            self.monitor,
-            self.config,
-            exempt_paths=self._get_exempt_paths()
-        )
+        try:
+            # Initialize security components
+            self.validator = SecurityValidator(self.config)
+            self.monitor = self._create_security_monitor()
+            
+            # Create middleware
+            self.validation_middleware, self.headers_middleware = create_security_middleware(
+                self.validator,
+                self.monitor,
+                self.config,
+                exempt_paths=self._get_exempt_paths()
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize security components: {e}")
+            raise
     
     def _load_security_config(self) -> SecurityConfiguration:
         """Load security configuration from environment."""
@@ -77,16 +81,19 @@ class SecurityIntegration:
     
     def _get_exempt_paths(self) -> list:
         """Get list of paths exempt from security validation."""
-        return [
-            "/health",
-            "/docs",
-            "/openapi.json",
-            "/redoc",
-            "/favicon.ico",
-            "/static",
-            "/tts/status",  # TTS status endpoint
-            "/tts/streaming/status"  # Streaming status endpoint
-        ]
+        default_exempt_paths = [
+         "/health",
+         "/docs",
+         "/openapi.json",
+         "/redoc",
+         "/favicon.ico",
+         "/static",
+         "/tts/status",  # TTS status endpoint
+         "/tts/streaming/status"  # Streaming status endpoint
+     ]
+    
+    # Allow configuration to override or extend exempt paths
+    return getattr(self.config, 'exempt_paths', default_exempt_paths)
     
     def apply_security_middleware(self) -> None:
         """Apply security middleware to the FastAPI application."""
@@ -140,7 +147,11 @@ def integrate_security_with_bitcoin_api(app: FastAPI) -> SecurityIntegration:
         @app.get("/security/status")
         async def security_status():
             """Get security system status."""
-            return security.get_security_status()
+            status = security.get_security_status()
+            # Filter sensitive information in production
+            if security.config.environment == "production":
+                status["config"] = {"environment": status["config"]["environment"]}
+            return status
         
         @app.get("/security/health")
         async def security_health():
@@ -216,4 +227,4 @@ if __name__ == "__main__":
     app = example_integration()
     
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)  # Localhost only for security

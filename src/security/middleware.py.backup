@@ -6,7 +6,6 @@ validates them using the SecurityValidator, and handles security violations
 appropriately.
 """
 
-import io
 import json
 import time
 import logging
@@ -17,9 +16,6 @@ from fastapi import Request, Response, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from starlette.datastructures import Headers
-from starlette.requests import empty_receive, empty_send
-            
 
 from .interfaces import ISecurityValidator, ISecurityMonitor
 from .models import (
@@ -241,12 +237,6 @@ class SecurityValidationMiddleware(BaseHTTPMiddleware):
             # Read request body for validation
             body = await request.body()
             body_str = body.decode('utf-8') if body else ""
-
-            # Reconstruct the body stream for the endpoin         
-            async def receive():
-                return {"type": "http.request", "body": body, "more_body": False}
-            
-            request._receive = receive
             
             # Validate request body content
             if body_str:
@@ -443,7 +433,7 @@ class SecurityValidationMiddleware(BaseHTTPMiddleware):
             SecurityEvent(
                 event_id=request_id,
                 timestamp=time.time(),
-                event_type=SecurityEventType.REQUEST_SUCCESS,
+                event_type=SecurityEventType.REQUEST_COMPLETED,
                 severity=SecuritySeverity.INFO,
                 source_ip=self._get_client_ip(request),
                 user_agent=request.headers.get("user-agent"),
@@ -454,7 +444,7 @@ class SecurityValidationMiddleware(BaseHTTPMiddleware):
                     "processing_time_ms": processing_time * 1000,
                     "response_size": getattr(response, "content_length", None)
                 },
-                mitigation_action="request_success"
+                mitigation_action="request_completed"
             )
         )
     
@@ -543,11 +533,7 @@ def create_security_middleware(
     exempt_paths: Optional[list] = None
 ) -> tuple:
     """
-    Factory function to create security middleware classes.
-    
-    This function returns middleware factory functions (classes) that can be
-    passed directly to FastAPI add_middleware() method. FastAPI will
-    instantiate the middleware classes automatically.
+    Factory function to create security middleware instances.
     
     Args:
         validator: Security validator implementation
@@ -557,7 +543,6 @@ def create_security_middleware(
         
     Returns:
         Tuple of (validation_middleware_class, headers_middleware_class)
-        These are callable classes, not instances.
     """
     def validation_middleware(app: ASGIApp) -> SecurityValidationMiddleware:
         return SecurityValidationMiddleware(app, validator, monitor, config, exempt_paths)

@@ -13,7 +13,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Add src directory to path for imports
-sys.path.append('src')
+from test_utils import setup_src_path
+setup_src_path()
 from agents.pinecone_assistant_agent import PineconeAssistantAgent
 
 

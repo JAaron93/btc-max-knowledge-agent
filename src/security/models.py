@@ -13,7 +13,25 @@ import uuid
 
 
 class SecurityEventType(Enum):
-    """Enumeration of security event types for classification and filtering."""
+    """
+    Enumeration of security event types for classification and filtering.
+    
+    Event Types and Their Typical Severity Levels:
+    - AUTHENTICATION_FAILURE: ERROR/CRITICAL - Failed login attempts
+    - AUTHENTICATION_SUCCESS: INFO - Successful authentication
+    - RATE_LIMIT_EXCEEDED: WARNING/ERROR - Rate limiting triggered
+    - INPUT_VALIDATION_FAILURE: WARNING/ERROR/CRITICAL - Malicious input detected
+    - INPUT_VALIDATION_SUCCESS: INFO - Input validation passed (for monitoring)
+    - PROMPT_INJECTION_DETECTED: CRITICAL - AI prompt injection attempt
+    - SUSPICIOUS_QUERY_PATTERN: WARNING/ERROR - Unusual query patterns
+    - API_ACCESS_DENIED: WARNING/ERROR - Unauthorized API access
+    - CONFIGURATION_CHANGE: INFO/WARNING - Security config changes
+    - SYSTEM_ERROR: ERROR/CRITICAL - Internal security system errors
+    - DATA_EXFILTRATION_ATTEMPT: CRITICAL - Potential data theft
+    - RESOURCE_EXHAUSTION: WARNING/ERROR - System resource limits hit
+    - UNAUTHORIZED_ACCESS_ATTEMPT: ERROR/CRITICAL - Access control violations
+    - REQUEST_SUCCESS: INFO - Normal request completion (for metrics)
+    """
     AUTHENTICATION_FAILURE = "authentication_failure"
     AUTHENTICATION_SUCCESS = "authentication_success"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
@@ -27,7 +45,7 @@ class SecurityEventType(Enum):
     DATA_EXFILTRATION_ATTEMPT = "data_exfiltration_attempt"
     RESOURCE_EXHAUSTION = "resource_exhaustion"
     UNAUTHORIZED_ACCESS_ATTEMPT = "unauthorized_access_attempt"
-    REQUEST_COMPLETED = "request_completed"
+    REQUEST_SUCCESS = "request_success"
 
 
 class SecuritySeverity(Enum):
@@ -36,6 +54,64 @@ class SecuritySeverity(Enum):
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
+
+
+# Utility functions for SecurityEventType (defined after SecuritySeverity to avoid forward references)
+def get_default_severity_for_event_type(event_type: SecurityEventType) -> SecuritySeverity:
+    """
+    Get the default severity level for a given event type.
+    
+    This function provides recommended severity levels for different event types
+    to ensure consistent handling across the security system.
+    
+    Args:
+        event_type: The security event type
+        
+    Returns:
+        Recommended SecuritySeverity level
+    """
+    severity_mapping = {
+        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,
+        SecurityEventType.AUTHENTICATION_SUCCESS: SecuritySeverity.INFO,
+        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,
+        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,
+        SecurityEventType.INPUT_VALIDATION_SUCCESS: SecuritySeverity.INFO,
+        SecurityEventType.PROMPT_INJECTION_DETECTED: SecuritySeverity.CRITICAL,
+        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,
+        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,
+        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,
+        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,
+        SecurityEventType.DATA_EXFILTRATION_ATTEMPT: SecuritySeverity.CRITICAL,
+        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,
+        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,
+        SecurityEventType.REQUEST_SUCCESS: SecuritySeverity.INFO,
+    }
+    return severity_mapping.get(event_type, SecuritySeverity.WARNING)
+
+
+def should_event_trigger_alert(event_type: SecurityEventType) -> bool:
+    """
+    Determine if an event type should trigger alerts.
+    
+    Args:
+        event_type: The security event type
+        
+    Returns:
+        True if the event type should trigger alerts
+    """
+    alert_triggering_events = {
+        SecurityEventType.AUTHENTICATION_FAILURE,
+        SecurityEventType.RATE_LIMIT_EXCEEDED,
+        SecurityEventType.INPUT_VALIDATION_FAILURE,
+        SecurityEventType.PROMPT_INJECTION_DETECTED,
+        SecurityEventType.SUSPICIOUS_QUERY_PATTERN,
+        SecurityEventType.API_ACCESS_DENIED,
+        SecurityEventType.SYSTEM_ERROR,
+        SecurityEventType.DATA_EXFILTRATION_ATTEMPT,
+        SecurityEventType.RESOURCE_EXHAUSTION,
+        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT,
+    }
+    return event_type in alert_triggering_events
 
 
 class SecurityAction(Enum):

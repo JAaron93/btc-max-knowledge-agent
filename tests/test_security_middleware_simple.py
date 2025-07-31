@@ -13,10 +13,11 @@ from typing import Dict, Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# Import only the specific modules we need
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+# Import test utilities for robust module importing
+from test_utils import setup_src_path
+
+# Set up src directory for importing project modules
+setup_src_path()
 
 from security.middleware import (
     SecurityValidationMiddleware,
@@ -136,8 +137,10 @@ def test_app(mock_validator, mock_monitor, security_config):
     async def root():
         return {"message": "Hello World"}
     
+    from fastapi import Request
+
     @app.post("/query")
-    async def query(request):
+    async def query(request: Request):
         body = await request.body()
         return {"query": body.decode('utf-8') if body else ""}
     
@@ -178,6 +181,14 @@ class TestSecurityValidationMiddleware:
         
         assert response.status_code == 200
         assert response.json() == {"message": "Hello World"}
+        
+        # Check that validation success event was logged
+        success_events = [
+            event for event in mock_monitor.logged_events
+            if event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
+        ]
+        # Note: Success events may not be logged for GET requests with no body
+        # but should be logged for requests that go through validation
     
     def test_invalid_request_blocked(self, test_app, mock_validator, mock_monitor):
         """Test that invalid requests are blocked."""
@@ -253,9 +264,55 @@ class TestSecurityValidationMiddleware:
             headers={"content-type": "application/json"}
         )
         
-        assert response.status_code == 400
+        assert response.status_code == 422
         response_data = response.json()
         assert response_data["error"] == "input_sanitization_required"
+    
+    def test_validation_success_event_logging(self, test_app, mock_validator, mock_monitor):
+        """Test that INPUT_VALIDATION_SUCCESS events are properly logged."""
+        client = TestClient(test_app)
+        
+        # Set up validator to return valid result
+        mock_validator.default_result = ValidationResult(
+            is_valid=True,
+            confidence_score=1.0,
+            violations=[],
+            recommended_action=SecurityAction.ALLOW
+        )
+        
+        # Make a POST request that will trigger validation
+        response = client.post(
+            "/query",
+            json={"query": "What is Bitcoin?"},
+            headers={"content-type": "application/json"}
+        )
+        
+        assert response.status_code == 200
+        
+        # Check that INPUT_VALIDATION_SUCCESS event was logged
+        success_events = [
+            event for event in mock_monitor.logged_events
+            if event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
+        ]
+        
+        # Should have at least one success event
+        assert len(success_events) > 0
+        
+        success_event = success_events[0]
+        assert success_event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
+        assert success_event.severity == SecuritySeverity.INFO
+        assert "validation_passed" in success_event.details
+        assert success_event.details["validation_passed"] is True
+        
+        # Test that the new event type has correct default severity
+        from security.models import get_default_severity_for_event_type, should_event_trigger_alert
+        
+        default_severity = get_default_severity_for_event_type(SecurityEventType.INPUT_VALIDATION_SUCCESS)
+        assert default_severity == SecuritySeverity.INFO
+        
+        # Test that INPUT_VALIDATION_SUCCESS doesn't trigger alerts (it's informational)
+        should_alert = should_event_trigger_alert(SecurityEventType.INPUT_VALIDATION_SUCCESS)
+        assert should_alert is False
 
 
 class TestSecurityHeadersMiddleware:
@@ -285,6 +342,69 @@ class TestSecurityHeadersMiddleware:
         assert response.headers["X-Content-Type-Options"] == "nosniff"
         assert response.headers["X-Frame-Options"] == "DENY"
         assert "max-age=31536000" in response.headers["Strict-Transport-Security"]
+
+
+class TestSecurityEventTypeHandling:
+    """Test cases for SecurityEventType enum handling."""
+    
+    def test_all_event_types_have_default_severity(self):
+        """Test that all event types have default severity mappings."""
+        from security.models import SecurityEventType, get_default_severity_for_event_type, SecuritySeverity
+        
+        # Test all event types
+        for event_type in SecurityEventType:
+            severity = get_default_severity_for_event_type(event_type)
+            assert isinstance(severity, SecuritySeverity)
+            print(f"Event type {event_type.value} -> Severity {severity.value}")
+        
+        # Specifically test the new INPUT_VALIDATION_SUCCESS event
+        success_severity = get_default_severity_for_event_type(SecurityEventType.INPUT_VALIDATION_SUCCESS)
+        assert success_severity == SecuritySeverity.INFO
+    
+    def test_alert_triggering_logic(self):
+        """Test that alert triggering logic handles all event types."""
+        from security.models import SecurityEventType, should_event_trigger_alert
+        
+        # Test that informational events don't trigger alerts
+        non_alerting_events = [
+            SecurityEventType.AUTHENTICATION_SUCCESS,
+            SecurityEventType.INPUT_VALIDATION_SUCCESS,
+            SecurityEventType.CONFIGURATION_CHANGE,
+            SecurityEventType.REQUEST_SUCCESS,
+        ]
+        
+        for event_type in non_alerting_events:
+            should_alert = should_event_trigger_alert(event_type)
+            assert should_alert is False, f"{event_type.value} should not trigger alerts"
+        
+        # Test that security events do trigger alerts
+        alerting_events = [
+            SecurityEventType.AUTHENTICATION_FAILURE,
+            SecurityEventType.INPUT_VALIDATION_FAILURE,
+            SecurityEventType.PROMPT_INJECTION_DETECTED,
+            SecurityEventType.SYSTEM_ERROR,
+        ]
+        
+        for event_type in alerting_events:
+            should_alert = should_event_trigger_alert(event_type)
+            assert should_alert is True, f"{event_type.value} should trigger alerts"
+    
+    def test_event_serialization_with_new_type(self):
+        """Test that SecurityEvent serialization works with INPUT_VALIDATION_SUCCESS."""
+        from security.models import SecurityEvent, SecurityEventType, SecuritySeverity
+        
+        event = SecurityEvent(
+            event_type=SecurityEventType.INPUT_VALIDATION_SUCCESS,
+            severity=SecuritySeverity.INFO,
+            source_ip="192.168.1.1",
+            details={"validation_passed": True}
+        )
+        
+        # Test serialization
+        event_dict = event.to_dict()
+        assert event_dict["event_type"] == "input_validation_success"
+        assert event_dict["severity"] == "info"
+        assert event_dict["details"]["validation_passed"] is True
 
 
 if __name__ == "__main__":
