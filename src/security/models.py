@@ -59,34 +59,166 @@ class SecuritySeverity(Enum):
 # Utility functions for SecurityEventType (defined after SecuritySeverity to avoid forward references)
 def get_default_severity_for_event_type(event_type: SecurityEventType) -> SecuritySeverity:
     """
-    Get the default severity level for a given event type.
+    Get the default/baseline severity level for a given event type.
     
-    This function provides recommended severity levels for different event types
-    to ensure consistent handling across the security system.
+    This function provides recommended default severity levels for different event types
+    to ensure consistent handling across the security system. Note that many event types
+    can have contextual variations in severity (as documented in SecurityEventType enum),
+    but this function returns the baseline/most common severity level.
+    
+    For context-specific severity determination, use get_contextual_severity_for_event_type()
+    which considers additional factors like frequency, impact, and system state.
     
     Args:
         event_type: The security event type
         
     Returns:
-        Recommended SecuritySeverity level
+        Default SecuritySeverity level (baseline recommendation)
+        
+    Examples:
+        >>> get_default_severity_for_event_type(SecurityEventType.RATE_LIMIT_EXCEEDED)
+        SecuritySeverity.WARNING  # Default, but could be ERROR in high-frequency scenarios
+        
+        >>> get_default_severity_for_event_type(SecurityEventType.INPUT_VALIDATION_FAILURE)
+        SecuritySeverity.ERROR  # Default, but could be WARNING for minor issues or CRITICAL for injection attempts
     """
+    # Default severity mapping - represents the most common/baseline severity for each event type
+    # Many events can have higher severity in specific contexts (see SecurityEventType documentation)
     severity_mapping = {
-        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,
+        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,  # Can be CRITICAL for repeated attempts
         SecurityEventType.AUTHENTICATION_SUCCESS: SecuritySeverity.INFO,
-        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,
-        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,
+        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,  # Can be ERROR for severe rate limiting
+        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,  # Can be WARNING (minor) or CRITICAL (injection)
         SecurityEventType.INPUT_VALIDATION_SUCCESS: SecuritySeverity.INFO,
         SecurityEventType.PROMPT_INJECTION_DETECTED: SecuritySeverity.CRITICAL,
-        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,
-        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,
-        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,
-        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,
+        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,  # Can be ERROR for clearly malicious patterns
+        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,  # Can be WARNING for legitimate denials
+        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,  # Can be WARNING for security-critical changes
+        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,  # Can be CRITICAL for system-wide failures
         SecurityEventType.DATA_EXFILTRATION_ATTEMPT: SecuritySeverity.CRITICAL,
-        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,
-        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,
+        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,  # Can be ERROR for severe exhaustion
+        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,  # Can be CRITICAL for privilege escalation
         SecurityEventType.REQUEST_SUCCESS: SecuritySeverity.INFO,
     }
     return severity_mapping.get(event_type, SecuritySeverity.WARNING)
+
+
+def get_contextual_severity_for_event_type(
+    event_type: SecurityEventType, 
+    context: Optional[Dict[str, Any]] = None
+) -> SecuritySeverity:
+    """
+    Get context-aware severity level for a given event type.
+    
+    This function considers additional context factors to determine the appropriate
+    severity level, which may differ from the default severity. Context factors
+    include frequency, impact level, system state, and threat indicators.
+    
+    Args:
+        event_type: The security event type
+        context: Optional dictionary containing contextual information:
+            - 'frequency': Event frequency (e.g., 'high', 'normal', 'low')
+            - 'impact': Impact level (e.g., 'high', 'medium', 'low')
+            - 'threat_level': Threat assessment (e.g., 'critical', 'high', 'medium', 'low')
+            - 'system_state': Current system state (e.g., 'degraded', 'normal')
+            - 'user_type': User type (e.g., 'admin', 'regular', 'anonymous')
+            - 'attempt_count': Number of attempts/occurrences
+            - 'confidence_score': Detection confidence (0.0 to 1.0)
+            
+    Returns:
+        Context-appropriate SecuritySeverity level
+        
+    Examples:
+        >>> # High-frequency rate limiting becomes ERROR
+        >>> get_contextual_severity_for_event_type(
+        ...     SecurityEventType.RATE_LIMIT_EXCEEDED, 
+        ...     {'frequency': 'high', 'attempt_count': 100}
+        ... )
+        SecuritySeverity.ERROR
+        
+        >>> # High-confidence injection attempt stays CRITICAL
+        >>> get_contextual_severity_for_event_type(
+        ...     SecurityEventType.INPUT_VALIDATION_FAILURE,
+        ...     {'threat_level': 'critical', 'confidence_score': 0.95}
+        ... )
+        SecuritySeverity.CRITICAL
+    """
+    if context is None:
+        context = {}
+    
+    # Start with default severity
+    base_severity = get_default_severity_for_event_type(event_type)
+    
+    # Context-specific severity adjustments
+    if event_type == SecurityEventType.RATE_LIMIT_EXCEEDED:
+        frequency = context.get('frequency', 'normal')
+        attempt_count = context.get('attempt_count', 0)
+        
+        if frequency == 'high' or attempt_count > 50:
+            return SecuritySeverity.ERROR
+        elif frequency == 'low' and attempt_count < 5:
+            return SecuritySeverity.INFO
+            
+    elif event_type == SecurityEventType.INPUT_VALIDATION_FAILURE:
+        threat_level = context.get('threat_level', 'medium')
+        confidence_score = context.get('confidence_score', 0.5)
+        
+        if threat_level == 'critical' or confidence_score > 0.9:
+            return SecuritySeverity.CRITICAL
+        elif threat_level == 'low' or confidence_score < 0.3:
+            return SecuritySeverity.WARNING
+            
+    elif event_type == SecurityEventType.AUTHENTICATION_FAILURE:
+        attempt_count = context.get('attempt_count', 1)
+        user_type = context.get('user_type', 'regular')
+        
+        if attempt_count > 10 or user_type == 'admin':
+            return SecuritySeverity.CRITICAL
+            
+    elif event_type == SecurityEventType.SUSPICIOUS_QUERY_PATTERN:
+        confidence_score = context.get('confidence_score', 0.5)
+        threat_level = context.get('threat_level', 'medium')
+        
+        if confidence_score > 0.8 or threat_level == 'high':
+            return SecuritySeverity.ERROR
+            
+    elif event_type == SecurityEventType.API_ACCESS_DENIED:
+        user_type = context.get('user_type', 'regular')
+        attempt_count = context.get('attempt_count', 1)
+        
+        if user_type == 'anonymous' and attempt_count == 1:
+            return SecuritySeverity.WARNING  # Legitimate access denial
+            
+    elif event_type == SecurityEventType.CONFIGURATION_CHANGE:
+        impact = context.get('impact', 'medium')
+        user_type = context.get('user_type', 'regular')
+        
+        if impact == 'high' or user_type != 'admin':
+            return SecuritySeverity.WARNING
+            
+    elif event_type == SecurityEventType.SYSTEM_ERROR:
+        impact = context.get('impact', 'medium')
+        system_state = context.get('system_state', 'normal')
+        
+        if impact == 'high' or system_state == 'degraded':
+            return SecuritySeverity.CRITICAL
+            
+    elif event_type == SecurityEventType.RESOURCE_EXHAUSTION:
+        impact = context.get('impact', 'medium')
+        system_state = context.get('system_state', 'normal')
+        
+        if impact == 'high' or system_state == 'degraded':
+            return SecuritySeverity.ERROR
+            
+    elif event_type == SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT:
+        user_type = context.get('user_type', 'regular')
+        threat_level = context.get('threat_level', 'medium')
+        
+        if user_type == 'admin' or threat_level == 'critical':
+            return SecuritySeverity.CRITICAL
+    
+    # Return base severity if no context-specific adjustments apply
+    return base_severity
 
 
 def should_event_trigger_alert(event_type: SecurityEventType) -> bool:

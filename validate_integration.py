@@ -25,7 +25,10 @@ import numpy as np
 # Add src directory to Python path using pathlib for robust path resolution
 from pathlib import Path
 src_dir = Path(__file__).parent / "src"
-if str(src_dir) not in sys.path:
+src_dir = src_dir.resolve()  # Normalize path to avoid duplicate entries from different representations
+
+# Check if directory exists before adding to sys.path
+if src_dir.exists() and str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 # Direct imports from modules

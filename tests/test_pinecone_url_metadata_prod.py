@@ -98,8 +98,7 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
         self._reload_config_modules()
             
         # Verify config is now False
-        from test_utils import setup_src_path
-        setup_src_path()
+        # NOTE: setup_src_path() is now called once in conftest.py
         try:
             from utils.config import Config
             assert Config.ALLOW_LOCALHOST_URLS is False, "Config should have ALLOW_LOCALHOST_URLS=False"

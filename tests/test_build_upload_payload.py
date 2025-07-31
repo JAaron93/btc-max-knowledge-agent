@@ -6,15 +6,14 @@ Tests payload structure validation and null-safe metadata handling.
 """
 
 import os
-import sys
 import unittest
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add src directory to path for imports
-from test_utils import setup_src_path
-setup_src_path()
+# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
+# TODO: Replace this path hack by making the project installable with: pip install -e .
+# This would allow using standard absolute imports without sys.path manipulation
 from agents.pinecone_assistant_agent import PineconeAssistantAgent
 
 

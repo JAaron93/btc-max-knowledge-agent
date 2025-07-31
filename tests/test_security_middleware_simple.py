@@ -13,11 +13,9 @@ from typing import Dict, Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# Import test utilities for robust module importing
-from test_utils import setup_src_path
-
-# Set up src directory for importing project modules
-setup_src_path()
+# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
+# TODO: Replace this path hack by making the project installable with: pip install -e .
+# This would allow using standard absolute imports without sys.path manipulation
 
 from security.middleware import (
     SecurityValidationMiddleware,
@@ -181,15 +179,8 @@ class TestSecurityValidationMiddleware:
         
         assert response.status_code == 200
         assert response.json() == {"message": "Hello World"}
-        
-        # Check that validation success event was logged
-        success_events = [
-            event for event in mock_monitor.logged_events
-            if event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
-        ]
-        # Note: Success events may not be logged for GET requests with no body
-        # but should be logged for requests that go through validation
-    
+        # Note: GET requests without body may not trigger validation success events
+        # This is expected behavior for this endpoint
     def test_invalid_request_blocked(self, test_app, mock_validator, mock_monitor):
         """Test that invalid requests are blocked."""
         client = TestClient(test_app)

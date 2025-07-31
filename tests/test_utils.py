@@ -34,10 +34,17 @@ def setup_src_path() -> Path:
     
     Returns:
         Path object pointing to the src directory
+
+    Raises:
+        FileNotFoundError: If the src directory does not exist
     """
     # Get the absolute path to the src directory
     src_dir = Path(__file__).parent.parent / "src"
     src_dir = src_dir.resolve()  # Convert to absolute path
+
+    # Validate that the src directory exists
+    if not src_dir.exists():
+        raise FileNotFoundError(f"Source directory not found: {src_dir}")
     
     # Only add to path if not already present
     src_str = str(src_dir)
@@ -47,27 +54,34 @@ def setup_src_path() -> Path:
     return src_dir
 
 
-def ensure_module_available(module_name: str) -> bool:
+def is_module_available(module_name: str) -> bool:
     """
-    Ensure a module from src is available for import.
+    Check if a module from src is available for import.
+    
+    This function checks module availability without guaranteeing it will be available
+    after the call. It first attempts to import the module, and if that fails,
+    sets up the src path and retries the import once.
     
     Args:
         module_name: Name of the module to check (e.g., 'security.models')
         
     Returns:
-        True if module is available, False otherwise
+        True if module is available for import, False otherwise
     """
+    # First attempt: try importing the module directly
     try:
         __import__(module_name)
         return True
     except ImportError:
-        # Try setting up src path and importing again
+        pass  # Continue to retry with src path setup
+    
+    # Second attempt: set up src path and try importing again
+    try:
         setup_src_path()
-        try:
-            __import__(module_name)
-            return True
-        except ImportError:
-            return False
+        __import__(module_name)
+        return True
+    except ImportError:
+        return False
 
 
 def get_project_root() -> Path:
@@ -101,4 +115,38 @@ def get_tests_dir() -> Path:
 
 
 # Automatically set up src path when this module is imported
-setup_src_path()
+# This can be controlled via environment variable or will fail gracefully if src directory is missing
+def _auto_setup_src_path() -> None:
+    """
+    Automatically set up src path with error handling and optional control.
+    
+    This function is called on module import to set up the src path. It includes:
+    - Error handling to prevent import failures if src directory is missing
+    - Optional control via TEST_UTILS_AUTO_SETUP environment variable
+    - Graceful degradation if setup fails
+    """
+    import os
+    
+    # Check if auto setup is disabled via environment variable
+    if os.getenv('TEST_UTILS_AUTO_SETUP', '1').lower() in ('0', 'false', 'no', 'off'):
+        return
+    
+    # Attempt to set up src path with error handling
+    try:
+        setup_src_path()
+    except FileNotFoundError as e:
+        # Src directory doesn't exist - this is not necessarily an error
+        # as the module might be used in contexts where src isn't available
+        pass
+    except Exception as e:
+        # Other unexpected errors - log but don't fail the import
+        import warnings
+        warnings.warn(
+            f"Failed to automatically set up src path: {e}. "
+            f"You may need to call setup_src_path() manually or set TEST_UTILS_AUTO_SETUP=0 "
+            f"to disable automatic setup.",
+            ImportWarning
+        )
+
+# Perform automatic setup
+_auto_setup_src_path()

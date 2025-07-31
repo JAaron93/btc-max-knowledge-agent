@@ -2,6 +2,13 @@
 Unit tests for multi-tier audio cache system.
 
 Tests all cache backends, coordination logic, and integration scenarios.
+
+RECOMMENDED SETUP:
+    To avoid path manipulation, install the project in development mode:
+    $ pip install -e .
+    
+    Then use standard absolute imports:
+    from btc_max_knowledge_agent.utils.multi_tier_audio_cache import MultiTierAudioCache
 """
 
 import os
@@ -14,11 +21,9 @@ import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Import test utilities for robust module importing
-from test_utils import setup_src_path
-
-# Set up src directory for importing project modules
-setup_src_path()
+# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
+# TODO: Replace this path hack by making the project installable with: pip install -e .
+# This would allow using standard absolute imports without sys.path manipulation
 
 from utils.multi_tier_audio_cache import (
     MultiTierAudioCache,

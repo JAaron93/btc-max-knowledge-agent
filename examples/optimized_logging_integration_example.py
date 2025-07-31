@@ -12,8 +12,9 @@ from typing import List, Dict, Any
 
 # Add src to path for imports
 from pathlib import Path
-src_dir = Path(__file__).parent.parent / "src"
-if str(src_dir) not in sys.path:
+src_dir = Path(__file__).resolve().parent.parent / "src"
+# Check if directory exists before adding to sys.path
+if src_dir.exists() and str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 from utils.optimized_logging import (

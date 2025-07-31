@@ -59,12 +59,6 @@ app.add_middleware(headers_middleware)
 **Important Note:** The `create_security_middleware` function returns middleware classes (factory functions), not instances. This is exactly what FastAPI's `add_middleware()` method expects. FastAPI will automatically instantiate the middleware classes when processing requests.
 
 #### ✅ Correct Usage:
-```python
-# This is correct - add_middleware expects classes
-validation_middleware, headers_middleware = create_security_middleware(validator, monitor, config)
-app.add_middleware(validation_middleware)  # Pass the class directly
-app.add_middleware(headers_middleware)     # Pass the class directly
-```
 
 #### ❌ Incorrect Usage:
 ```python
@@ -86,6 +80,7 @@ To integrate with the existing `bitcoin_assistant_api.py`:
 # Add to the top of bitcoin_assistant_api.py
 from src.security.integration_example import integrate_security_with_bitcoin_api
 from logging import getLogger
+logger = getLogger(__name__)
 
 # After creating the FastAPI app
 app = FastAPI(...)
@@ -338,11 +333,26 @@ logging.getLogger('src.security').setLevel(logging.DEBUG)
 
 Check security library status:
 
+```python
+# In an async context (e.g., FastAPI endpoint)
 validator = SecurityValidator(config)
+health_status = await validator.check_library_health()
+print(health_status)
+
+# In a synchronous context (e.g., standalone script)
 import asyncio
+validator = SecurityValidator(config)
 health_status = asyncio.run(validator.check_library_health())
 print(health_status)
+
+# Alternative for sync context using anyio (recommended for libraries)
+import anyio
+validator = SecurityValidator(config)
+health_status = anyio.from_thread.run(validator.check_library_health)
+print(health_status)
 ```
+
+**Note**: Use `await` when already in an async context (FastAPI endpoints, async functions). Use `asyncio.run()` only in standalone scripts or the main entry point. Use `anyio.from_thread.run()` when calling from synchronous code that might be running inside an existing event loop.
 
 ## Security Considerations
 

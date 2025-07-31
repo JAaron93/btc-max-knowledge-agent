@@ -37,69 +37,97 @@ def show_old_vs_new_approach():
     print("     • monitor_status: 'active' if monitor initialized, 'inactive' otherwise")
     print("     • middleware_applied: True only if middleware was successfully added")
     print("     • validator_libraries: Real status of security libraries (libinjection, bleach, etc.)")
-    print("     • monitor_metrics: Actual metricach()ew_approd_vs_n
-    show_ol__": "__mainname__ == __")
-
-ifbility!ional visireal operats provide endpointatus ic st\n🎉 Dynam   print("   
- ems")
- oring systits in montivese posi• No falnt("   ri p
-   ormation") infngeshootiublDetailed tro  •    print(" res")
- ilumponent faon coer alerting ("   • Prop  print
-  ment")alth assessl-time heReaint("   •    pr")
- buggingnd denitoring aate mo Accur"   •nt(pri")
-    TATUS:OF DYNAMIC S✅ BENEFITS    print("60)
- " + "=" * rint("\n    p")
+    print("     • monitor_metrics: Actual monitoring system metrics")
     
- librarye to missing duegradedive but drity actult: SecuRes     "print(    }
+    print("\n🎉 BENEFITS OF DYNAMIC STATUS:")
+    print("=" * 60)
+    print("   • Real operational visibility!")
+    print("   • No false positives in monitoring systems")
+    print("   • Proper alerting on component failures")
+    print("   • Real-time health assessment")
+    print("   • Accurate monitoring and debugging")
+    print("   • Detailed troubleshooting information")
+
+def show_example_scenarios():
+    """Show example scenarios with different system states."""
+    
+    print("\n🔧 EXAMPLE SCENARIOS:")
+    print("=" * 60)
+    
+    # Scenario 1: Successful initialization
+    print("\n   Scenario 1: Successful Initialization")
+    scenario1 = {
+        "security_enabled": True,
+        "validator_status": "active",
+        "monitor_status": "active",
+        "middleware_applied": True,
+        "initialization_error": None,
+        "validator_libraries": {
+            "libinjection": {"available": True, "version": "3.2.0"},
+            "bleach": {"available": True, "version": "6.0.0"}
         }
-0.0"}
-    ": "6.rsionverue, "e": T"availabl{h":      "bleac"},
-        failed": "Import"errorlse,  Falable":: {"avaion"ctilibinje    "        ies": {
-r_libraratoalid
-        "vaded",degratus": "_st   "health",
-     es": "activor_statu"validat
-        ed": True,rity_enabl   "secu
-      {rio3 =na sce:")
-   tionadarary Degrio 3 - Libenarn   Sc"\print(
-     issuesLibrary: o 3 # Scenari   
-   error")
- nfiguration ed due to cority disablcuesult: Se     Rt("rin   }
-    pe"
- ariabl vonmentvir en_KEYAPINECONE_issing PI "M":zation_error  "initialise,
-      lied": Fale_apparmiddlew "
-       tive",s": "inaconitor_statu  "m      ive",
-ctna": "itor_status    "validase,
-    ": Falabled_en"security
-        nario2 = {    sce")
-rror:ation Eonfigur2 - Cenario n   Scnt("\ure
-    priilial faartario 2: P# Scen     
-  le")
- vailabaries ave, librctients aAll compon  Result: rint("   
-    p  }
-    }0"}
-      .0.rsion": "6"vee, lable": Truvai": {"a"bleach            .2.0"},
-"3"version": e": True, "availabl": {binjection"li      ": {
-      iesdator_librar     "vali
-   ne,_error": Noonlizatiinitia       "": True,
- re_applied  "middlewa   e",
-   activ": "tus"monitor_sta      ve",
-  acti": "tusstaidator_      "val
-   True,led":enabecurity_   "s
-     ario1 = { scen")
-   alization:ssful Initi- Succe 1 io\n   Scenart("  printion
-  zaliitiacessful inrio 1: Suc  # Scena
+    }
+    print("   Result: All components active, libraries available")
+    for key, value in scenario1.items():
+        print(f"     {key}: {value}")
     
-  ")SCENARIOS:EXAMPLE 🔧 ("\n    print   
+    # Scenario 2: Partial failure
+    print("\n   Scenario 2: Configuration Error")
+    scenario2 = {
+        "security_enabled": False,
+        "validator_status": "inactive",
+        "monitor_status": "inactive",
+        "middleware_applied": False,
+        "initialization_error": "Missing PINECONE_API_KEY environment variable"
+    }
+    print("   Result: Security disabled due to configuration error")
+    for key, value in scenario2.items():
+        print(f"     {key}: {value}")
+    
+    # Scenario 3: Library degradation
+    print("\n   Scenario 3: Library Degradation")
+    scenario3 = {
+        "security_enabled": True,
+        "validator_status": "degraded",
+        "monitor_status": "active",
+        "middleware_applied": True,
+        "validator_libraries": {
+            "libinjection": {"available": False, "error": "Import failed"},
+            "bleach": {"available": True, "version": "6.0.0"}
+        }
+    }
+    print("   Result: Security active but degraded due to missing library")
+    for key, value in scenario3.items():
+        print(f"     {key}: {value}")
 
- errors")on nitializatiual ierror: Action_nitializat("     • i
-    printn status") applicatioewareeal middlre.active: Rewadl   • midrint("  ")
-    plthitor hea actual moned onlthy: Bas monitor.hea("     •int  pr)
-  f any"rs ieck errol health ch: Actuaor.errors • validatprint("        ries")
-rity libray of secuavailabilitReal braries: idator.li• valnt("     ")
-    prialth checks heal libraryed on actulthy: Basalidator.hea"     • v print(cks")
-   nt ched on componelthy' basehea 'unraded', or'deglthy', 'hea: atusst  • print("   ns:")
-     returlth nowity/hea/secur"\n   (
-    print   ")
- on failednitializatissage if ior meal err Actuion_error:izat   • initialprint("  t")
-    ironmenrom enves fon valuconfiguratial on: Reonfigurati   • cint("  
-    pr monitor")ritycuthe seom s fr
+def show_health_endpoint_benefits():
+    """Show the benefits of dynamic health endpoints."""
+    
+    print("\n🏥 HEALTH ENDPOINT IMPROVEMENTS:")
+    print("=" * 60)
+    print("   /security/health now returns:")
+    print("     • validator.healthy: Based on actual health checks")
+    print("     • validator.libraries: Real availability of security libraries")
+    print("     • validator.errors: Actual error check if any")
+    print("     • monitor.healthy: Based on actual monitor health")
+    print("     • middleware.active: Real middleware application status")
+    print("     • initialization_error: Actual error message if initialization failed")
+    print("     • configuration: Real configuration values from environment")
+
+def main():
+    """Main function to run all demonstrations."""
+    show_old_vs_new_approach()
+    show_example_scenarios()
+    show_health_endpoint_benefits()
+    
+    print("\n🎯 CONCLUSION:")
+    print("=" * 60)
+    print("Dynamic status endpoints provide:")
+    print("• Accurate system state representation")
+    print("• Better debugging and troubleshooting")
+    print("• Reliable monitoring and alerting")
+    print("• Real-time operational visibility")
+    print("• Proper failure detection and reporting")
+
+if __name__ == "__main__":
+    main()
