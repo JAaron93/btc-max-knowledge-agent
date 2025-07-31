@@ -12,12 +12,9 @@ from unittest.mock import patch
 import pytest
 
 import sys
-import os
-# Import test utilities for robust module importing
-from test_utils import setup_src_path
-
-# Set up src directory for importing project modules
-setup_src_path()
+# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
+# TODO: Replace this path hack by making the project installable with: pip install -e .
+# This would allow using standard absolute imports without sys.path manipulation
 
 from utils.optimized_logging import (
     PerformanceOptimizedLogger,

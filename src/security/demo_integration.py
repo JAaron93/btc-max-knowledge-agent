@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from .middleware import create_security_middleware
 from .validator import SecurityValidator
 from .config import SecurityConfigurationManager
-from .models import SecurityConfiguration, SecurityEvent, Anomaly
+from .models import SecurityConfiguration, SecurityEvent, Anomaly, SecuritySeverity
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class MockSecurityMonitor:
             metrics: Dictionary of security metrics to analyze
             
         Returns:
-            List of detected anomalies (empty for demo purposes)
+            List of detected anomalies
         """
         anomalies: List[Anomaly] = []
         current_time = time.time()
@@ -120,17 +120,27 @@ class MockSecurityMonitor:
             
             # Simulate anomaly detection for high event frequency
             if len(recent_events) > 10:
-                # This would be a real Anomaly object in production
-                # For demo purposes, we'll create a simple dict
-                anomaly_data = {
-                    "type": "high_event_frequency",
-                    "severity": "warning",
-                    "description": f"High security event frequency: {len(recent_events)} events in 5 minutes",
-                    "timestamp": datetime.now(),
-                    "metrics": {"event_count": len(recent_events), "time_window": 300}
-                }
-                # Note: In production, this would be an actual Anomaly object
-                # anomalies.append(Anomaly(**anomaly_data))
+                # Create actual Anomaly object
+                anomaly = Anomaly(
+                    anomaly_type="high_event_frequency",
+                    severity=SecuritySeverity.WARNING,
+                    description=f"High security event frequency: {len(recent_events)} events in 5 minutes",
+                    timestamp=datetime.now(),
+                    metrics={
+                        "event_count": float(len(recent_events)),
+                        "time_window": 300.0,
+                        "threshold_value": 10.0,
+                        "current_value": float(len(recent_events)),
+                        "deviation_percent": ((len(recent_events) - 10) / 10) * 100
+                    },
+                    threshold_exceeded="event_frequency_threshold",
+                    recommended_actions=[
+                        "Review recent security events for patterns",
+                        "Consider implementing additional rate limiting",
+                        "Monitor for potential security incidents"
+                    ]
+                )
+                anomalies.append(anomaly)
         
         self._last_anomaly_check = current_time
         return anomalies
@@ -266,11 +276,7 @@ def create_secure_bitcoin_api() -> FastAPI:
         app.add_middleware(headers_middleware)
         
         security_state["enabled"] = True
-        security_state["middleware_applied"] = True
-        logger.info("Security middleware applied successfully")
-        
-    except Exception as e:
-        logger.error(f"Failed to apply security middleware: {e}")
+    # ... define routes, including /security/status that reads security_enabled ...
         security_state["initialization_error"] = str(e)
         # In production, you might want to fail here
         # For demo purposes, we'll continue without security
@@ -403,7 +409,7 @@ def create_secure_bitcoin_api() -> FastAPI:
             }
         except Exception as e:
             return {
-                "status": "unhealthy",
+            "security": "enabled" if security_state["enabled"] else "disabled",
                 "error": str(e)
             }
     
@@ -413,7 +419,7 @@ def create_secure_bitcoin_api() -> FastAPI:
         return {
             "message": "Secure Bitcoin Knowledge Assistant API",
             "status": "running",
-            "security": "enabled" if security_enabled else "disabled",
+            "security_middleware": "active" if security_state["enabled"] else "inactive"
             "endpoints": [
                 "/query", "/health", "/security/status", "/security/health", "/docs"
             ]

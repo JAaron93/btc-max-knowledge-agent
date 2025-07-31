@@ -262,7 +262,7 @@ async def run_tests():
     for iframe_input in iframe_inputs:
         iframe_sanitized = await validator.sanitize_input(iframe_input)
         # Use strict validation for iframe-related dangerous patterns (focus on executable)
-        dangerous_iframe_patterns = ["<script", "javascript:", "data:text/html", "onload=", "malicious", "attack"]
+        dangerous_iframe_patterns = ["<script", "javascript:", "data:text/html", "onload=", "onerror=", "onclick="]
         assert_dangerous_patterns_removed(
             iframe_input, iframe_sanitized, dangerous_iframe_patterns,
             "Iframe sanitization"

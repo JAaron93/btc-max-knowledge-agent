@@ -242,7 +242,7 @@ class SecurityValidationMiddleware(BaseHTTPMiddleware):
             body = await request.body()
             body_str = body.decode('utf-8') if body else ""
 
-            # Reconstruct the body stream for the endpoin         
+            # Reconstruct the body stream for the endpoint         
             async def receive():
                 return {"type": "http.request", "body": body, "more_body": False}
             
