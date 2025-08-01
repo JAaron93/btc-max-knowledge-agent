@@ -11,10 +11,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
-# TODO: Replace this path hack by making the project installable with: pip install -e .
-# This would allow using standard absolute imports without sys.path manipulation
-from agents.pinecone_assistant_agent import PineconeAssistantAgent
+# Using proper absolute imports with editable package installation (pip install -e ".[dev]")
+# This eliminates the need for sys.path manipulation and provides better IDE support
+from btc_max_knowledge_agent.agents.pinecone_assistant_agent import PineconeAssistantAgent
 
 
 class TestBuildUploadPayload(unittest.TestCase):
@@ -244,7 +243,9 @@ class TestBuildUploadPayload(unittest.TestCase):
         
         for input_url, expected_url in test_cases:
             doc = {
-                "id": f"url-test-{hash(input_url)}",
+                # Stable, reproducible id
+                "id": f"url-test-{abs(hashlib.md5(input_url.encode()).hexdigest())}",
+                # ↑ import hashlib at the top of the file
                 "content": "URL test content",
                 "url": input_url
             }
@@ -350,22 +351,4 @@ class TestBuildUploadPayloadIntegration(unittest.TestCase):
                        "All metadata values should be strings")
 
 
-def main():
-    """Run the tests"""
-    print("🧪 Testing build_upload_payload Function")
-    print("=" * 60)
 
-    # Run pytest with verbose output
-    exit_code = pytest.main([__file__, "-v", "--tb=short"])
-    
-    if exit_code == 0:
-        print("\n✅ All build_upload_payload tests passed!")
-    else:
-        print(f"\n❌ Some tests failed (exit code: {exit_code})")
-    
-    return exit_code
-
-
-if __name__ == "__main__":
-    import sys
-    sys.exit(main())

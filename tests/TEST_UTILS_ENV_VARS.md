@@ -5,11 +5,21 @@
 Controls whether `test_utils.py` automatically sets up the src path on import.
 
 ### Values
+
+**Truthy values (enable automatic setup):**
 - **`1`** (default): Enable automatic setup
+- **`true`**, **`True`**, **`TRUE`**: Enable automatic setup
+- **`yes`**, **`Yes`**, **`YES`**: Enable automatic setup  
+- **`on`**, **`On`**, **`ON`**: Enable automatic setup
+- Any other value not listed below
+
+**Falsy values (disable automatic setup):**
 - **`0`**: Disable automatic setup  
-- **`false`**: Disable automatic setup
-- **`no`**: Disable automatic setup
-- **`off`**: Disable automatic setup
+- **`false`**, **`False`**, **`FALSE`**: Disable automatic setup
+- **`no`**, **`No`**, **`NO`**: Disable automatic setup
+- **`off`**, **`Off`**, **`OFF`**: Disable automatic setup
+
+**Note:** Value comparison is case-insensitive. Any value not in the falsy list is treated as enabled.
 
 ### Usage
 
@@ -31,6 +41,9 @@ import os
 os.environ['TEST_UTILS_AUTO_SETUP'] = '0'  # Disable
 # Must be set before importing test_utils
 from test_utils import setup_src_path
+
+# Call manually when needed
+setup_src_path()
 ```
 
 ### When to Disable

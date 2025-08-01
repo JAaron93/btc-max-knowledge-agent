@@ -12,6 +12,8 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
+This works by having pip create a `.pth` file in your site-packages that points to `src/`, allowing Python to find your modules during import resolution.
+
 ## Benefits of Installable Package
 
 1. **No path hacks**: Tests can use standard absolute imports
@@ -28,6 +30,8 @@ from test_utils import setup_src_path
 setup_src_path()
 from utils.multi_tier_audio_cache import MultiTierAudioCache
 ```
+
+*Note: The `setup_src_path()` helper function is defined in `tests/test_utils.py`.*
 
 ### Preferred (with installable package):
 ```python

@@ -30,6 +30,8 @@ def main():
             sys.executable, "-m", "pip", "install", "-e", "."
         ], check=True, capture_output=True, text=True)
         print("✅ Project installed successfully")
+        if result.stdout.strip():
+        print(f"Installation output: {result.stdout.strip()}")
     except subprocess.CalledProcessError as e:
         print(f"❌ Installation failed: {e}")
         print(f"Error output: {e.stderr}")

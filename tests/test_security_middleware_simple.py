@@ -13,16 +13,15 @@ from typing import Dict, Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
-# TODO: Replace this path hack by making the project installable with: pip install -e .
-# This would allow using standard absolute imports without sys.path manipulation
+# Using proper absolute imports with editable package installation (pip install -e ".[dev]")
+# This eliminates the need for sys.path manipulation and provides better IDE support
 
-from security.middleware import (
+from btc_max_knowledge_agent.security.middleware import (
     SecurityValidationMiddleware,
     SecurityHeadersMiddleware,
     create_security_middleware
 )
-from security.models import (
+from btc_max_knowledge_agent.security.models import (
     ValidationResult,
     SecurityViolation,
     SecuritySeverity,
@@ -31,7 +30,7 @@ from security.models import (
     SecurityEvent,
     SecurityEventType
 )
-from security.interfaces import ISecurityValidator, ISecurityMonitor
+from btc_max_knowledge_agent.security.interfaces import ISecurityValidator, ISecurityMonitor
 
 
 class MockSecurityValidator(ISecurityValidator):
@@ -181,6 +180,14 @@ class TestSecurityValidationMiddleware:
         assert response.json() == {"message": "Hello World"}
         # Note: GET requests without body may not trigger validation success events
         # This is expected behavior for this endpoint
+        
+        # Ensure no failure events were logged
+        failure_events = [
+            event for event in mock_monitor.logged_events
+            if event.event_type == SecurityEventType.INPUT_VALIDATION_FAILURE
+            ]
+        assert len(failure_events) == 0
+
     def test_invalid_request_blocked(self, test_app, mock_validator, mock_monitor):
         """Test that invalid requests are blocked."""
         client = TestClient(test_app)

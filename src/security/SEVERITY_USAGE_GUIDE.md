@@ -26,7 +26,11 @@ The security system provides two functions for determining event severity:
 ### Basic Usage (Default Severity)
 
 ```python
-from security.models import SecurityEventType, get_default_severity_for_event_type
+from security.models import (
+    SecurityEventType,
+    SecuritySeverity,                # ← add
+    get_contextual_severity_for_event_type,
+)
 
 # Get baseline severity for rate limiting
 severity = get_default_severity_for_event_type(SecurityEventType.RATE_LIMIT_EXCEEDED)
@@ -39,7 +43,11 @@ logger.log(severity.value, f"Rate limit exceeded for user {user_id}")
 ### Advanced Usage (Contextual Severity)
 
 ```python
-from security.models import SecurityEventType, get_contextual_severity_for_event_type
+from security.models import (
+    SecurityEventType,
+    SecuritySeverity,          # ← add
+    get_default_severity_for_event_type,
+)
 
 # High-frequency rate limiting becomes more severe
 context = {
@@ -109,6 +117,7 @@ The contextual severity function accepts these context parameters:
 | `user_type` | str | User type | 'admin', 'regular', 'anonymous' |
 | `attempt_count` | int | Number of attempts | 1, 5, 100, etc. |
 | `confidence_score` | float | Detection confidence | 0.0 to 1.0 |
+| `pattern` | str | Attack/threat pattern type | 'sql_injection', 'xss', 'command_injection', 'brute_force' |
 
 ## Event Types with Contextual Variations
 

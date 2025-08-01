@@ -20,7 +20,9 @@ BENEFITS:
     • Better error handling and debugging capabilities
 """
 
+import os
 import sys
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -125,8 +127,6 @@ def _auto_setup_src_path() -> None:
     - Optional control via TEST_UTILS_AUTO_SETUP environment variable
     - Graceful degradation if setup fails
     """
-    import os
-    
     # Check if auto setup is disabled via environment variable
     if os.getenv('TEST_UTILS_AUTO_SETUP', '1').lower() in ('0', 'false', 'no', 'off'):
         return
@@ -140,7 +140,6 @@ def _auto_setup_src_path() -> None:
         pass
     except Exception as e:
         # Other unexpected errors - log but don't fail the import
-        import warnings
         warnings.warn(
             f"Failed to automatically set up src path: {e}. "
             f"You may need to call setup_src_path() manually or set TEST_UTILS_AUTO_SETUP=0 "

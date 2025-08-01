@@ -14,11 +14,21 @@ from typing import Any, Dict
 
 import pytest
 
-# Set up src path once per test session to avoid repeated sys.path modifications
-# This eliminates the need for individual test files to call setup_src_path()
-from test_utils import setup_src_path
-setup_src_path()
-
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """
+    Session-scoped fixture that automatically sets up the test environment.
+    
+    This fixture ensures that the src directory is properly added to sys.path
+    before any tests run, eliminating the need for individual test files to
+    call setup_src_path().
+    
+    The fixture is marked as autouse=True, so it runs automatically for all tests.
+    """
+    from test_utils import setup_src_path
+    setup_src_path()
+    yield
+    # Cleanup code can go here if needed
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
