@@ -4,6 +4,7 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 ## 🚀 Features
 
+### Core Functionality
 - **Interactive Web UI** built with Gradio
 - **RESTful API** powered by FastAPI
 - **Intelligent Document Retrieval** from Pinecone Assistant
@@ -13,6 +14,41 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 - **Source Attribution** for all answers
 - **URL Metadata Storage** with comprehensive validation and tracking
 
+### Security & Reliability
+- **Multi-Layer Security System** with input validation, prompt injection detection, and rate limiting
+- **Context-Aware Security Monitoring** with dynamic severity assessment
+- **Comprehensive Audit Logging** for security events and system monitoring
+- **Robust Error Handling** with graceful degradation and retry mechanisms
+- **Path Handling Improvements** with proper normalization and existence checking
+
+### Developer Experience
+- **Proper Package Structure** with editable installation support
+- **Improved Test Framework** with automatic path setup and environment control
+- **Enhanced Documentation** with comprehensive guides and examples
+- **Better IDE Support** through standard import structure
+- **CI/CD Ready** with proper dependency management and test discovery
+
+## 🆕 What's New
+
+### Recent Improvements
+
+#### Security Enhancements
+- **Advanced Security Middleware**: Multi-layer protection with input validation, prompt injection detection, and rate limiting
+- **Context-Aware Severity Assessment**: Dynamic security event severity based on threat context and frequency
+- **Comprehensive Security Monitoring**: Real-time anomaly detection with configurable alerting
+- **Enhanced Error Handling**: Graceful degradation with detailed security event logging
+
+#### Development Experience
+- **Proper Package Installation**: Use `pip install -e ".[dev]"` for editable installation with development tools
+- **Improved Test Framework**: Automatic path setup with environment variable control (`TEST_UTILS_AUTO_SETUP`)
+- **Better Import Structure**: Standard absolute imports instead of sys.path manipulation
+- **Enhanced Path Handling**: Robust path normalization with existence checking and error handling
+
+#### System Reliability
+- **Dynamic Status Endpoints**: Real-time system health monitoring with actual component status
+- **Improved Error Recovery**: Better handling of missing directories and configuration issues
+- **Enhanced Documentation**: Comprehensive guides for security, testing, and development workflows
+
 ## 📋 Prerequisites
 
 - Python 3.8+
@@ -20,6 +56,8 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 - Virtual environment (recommended)
 
 ## 🛠️ Installation
+
+### Development Setup
 
 1. **Clone and setup environment:**
    ```bash
@@ -29,12 +67,18 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-2. **Install the package in development mode:**
+2. **Install the package with development dependencies:**
    ```bash
-   pip install -e .
+   pip install -e ".[dev]"
    ```
    
-   This installs the `btc_max_knowledge_agent` package in editable mode, allowing you to use proper imports without sys.path manipulation.
+   This installs the `btc_max_knowledge_agent` package in editable mode with all development tools including:
+   - `pytest` for testing
+   - `black` for code formatting
+   - `isort` for import sorting
+   - `mypy` for type checking
+   - `pylint` for code analysis
+   - `pytest-cov` for coverage reports
 
 3. **Configure environment variables:**
    ```bash
@@ -48,6 +92,24 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
    PINECONE_ASSISTANT_HOST="https://prod-1-data.ke.pinecone.io/mcp/assistants/genius"
    ELEVEN_LABS_API_KEY="your_elevenlabs_api_key"
    ```
+
+### Production Setup
+
+For production deployments, install without development dependencies:
+
+```bash
+pip install -e .
+```
+
+### Benefits of Editable Installation
+
+Installing with `pip install -e ".[dev]"` provides several advantages:
+
+- **Proper Import Structure**: Use standard absolute imports instead of sys.path manipulation
+- **IDE Support**: Better code completion and navigation
+- **Test Discovery**: pytest can find and run tests reliably
+- **Development Tools**: Access to formatting, linting, and type checking
+- **Consistent Environment**: Same setup across development, testing, and CI/CD
 
 ## 🚀 Quick Start
 
@@ -168,6 +230,8 @@ Response:
 
 ### Environment Variables
 
+#### Core Application Variables
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PINECONE_API_KEY` | Pinecone API key | Required |
@@ -178,6 +242,25 @@ Response:
 | `UI_HOST` | UI server host | `0.0.0.0` (all interfaces) |
 | `UI_PORT` | UI server port | 7860 |
 | `ALLOW_LOCALHOST_URLS` | Allow localhost URLs in testing | true |
+
+#### Security Configuration Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECURITY_RATE_LIMIT_PER_MINUTE` | Rate limit per client per minute | 100 |
+| `SECURITY_MAX_QUERY_LENGTH` | Maximum query length in characters | 4096 |
+| `SECURITY_INJECTION_DETECTION_THRESHOLD` | Prompt injection detection threshold (0.0-1.0) | 0.8 |
+| `SECURITY_MONITORING_ENABLED` | Enable security event monitoring | true |
+| `SECURITY_LOG_RETENTION_DAYS` | Security log retention period | 90 |
+| `SECURITY_ALERT_RESPONSE_TIME_SECONDS` | Alert response time threshold | 10 |
+
+#### Development and Testing Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TEST_UTILS_AUTO_SETUP` | Auto-setup src path in test utilities | 1 (enabled) |
+| `FASTAPI_DEBUG` | Enable FastAPI debug mode | false |
+| `LOG_LEVEL` | Application log level | INFO |
 
 > **Note**: For production deployments, it's recommended to set host values to specific hostnames or IP addresses and configure appropriate firewall rules.
 
@@ -202,10 +285,63 @@ The production deployment uses optimized Gunicorn settings:
 
 ## 🛡️ Security Features
 
-- **Input validation** with Pydantic models
-- **Rate limiting** through Gunicorn configuration
+### Core Security Components
+
+- **Input validation** with Pydantic models and comprehensive sanitization
+- **Rate limiting** through Gunicorn configuration and token bucket algorithms
 - **Security headers** in Nginx configuration
-- **Environment variable protection**
+- **Environment variable protection** with secure configuration management
+
+### Advanced Security System
+
+The application includes a comprehensive security middleware system with:
+
+#### Multi-Layer Security Validation
+- **Input Sanitization**: Prevents XSS, SQL injection, and other malicious input
+- **Prompt Injection Detection**: AI-powered detection of prompt manipulation attempts
+- **Rate Limiting**: Configurable per-client and system-wide rate limits
+- **Authentication**: Secure API key validation with caching
+
+#### Security Event Monitoring
+- **Real-time Monitoring**: Tracks security events with contextual severity levels
+- **Anomaly Detection**: Identifies unusual patterns and potential threats
+- **Alert System**: Configurable alerting based on threat levels and frequency
+- **Audit Logging**: Comprehensive security event logging for compliance
+
+#### Dynamic Severity Assessment
+The security system uses context-aware severity determination:
+
+```python
+# Example: Rate limiting severity based on context
+context = {
+    'frequency': 'high',
+    'attempt_count': 150,
+    'user_type': 'anonymous'
+}
+
+# Returns SecuritySeverity.ERROR (escalated from WARNING)
+severity = get_contextual_severity_for_event_type(
+    SecurityEventType.RATE_LIMIT_EXCEEDED, 
+    context
+)
+```
+
+#### Security Configuration
+Security settings can be customized via environment variables:
+
+```env
+# Security thresholds
+SECURITY_RATE_LIMIT_PER_MINUTE=100
+SECURITY_MAX_QUERY_LENGTH=4096
+SECURITY_INJECTION_DETECTION_THRESHOLD=0.8
+
+# Monitoring settings
+SECURITY_MONITORING_ENABLED=true
+SECURITY_LOG_RETENTION_DAYS=90
+SECURITY_ALERT_RESPONSE_TIME_SECONDS=10
+```
+
+For detailed security configuration, see `src/security/README.md`.
 
 ## 🔗 URL Metadata Storage System
 
@@ -394,22 +530,30 @@ python demo_url_metadata_complete.py
 
 ## 🧪 Testing
 
+### Prerequisites
+
+Ensure you've installed the package with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
 ### Running Tests
 
 #### Basic Test Execution
 
 ```bash
-# Run all tests with verbose output
-python run_tests.py --verbose
-
-# Run a specific test file
-python run_tests.py tests/test_my_feature.py
-
-# Run tests matching a pattern (e.g., all URL validation tests)
-python run_tests.py -k "test_url"
+# Run all tests with pytest
+pytest tests/ -v
 
 # Run with coverage report
-python run_tests.py --cov=src --cov-report=term-missing
+pytest tests/ --cov=src --cov-report=term-missing
+
+# Run tests matching a pattern (e.g., all URL validation tests)
+pytest -k "test_url" -v
+
+# Run a specific test file
+pytest tests/test_security_middleware.py -v
 ```
 
 #### Environment-Specific Test Runs
@@ -418,46 +562,69 @@ For development (with localhost URLs allowed):
 
 ```bash
 export ALLOW_LOCALHOST_URLS=true
-python run_tests.py --verbose
+pytest tests/ -v
 ```
 
 For production (with localhost URLs blocked):
 
 ```bash
 export ALLOW_LOCALHOST_URLS=false
-python run_tests.py --verbose
+pytest tests/ -v
 ```
 
-#### Running Specific Tests
+#### Test Environment Control
 
-To run a specific test file with detailed output:
-
-```bash
-python run_tests.py tests/test_my_feature.py -v
-```
-
-To run a specific test class or method:
+The test utilities support environment variable control:
 
 ```bash
-python run_tests.py tests/test_my_feature.py::TestMyFeature::test_specific_case -v
-```
+# Disable automatic src path setup (useful for CI/CD)
+export TEST_UTILS_AUTO_SETUP=0
+pytest tests/ -v
 
-To run production-specific tests:
-
-```bash
-python run_tests.py tests/test_pinecone_url_metadata_prod.py --verbose
+# Enable automatic setup (default)
+export TEST_UTILS_AUTO_SETUP=1
+pytest tests/ -v
 ```
 
 ### Testing Individual Components
+
+#### Security System Tests
+```bash
+# Test security middleware
+pytest tests/test_security_middleware.py -v
+
+# Test security models and severity functions
+pytest tests/test_security_models.py -v
+
+# Test input validation
+pytest tests/test_input_validation.py -v
+```
+
+#### Core Functionality Tests
 ```bash
 # Test text cleaning
-python run_tests.py tests/test_clean_mcp_response.py --verbose
+pytest tests/test_clean_mcp_response.py -v
 
 # Test API health
-python run_tests.py tests/test_api_health.py --verbose
+pytest tests/test_api_health.py -v
 
 # Test query functionality
-python run_tests.py tests/test_query_endpoint.py --verbose
+pytest tests/test_query_endpoint.py -v
+
+# Test multi-tier caching
+pytest tests/test_multi_tier_cache.py -v
+```
+
+#### Integration Tests
+```bash
+# Test URL metadata integration
+pytest tests/test_url_metadata_integration.py -v
+
+# Test backward compatibility
+pytest tests/test_backward_compatibility_enhanced.py -v
+
+# Run integration validation
+python validate_integration.py
 ```
 
 ### API Testing
@@ -509,7 +676,7 @@ python -m pytest tests/test_url_utils.py -v
 ### Test URL Metadata System
 ```bash
 # Test backward compatibility
-python -m pytest tests/test_backward_compatibility_enhanced.py -v
+pytest tests/test_backward_compatibility_enhanced.py -v
 
 # Run integration tests
 python validate_integration.py
@@ -518,36 +685,131 @@ python validate_integration.py
 python demo_url_metadata_complete.py
 ```
 
+### Development Workflow Improvements
+
+#### Proper Import Structure
+With the editable installation, you can use standard absolute imports:
+
+```python
+# ✅ Recommended (with pip install -e ".[dev]")
+from btc_max_knowledge_agent.security.models import SecurityEvent
+from btc_max_knowledge_agent.utils.config import Config
+
+# ❌ Avoid (old sys.path manipulation)
+import sys
+sys.path.insert(0, 'src')
+from security.models import SecurityEvent
+```
+
+#### Test Discovery and Execution
+The improved test utilities provide:
+
+- **Automatic Path Setup**: Tests can import modules without manual path manipulation
+- **Environment Control**: Use `TEST_UTILS_AUTO_SETUP` to control automatic setup
+- **Graceful Error Handling**: Tests work even when src directory structure varies
+- **Better IDE Support**: Proper imports enable better code completion and navigation
+
+#### CI/CD Integration
+For continuous integration environments:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Install dependencies
+  run: |
+    pip install -e ".[dev]"
+
+- name: Run tests
+  run: |
+    pytest tests/ --cov=src --cov-report=xml
+
+- name: Run security tests
+  run: |
+    pytest tests/test_security_*.py -v
+
+- name: Validate integration
+  run: |
+    python validate_integration.py
+```
+
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **API Connection Failed**
+1. **Installation Problems**
+   ```bash
+   # If you get import errors, ensure proper installation
+   pip install -e ".[dev]"
+   
+   # For test import issues, check environment variable
+   export TEST_UTILS_AUTO_SETUP=1
+   ```
+
+2. **API Connection Failed**
    - Check if Pinecone Assistant endpoint is correct
    - Verify API keys in `.env` file
    - Ensure Pinecone Assistant has uploaded documents
+   - Review security logs for blocked requests
 
-2. **UI Not Loading**
+3. **UI Not Loading**
    - Verify API server is running on port 8000
    - Check firewall settings
    - Review console logs for errors
+   - Check if security middleware is blocking requests
 
-3. **Empty Responses**
+4. **Empty Responses**
    - Confirm documents are uploaded to Pinecone Assistant
    - Check if assistant is processing files
    - Verify question relevance to knowledge base
+   - Review rate limiting logs
 
-4. **URL Validation Failures**
-   - Check URL format and protocol
-   - Verify no malicious patterns in URL
-   - Review security validation logs
+5. **Security-Related Issues**
+   ```bash
+   # Check security event logs
+   tail -f logs/security_events.log
+   
+   # Adjust security thresholds if needed
+   export SECURITY_RATE_LIMIT_PER_MINUTE=200
+   export SECURITY_INJECTION_DETECTION_THRESHOLD=0.9
+   ```
+
+6. **Test Import Failures**
+   ```bash
+   # Disable automatic path setup if causing issues
+   export TEST_UTILS_AUTO_SETUP=0
+   
+   # Or ensure src directory exists and is properly structured
+   ls -la src/
+   ```
 
 ### Debug Mode
 
-Enable debug logging:
+Enable comprehensive debugging:
 ```bash
+# Enable FastAPI debug mode
 export FASTAPI_DEBUG=true
+
+# Enable security debug logging
+export LOG_LEVEL=DEBUG
+
+# Enable test utilities debug
+export TEST_UTILS_AUTO_SETUP=1
+
+# Start with debug logging
 uvicorn src.web.bitcoin_assistant_api:app --reload --log-level debug
+```
+
+### Health Checks
+
+Use the enhanced health endpoints:
+```bash
+# Check overall system health
+curl http://localhost:8000/health
+
+# Check security system status
+curl http://localhost:8000/security/health
+
+# Check security configuration
+curl http://localhost:8000/security/status
 ```
 
 ## 📈 Performance Optimization

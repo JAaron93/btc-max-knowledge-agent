@@ -154,9 +154,11 @@ def get_contextual_severity_for_event_type(
         frequency = context.get('frequency', 'normal')
         attempt_count = context.get('attempt_count', 0)
         
-        if frequency == 'high' or attempt_count > 50:
+        threshold_high = context.get('threshold_high', 50)  # Could come from config
+        threshold_low = context.get('threshold_low', 5)
+        if frequency == 'high' or attempt_count > threshold_high:
             return SecuritySeverity.ERROR
-        elif frequency == 'low' and attempt_count < 5:
+        elif frequency == 'low' and attempt_count < threshold_low:
             return SecuritySeverity.INFO
             
     elif event_type == SecurityEventType.INPUT_VALIDATION_FAILURE:
@@ -172,7 +174,10 @@ def get_contextual_severity_for_event_type(
         attempt_count = context.get('attempt_count', 1)
         user_type = context.get('user_type', 'regular')
         
-        if attempt_count > 10 or user_type == 'admin':
+        admin_threshold = 3  # Lower threshold for admin accounts
+        regular_threshold = 10
+        threshold = admin_threshold if user_type == 'admin' else regular_threshold
+        if attempt_count > threshold or user_type == 'admin':
             return SecuritySeverity.CRITICAL
             
     elif event_type == SecurityEventType.SUSPICIOUS_QUERY_PATTERN:
@@ -186,8 +191,17 @@ def get_contextual_severity_for_event_type(
         user_type = context.get('user_type', 'regular')
         attempt_count = context.get('attempt_count', 1)
         
+        # Escalate for authenticated users being denied (potential privilege escalation)
+        if user_type in ['regular', 'admin']:
+            return SecuritySeverity.CRITICAL
+        
+        # Escalate for repeated anonymous attempts
+        if user_type == 'anonymous' and attempt_count > 1:
+            return SecuritySeverity.ERROR
+        
+        # De-escalate for first-time anonymous access denial (legitimate)
         if user_type == 'anonymous' and attempt_count == 1:
-            return SecuritySeverity.WARNING  # Legitimate access denial
+            return SecuritySeverity.WARNING
             
     elif event_type == SecurityEventType.CONFIGURATION_CHANGE:
         impact = context.get('impact', 'medium')

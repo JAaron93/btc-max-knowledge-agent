@@ -333,20 +333,36 @@ logging.getLogger('src.security').setLevel(logging.DEBUG)
 
 Check security library status:
 
+**In an async context (e.g., FastAPI endpoint):**
 ```python
-# In an async context (e.g., FastAPI endpoint)
+from security.middleware import SecurityValidator
+from security.models import SecurityConfig
+
+config = SecurityConfig()
 validator = SecurityValidator(config)
 health_status = await validator.check_library_health()
 print(health_status)
+```
 
-# In a synchronous context (e.g., standalone script)
+**In a synchronous script:**
+```python
 import asyncio
+from security.middleware import SecurityValidator
+from security.models import SecurityConfig
+
+config = SecurityConfig()
 validator = SecurityValidator(config)
 health_status = asyncio.run(validator.check_library_health())
 print(health_status)
+```
 
-# Alternative for sync context using anyio (recommended for libraries)
+**In synchronous code with anyio (recommended for libraries):**
+```python
 import anyio
+from security.middleware import SecurityValidator
+from security.models import SecurityConfig
+
+config = SecurityConfig()
 validator = SecurityValidator(config)
 health_status = anyio.from_thread.run(validator.check_library_health)
 print(health_status)

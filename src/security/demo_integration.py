@@ -409,7 +409,7 @@ def create_secure_bitcoin_api() -> FastAPI:
             }
         except Exception as e:
             return {
-            "security": "enabled" if security_state["enabled"] else "disabled",
+            "status": "unhealthy",
                 "error": str(e)
             }
     

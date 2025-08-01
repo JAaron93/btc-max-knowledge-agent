@@ -5,10 +5,19 @@ Tests all cache backends, coordination logic, and integration scenarios.
 
 RECOMMENDED SETUP:
     To avoid path manipulation, install the project in development mode:
-    $ pip install -e .
+    $ pip install -e ".[dev]"
     
-    Then use standard absolute imports:
-    from btc_max_knowledge_agent.utils.multi_tier_audio_cache import MultiTierAudioCache
+    Then use standard absolute imports (as used in this file):
+    from btc_max_knowledge_agent.utils.multi_tier_audio_cache import (
+        MultiTierAudioCache,
+        CacheConfig,
+        MemoryCacheBackend,
+        SQLiteCacheBackend,
+        BaseCacheBackend
+    )
+    
+    Note: The absolute imports will only work after the package is installed 
+    in development mode with the command above.
 """
 
 import os
@@ -21,11 +30,10 @@ import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
-# TODO: Replace this path hack by making the project installable with: pip install -e .
-# This would allow using standard absolute imports without sys.path manipulation
+# Using proper absolute imports with editable package installation (pip install -e ".[dev]")
+# This eliminates the need for sys.path manipulation and provides better IDE support
 
-from utils.multi_tier_audio_cache import (
+from btc_max_knowledge_agent.utils.multi_tier_audio_cache import (
     MultiTierAudioCache,
     CacheConfig,
     MemoryCacheBackend,

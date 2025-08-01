@@ -12,18 +12,17 @@ from unittest.mock import patch
 import pytest
 
 import sys
-# NOTE: setup_src_path() is now called once in conftest.py to avoid redundant sys.path modifications
-# TODO: Replace this path hack by making the project installable with: pip install -e .
-# This would allow using standard absolute imports without sys.path manipulation
+# Using proper absolute imports with editable package installation (pip install -e ".[dev]")
+# This eliminates the need for sys.path manipulation and provides better IDE support
 
-from utils.optimized_logging import (
+from btc_max_knowledge_agent.utils.optimized_logging import (
     PerformanceOptimizedLogger,
     OptimizedURLMetadataLogger,
     log_validation_optimized,
     log_upload_optimized,
     configure_optimized_logging,
 )
-from utils.url_metadata_logger import URLMetadataLogger, log_validation, log_upload
+from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger, log_validation, log_upload
 
 
 class TestLoggingPerformance:

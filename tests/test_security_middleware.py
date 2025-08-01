@@ -177,25 +177,32 @@ class TestSecurityValidationMiddleware:
         assert response.status_code == 200
         assert response.json() == {"message": "Hello World"}
         
-        # Check that validation was called
+        # Check that validation was called appropriately
         # For GET requests without body, input validation should not be called
-        # but query parameter validation should still occur
         assert len(mock_validator.validate_input_calls) == 0
-        assert len(mock_validator.validate_query_parameters_calls) >= 0
+        
+        # For GET requests without query parameters, query parameter validation should not be called
+        assert len(mock_validator.validate_query_parameters_calls) == 0
         
         # Check that success event was logged
+        # The middleware should always log INPUT_VALIDATION_SUCCESS for valid requests,
+        # regardless of request method or presence of query parameters
         success_events = [
             event for event in mock_monitor.logged_events
             if event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
-        # For GET requests to root path, verify appropriate events are logged
-        if success_events:
-            assert success_events[0].event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
-            assert success_events[0].source_ip is not None
-        # If no validation events, ensure this is expected for this request type
-        else:
-            # GET requests without body content may not trigger validation events
-            assert True  # Document the expected behavior
-        #     assert success_events[0].event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
+        ]
+        
+        # Assert that exactly one success event was logged
+        assert len(success_events) == 1, f"Expected 1 success event, got {len(success_events)}"
+        
+        # Verify the success event properties
+        success_event = success_events[0]
+        assert success_event.event_type == SecurityEventType.INPUT_VALIDATION_SUCCESS
+        assert success_event.severity == SecuritySeverity.INFO
+        assert success_event.source_ip is not None
+        assert success_event.details["validation_passed"] is True
+        assert success_event.details["path"] == "/"
+        assert success_event.details["method"] == "GET"
     
     def test_invalid_request_blocked(self, test_app, mock_validator, mock_monitor):
         """Test that invalid requests are blocked."""
