@@ -6,6 +6,7 @@ analysis, context-aware validation, and query neutralization strategies to prote
 against AI prompt manipulation attacks.
 """
 
+import logging
 import re
 import time
 from typing import Dict, Any, List, Optional, Set, Tuple
@@ -75,14 +76,14 @@ class PromptInjectionDetector(IPromptInjectionDetector):
         self.detection_threshold = self.config.get('detection_threshold', self.DETECTION_THRESHOLD)
         self.accuracy_target = self.config.get('accuracy_target', self.ACCURACY_TARGET)
         
+        # Configure logger for this module
+        self.logger = logging.getLogger(__name__)
+        
         # Initialize injection patterns
         self._injection_patterns = self._initialize_patterns()
         
         # Compile regex patterns for performance
         self._compiled_patterns = self._compile_patterns()
-        
-        # Initialize context tracking
-        self._context_cache: Dict[str, Any] = {}
         
     def _initialize_patterns(self) -> List[InjectionPattern]:
         """Initialize comprehensive injection detection patterns."""
@@ -286,7 +287,11 @@ class PromptInjectionDetector(IPromptInjectionDetector):
                 compiled.append((compiled_pattern, pattern))
             except re.error as e:
                 # Log pattern compilation error but continue
-                print(f"Warning: Failed to compile pattern '{pattern.pattern}': {e}")
+                self.logger.warning(
+                    "Failed to compile pattern '%s': %s", 
+                    pattern.pattern, 
+                    str(e)
+                )
         
         return compiled
     
@@ -317,11 +322,7 @@ class PromptInjectionDetector(IPromptInjectionDetector):
             if compiled_pattern.search(query):
                 matches = compiled_pattern.findall(query)
                 if matches:
-                    # Handle different match types
-                    if isinstance(matches[0], str):
-                        detected_patterns.extend(matches)
-                    else:
-                        detected_patterns.extend([str(m) for m in matches])
+                    detected_patterns.extend(matches)
                 
                 # Adjust confidence for legitimate contexts
                 adjusted_confidence = pattern_info.confidence_weight
@@ -455,16 +456,61 @@ class PromptInjectionDetector(IPromptInjectionDetector):
         if len(query) > 1000:  # Very long queries might be context stuffing
             confidence = max(confidence, 0.4)
         
-        # Check for repeated phrases (potential injection attempts)
+        # Check for repeated phrases (potential injection attempts) with technical term awareness
         words = query.split()
         if len(words) > 10:
-            word_freq = {}
-            for word in words:
-                word_freq[word] = word_freq.get(word, 0) + 1
+            # Define common technical terms that are legitimately repeated
+            technical_terms = {
+                'bitcoin', 'blockchain', 'cryptocurrency', 'crypto', 'btc', 'eth', 'ethereum',
+                'mining', 'hash', 'block', 'transaction', 'wallet', 'address', 'key',
+                'network', 'node', 'consensus', 'proof', 'work', 'stake', 'defi',
+                'smart', 'contract', 'token', 'coin', 'exchange', 'trading', 'price',
+                'market', 'value', 'investment', 'security', 'protocol', 'algorithm',
+                'decentralized', 'distributed', 'peer', 'ledger', 'chain', 'fork',
+                'lightning', 'layer', 'scaling', 'gas', 'fee', 'satoshi', 'wei',
+                'api', 'sdk', 'json', 'http', 'url', 'database', 'server', 'client',
+                'function', 'method', 'class', 'object', 'array', 'string', 'integer',
+                'boolean', 'null', 'true', 'false', 'error', 'exception', 'debug'
+            }
             
-            max_freq = max(word_freq.values())
-            if max_freq > len(words) * 0.3:  # More than 30% repetition
-                confidence = max(confidence, 0.5)
+            word_freq = {}
+            technical_word_count = 0
+            
+            for word in words:
+                word_lower = word.lower().strip('.,!?;:"()[]{}')
+                word_freq[word_lower] = word_freq.get(word_lower, 0) + 1
+                
+                # Count technical terms
+                if word_lower in technical_terms:
+                    technical_word_count += 1
+            
+            # Calculate repetition excluding technical terms for threshold adjustment
+            non_technical_words = [w for w in word_freq.keys() if w not in technical_terms]
+            
+            if non_technical_words:
+                max_freq = max(word_freq.values())
+                max_non_technical_freq = max((word_freq[w] for w in non_technical_words), default=0)
+                
+                # Determine if this is a technical query
+                technical_ratio = technical_word_count / len(words)
+                is_technical_query = technical_ratio > 0.2  # More than 20% technical terms
+                
+                # Adjust repetition threshold based on query type
+                if is_technical_query:
+                    # Higher threshold for technical queries (40% instead of 30%)
+                    repetition_threshold = 0.4
+                    # Use non-technical word frequency for detection
+                    relevant_max_freq = max_non_technical_freq
+                else:
+                    # Standard threshold for general queries
+                    repetition_threshold = 0.3
+                    relevant_max_freq = max_freq
+                
+                # Apply repetition detection with adjusted threshold
+                if relevant_max_freq > len(words) * repetition_threshold:
+                    # Reduce confidence boost for technical queries
+                    confidence_boost = 0.3 if is_technical_query else 0.5
+                    confidence = max(confidence, confidence_boost)
         
         return confidence
     
@@ -583,7 +629,13 @@ class PromptInjectionDetector(IPromptInjectionDetector):
         Returns:
             ValidationResult indicating whether context is within limits
         """
-        # Approximate token count (rough estimate: 1 token ≈ 4 characters)
+        # Approximate token count using character-based estimation
+        # NOTE: This is a rough approximation (1 token ≈ 4 characters) primarily calibrated for English text.
+        # Limitations:
+        # - May underestimate tokens for languages with longer words (German, Finnish)
+        # - May overestimate for languages with shorter average word lengths (Chinese, Japanese)
+        # - Technical content, code, or special characters may have different token ratios
+        # - For precise token counting, consider using tiktoken or similar tokenization libraries
         estimated_tokens = len(context) // 4
         
         violations = []

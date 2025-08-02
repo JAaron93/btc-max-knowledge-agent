@@ -28,8 +28,8 @@ The security system provides two functions for determining event severity:
 ```python
 from security.models import (
     SecurityEventType,
-    SecuritySeverity,                # ← add
-    get_contextual_severity_for_event_type,
+    SecuritySeverity,
+    get_default_severity_for_event_type,   # ← correct import
 )
 
 # Get baseline severity for rate limiting
@@ -45,8 +45,8 @@ logger.log(severity.value, f"Rate limit exceeded for user {user_id}")
 ```python
 from security.models import (
     SecurityEventType,
-    SecuritySeverity,          # ← add
-    get_default_severity_for_event_type,
+    SecuritySeverity,
+    get_contextual_severity_for_event_type,   # ← correct import
 )
 
 # High-frequency rate limiting becomes more severe

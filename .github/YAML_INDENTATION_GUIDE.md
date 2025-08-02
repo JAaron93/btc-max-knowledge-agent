@@ -54,15 +54,43 @@ jobs:
 
 ## Validation
 
+### Prerequisites
+
+First, install the required tools:
+
+```bash
+# Install YAML validation tools
+pip install pyyaml yamllint
+
+# Or install from development requirements (if available)
+pip install -r requirements-dev.txt
+```
+
+### Validation Commands
+
 You can validate YAML syntax using:
 
 ```bash
-# Using Python
+# Using Python (requires pyyaml)
 python -c "import yaml; yaml.safe_load(open('.github/workflows/tests-example.yml'))"
 
-# Using yamllint (if installed)
+# Using yamllint (requires yamllint)
 yamllint .github/workflows/tests-example.yml
 ```
+
+### Helper Script (Optional)
+
+For convenience, you can create a `Makefile` target:
+
+```makefile
+lint-yaml:
+	@echo "Validating YAML files..."
+	@python -c "import yaml; [yaml.safe_load(open(f)) for f in ['.github/workflows/tests-example.yml']]"
+	@yamllint .github/workflows/
+	@echo "✅ YAML validation passed"
+```
+
+Then run: `make lint-yaml`
 
 ## Common Mistakes
 

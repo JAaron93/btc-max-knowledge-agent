@@ -421,6 +421,7 @@ class AudioStreamProcessor:
             
         Returns:
             True if valid, False otherwise
+        """
         # If we can't identify the format, assume it's valid
         # (ElevenLabs API should return valid audio)
         logger.warning(f"Could not identify audio format, assuming valid. First 16 bytes: {audio_bytes[:16].hex()}")

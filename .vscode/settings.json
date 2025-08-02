@@ -1,4 +1,57 @@
 {
     "coderabbit.agentType": "Clipboard",
-    "coderabbit.reviewTimeout": 10
+    "coderabbit.reviewTimeout": 10,
+    
+    // Python configuration for btc_max_knowledge_agent package
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    
+    // Test discovery and execution
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests",
+        "-v"
+    ],
+    
+    // Import resolution and analysis
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "btc_max_knowledge_agent",
+            "depth": 10
+        }
+    ],
+    
+    // Code formatting and linting
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": [
+        "--load-plugins=pylint_django",
+        "--errors-only"
+    ],
+    
+    // Import sorting
+    "python.sortImports.args": [
+        "--profile=black"
+    ],
+    
+    // File associations and workspace settings
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
+        "*.egg-info": true
+    },
+    
+    // Auto-save and formatting on save
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    }
 }

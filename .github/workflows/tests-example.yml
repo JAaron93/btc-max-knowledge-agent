@@ -24,7 +24,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt', '**/setup.cfg', '**/setup.py') }}
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.python-version }}-
             ${{ runner.os }}-pip-
@@ -41,7 +41,7 @@ jobs:
           python -m pytest tests/ -v
       
       - name: Run linting
-        if: matrix.python-version == '3.11'
+        if: ${{ matrix.python-version == '3.11' }}
         run: |
           # Linting also works properly with installable package
           # Only run linting once (on Python 3.11) to avoid redundant CI time usage

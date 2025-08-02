@@ -5,6 +5,7 @@ Unit tests for the build_upload_payload function in PineconeAssistantAgent.
 Tests payload structure validation and null-safe metadata handling.
 """
 
+import hashlib
 import os
 import unittest
 from unittest.mock import Mock, patch
@@ -244,8 +245,7 @@ class TestBuildUploadPayload(unittest.TestCase):
         for input_url, expected_url in test_cases:
             doc = {
                 # Stable, reproducible id
-                "id": f"url-test-{abs(hashlib.md5(input_url.encode()).hexdigest())}",
-                # ↑ import hashlib at the top of the file
+                "id": f"url-test-{hashlib.md5(input_url.encode()).hexdigest()}",
                 "content": "URL test content",
                 "url": input_url
             }

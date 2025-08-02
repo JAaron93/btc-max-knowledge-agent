@@ -157,6 +157,17 @@ The middleware validates:
 - Input length limits
 - UTF-8 encoding validity
 
+#### Advanced Prompt Injection Detection
+
+The system includes sophisticated prompt injection detection with technical-aware analysis:
+
+- **Technical Term Recognition**: Identifies common Bitcoin, blockchain, and programming terms
+- **Adaptive Repetition Thresholds**: Uses higher thresholds (40% vs 30%) for technical queries to reduce false positives
+- **Context-Aware Analysis**: Considers technical term density when evaluating word repetition patterns
+- **Selective Filtering**: Focuses on non-technical word repetition for more accurate injection detection
+
+This prevents legitimate technical queries like "Bitcoin mining uses Bitcoin blockchain technology for Bitcoin transaction validation" from being incorrectly flagged as injection attempts.
+
 ### Security Headers
 
 Automatically adds security headers:
@@ -335,14 +346,14 @@ Check security library status:
 
 **In an async context (e.g., FastAPI endpoint):**
 ```python
-from security.middleware import SecurityValidator
-from security.models import SecurityConfig
+from src.security.validator import SecurityValidator
+from src.security.config import SecurityConfigurationManager
 
-config = SecurityConfig()
+# Load a validated config rather than instantiating a blank dataclass
+config = SecurityConfigurationManager().load_secure_config()
 validator = SecurityValidator(config)
 health_status = await validator.check_library_health()
 print(health_status)
-```
 
 **In a synchronous script:**
 ```python
