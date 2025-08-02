@@ -26,6 +26,9 @@ The middleware calls `_log_validation_success()` after successful validation, wh
 ## Solution Applied
 
 ### Before (Inconsistent and Broken)
+
+**Note**: The following code snippet represents the problematic logic that was found in the original code. While the syntax error shown here is illustrative of the type of issues present, the exact original code may have had variations of these problems.
+
 ```python
 # Check that success event was logged
 success_events = [

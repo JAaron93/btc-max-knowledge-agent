@@ -11,7 +11,7 @@ Controls whether `test_utils.py` automatically sets up the src path on import.
 - **`true`**, **`True`**, **`TRUE`**: Enable automatic setup
 - **`yes`**, **`Yes`**, **`YES`**: Enable automatic setup  
 - **`on`**, **`On`**, **`ON`**: Enable automatic setup
-- Any other value not listed below
+- Any other value **(including empty string or typos)** not listed below _enables_ automatic setup
 
 **Falsy values (disable automatic setup):**
 - **`0`**: Disable automatic setup  

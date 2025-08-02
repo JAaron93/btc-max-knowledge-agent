@@ -23,7 +23,11 @@
 **After (Optimized):**
 ```yaml
 - name: Run linting
-  if: matrix.python-version == '3.11'
+  # Run linting only on the default Python version
+  if: matrix.python-version == env.DEFAULT_PYTHON
+
+env:
+  DEFAULT_PYTHON: "3.11"
   run: |
     # This runs only once (on Python 3.11)
     pylint src/
@@ -62,22 +66,55 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
+      - uses: actions/checkout@v3
+      
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-test-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-test-
+            ${{ runner.os }}-pip-
       # Test steps only
 
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      # Linting steps
+          
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-lint-
+            ${{ runner.os }}-pip-
+            
+      - name: Install linting dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint black isort
+          pip install -e ".[dev]"
+          
+      - name: Run linting
+        run: |
+          pylint src/
+          black --check src/ tests/
+          isort --check-only src/ tests/
 ```
 
 ### Separate Job Benefits
 - Complete separation of concerns
 - Can run in parallel with tests
+- **Efficient caching**: Each job caches its dependencies independently, avoiding duplicate installs
+- **Faster CI runs**: Cached dependencies significantly reduce setup time
 - Independent failure handling
 - Clearer CI pipeline organization
 

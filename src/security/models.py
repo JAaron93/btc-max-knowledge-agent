@@ -156,6 +156,15 @@ def get_contextual_severity_for_event_type(
         
         threshold_high = context.get('threshold_high', 50)  # Could come from config
         threshold_low = context.get('threshold_low', 5)
+
+        # Validate threshold values
+        if not isinstance(threshold_high, (int, float)) or threshold_high <= 0:
+            threshold_high = 50  # fallback to default
+        if not isinstance(threshold_low, (int, float)) or threshold_low <= 0:
+            threshold_low = 5   # fallback to default
+        if threshold_low >= threshold_high:
+            threshold_low, threshold_high = 5, 50  # reset to safe defaults
+
         if frequency == 'high' or attempt_count > threshold_high:
             return SecuritySeverity.ERROR
         elif frequency == 'low' and attempt_count < threshold_low:
@@ -177,7 +186,7 @@ def get_contextual_severity_for_event_type(
         admin_threshold = 3  # Lower threshold for admin accounts
         regular_threshold = 10
         threshold = admin_threshold if user_type == 'admin' else regular_threshold
-        if attempt_count > threshold or user_type == 'admin':
+        if attempt_count > threshold:
             return SecuritySeverity.CRITICAL
             
     elif event_type == SecurityEventType.SUSPICIOUS_QUERY_PATTERN:

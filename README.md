@@ -5,6 +5,9 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 ## 🚀 Features
 
 ### Core Functionality
+- **Session Management** with unique session IDs for conversation isolation
+- **Conversation Context** maintained within individual user sessions
+- **Automatic Session Cleanup** to prevent memory leaks and ensure privacy
 - **Interactive Web UI** built with Gradio
 - **RESTful API** powered by FastAPI
 - **Intelligent Document Retrieval** from Pinecone Assistant
@@ -48,6 +51,14 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 - **Dynamic Status Endpoints**: Real-time system health monitoring with actual component status
 - **Improved Error Recovery**: Better handling of missing directories and configuration issues
 - **Enhanced Documentation**: Comprehensive guides for security, testing, and development workflows
+
+#### Session Management
+- **User Isolation**: Each user gets a unique session ID ensuring conversation privacy
+- **Conversation Context**: Maintains conversation history within sessions for better continuity
+- **Automatic Expiry**: Sessions expire after 60 minutes of inactivity with automatic cleanup
+- **No Authentication Required**: Sessions are created automatically without user registration
+- **Browser Persistence**: Session IDs stored in HTTP-only cookies for seamless experience
+- **Memory Management**: Expired sessions are automatically cleaned up to prevent memory leaks
 
 ## 📋 Prerequisites
 
@@ -98,7 +109,7 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 For production deployments, install without development dependencies:
 
 ```bash
-pip install -e .
+pip install .
 ```
 
 ### Benefits of Editable Installation
@@ -186,13 +197,22 @@ python src/web/bitcoin_assistant_ui.py
 - `GET /sources` - List available sources
 - `GET /docs` - Interactive API documentation
 
+### Session Management Endpoints
+
+- `POST /session/new` - Create a new session
+- `GET /session/{session_id}` - Get session information and conversation history
+- `DELETE /session/{session_id}` - Delete a specific session
+- `GET /sessions/stats` - Get session statistics
+- `POST /sessions/cleanup` - Force cleanup of expired sessions
+
 ### Query Example
 
 ```bash
 curl -X POST "http://localhost:8000/query" \
      -H "Content-Type: application/json" \
      -d '{
-       "question": "What is Bitcoin?"
+       "question": "What is Bitcoin?",
+       "session_id": "optional-session-id"
      }'
 ```
 
@@ -203,8 +223,23 @@ Response:
   "sources": [
     {"name": "bitcoin_fundamentals.txt", "type": "document"},
     {"name": "Bitcoin Guide.pdf", "type": "document"}
-  ]
+  ],
+  "session_id": "abc123-def456-ghi789",
+  "conversation_turn": 1
 }
+```
+
+### Session Management Examples
+
+```bash
+# Create a new session
+curl -X POST "http://localhost:8000/session/new"
+
+# Get session information
+curl "http://localhost:8000/session/{session_id}"
+
+# Get session statistics
+curl "http://localhost:8000/sessions/stats"
 ```
 
 ## 🎨 Web Interface Features

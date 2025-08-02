@@ -10,10 +10,13 @@ import time
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Response
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
 from pydantic import BaseModel
+
+# Import session management
+from .session_manager import get_session_manager, SessionData
 
 # Import TTS components
 from ..utils.tts_service import get_tts_service, TTSError
@@ -38,33 +41,13 @@ app = FastAPI(
 class QueryRequest(BaseModel):
     question: str
     enable_tts: Optional[bool] = False
-from typing import Optional
--from pydantic import BaseModel
-+from pydantic import BaseModel, Field
-
-class QueryRequest(BaseModel):
-    question: str
-    enable_tts: Optional[bool]f=rFalse
--om   typing import Optional
-+    volume: Optional[float] = Field(
-+        default=0.7,
-+        ge=0.0,
-+        le=1.0,
-+        description="Audio volume level (0.0 to 1.0)",
-+    )
--from pydantic import BaseModel
-+from pydantic import BaseModel, Field
-
-class QueryRequest(BaseModel):
-    question: str
-    enable_tts: Optional[bool] = False
--    volume: Optional[float] = 0.7
-+    volume: Optional[float] = Field(
-+        default=0.7,
-+        ge=0.0,
-+        le=1.0,
-+        description="Audio volume level (0.0 to 1.0)",
-+    )
+    volume: Optional[float] = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Audio volume level (0.0 to 1.0)",
+    )
+    session_id: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
@@ -76,6 +59,8 @@ class QueryResponse(BaseModel):
     tts_enabled: bool = False
     tts_cached: bool = False
     tts_synthesis_time: Optional[float] = None
+    session_id: str
+    conversation_turn: int
 
 
 class BitcoinAssistantService:
@@ -89,6 +74,10 @@ class BitcoinAssistantService:
         # Initialize Pinecone client with assistant plugin
         self.pc = Pinecone(api_key=self.api_key)
         self.assistant = self.pc.assistant.Assistant(assistant_name=self.assistant_name)
+        
+        # Initialize session manager
+        self.session_manager = get_session_manager()
+        
         # Initialize TTS service and streaming manager
         try:
             self.tts_service = get_tts_service()
@@ -97,14 +86,24 @@ class BitcoinAssistantService:
             logger.warning(f"Failed to initialize TTS services: {e}")
             self.tts_service = None
             self.streaming_manager = None
-    def get_assistant_response(self, question: str) -> Dict:
-        """Get intelligent response from Pinecone Assistant"""
+    def get_assistant_response(self, question: str, session_data: SessionData = None) -> Dict:
+        """Get intelligent response from Pinecone Assistant with session context"""
         try:
-            # Create message for the assistant
-            msg = Message(role="user", content=question)
+            # Build conversation context from session history
+            messages = []
+            
+            if session_data:
+                # Add recent conversation context for continuity
+                context = session_data.get_conversation_context(max_turns=3)
+                for turn in context:
+                    messages.append(Message(role="user", content=turn["question"]))
+                    messages.append(Message(role="assistant", content=turn["answer"]))
+            
+            # Add current question
+            messages.append(Message(role="user", content=question))
 
-            # Get response from Pinecone Assistant
-            response = self.assistant.chat(messages=[msg])
+            # Get response from Pinecone Assistant with conversation context
+            response = self.assistant.chat(messages=messages)
 
             # Extract the response content and citations
             result = {
@@ -247,10 +246,14 @@ async def root():
         "status": "running",
         "endpoints": [
             "/query", "/health", "/sources", 
+            "/session/new", "/session/{session_id}", "/sessions/stats", "/sessions/cleanup",
             "/tts/status", "/tts/clear-cache", "/tts/streaming/status", "/tts/streaming/test",
             "/docs"
         ],
         "features": {
+            "session_management": "Conversation isolation with unique session IDs",
+            "conversation_context": "Maintains conversation history within sessions",
+            "automatic_cleanup": "Expired sessions cleaned up automatically",
             "text_to_speech": "Available with ElevenLabs integration",
             "audio_caching": "In-memory LRU cache for generated audio",
             "audio_streaming": "Real-time audio streaming with instant replay for cached content",
@@ -258,6 +261,110 @@ async def root():
             "instant_replay": "Cached audio plays instantly without re-synthesis"
         }
     }
+
+
+@app.post("/session/new")
+async def create_new_session(response: Response):
+    """Create a new session"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        session_id = bitcoin_service.session_manager.create_session()
+        
+        # Set session cookie
+        response.set_cookie(
+            key="btc_assistant_session",
+            value=session_id,
+            max_age=3600,  # 1 hour
+            httponly=True,
+            samesite="lax"
+        )
+        
+        return {
+            "session_id": session_id,
+            "message": "New session created",
+            "expires_in_minutes": 60
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
+
+
+@app.get("/session/{session_id}")
+async def get_session_info(session_id: str):
+    """Get session information and conversation history"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        session_data = bitcoin_service.session_manager.get_session(session_id)
+        if not session_data:
+            raise HTTPException(status_code=404, detail="Session not found or expired")
+        
+        return {
+            "session_info": session_data.to_dict(),
+            "conversation_history": session_data.conversation_history,
+            "conversation_context": session_data.get_conversation_context()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get session info: {str(e)}")
+
+
+@app.delete("/session/{session_id}")
+async def delete_session(session_id: str, response: Response):
+    """Delete a specific session"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        removed = bitcoin_service.session_manager.remove_session(session_id)
+        
+        # Clear session cookie
+        response.delete_cookie(key="btc_assistant_session")
+        
+        if removed:
+            return {"message": "Session deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
+
+
+@app.get("/sessions/stats")
+async def get_session_stats():
+    """Get session statistics"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        stats = bitcoin_service.session_manager.get_session_stats()
+        return {
+            "session_statistics": stats,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get session stats: {str(e)}")
+
+
+@app.post("/sessions/cleanup")
+async def cleanup_expired_sessions():
+    """Force cleanup of expired sessions"""
+    if not bitcoin_service:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        bitcoin_service.session_manager.cleanup_expired_sessions()
+        stats = bitcoin_service.session_manager.get_session_stats()
+        return {
+            "message": "Expired sessions cleaned up",
+            "current_stats": stats
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup sessions: {str(e)}")
 
 
 @app.get("/health")
@@ -290,14 +397,26 @@ async def health_check():
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query_bitcoin_knowledge(request: QueryRequest):
+async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        # Get response from Pinecone Assistant (run in thread to avoid blocking)
+        # Get or create session
+        session_id, session_data = bitcoin_service.session_manager.get_or_create_session(request.session_id)
+        
+        # Set session cookie for browser persistence
+        response.set_cookie(
+            key="btc_assistant_session",
+            value=session_id,
+            max_age=3600,  # 1 hour
+            httponly=True,
+            samesite="lax"
+        )
+
+        # Get response from Pinecone Assistant with session context (run in thread to avoid blocking)
         response_data = await asyncio.to_thread(
-            bitcoin_service.get_assistant_response, request.question
+            bitcoin_service.get_assistant_response, request.question, session_data
         )
 
         # Format the assistant response
@@ -305,6 +424,9 @@ async def query_bitcoin_knowledge(request: QueryRequest):
 
         # Extract sources from the response
         sources = response_data.get("sources", [])
+
+        # Add conversation turn to session history
+        session_data.add_conversation_turn(request.question, answer, sources)
 
         # Initialize response data
         audio_data = None
@@ -325,6 +447,7 @@ async def query_bitcoin_knowledge(request: QueryRequest):
                 # Log TTS error but don't fail the entire request
                 logger.warning(f"TTS synthesis failed, continuing with text-only response: {e}")
                 # TTS variables remain None, indicating fallback to muted state
+        
         return QueryResponse(
             answer=answer,
             sources=sources,
@@ -332,7 +455,9 @@ async def query_bitcoin_knowledge(request: QueryRequest):
             audio_data=audio_data,
             audio_streaming_data=audio_streaming_data,
             tts_enabled=request.enable_tts and bitcoin_service.tts_service.is_enabled(),
-            tts_synthesis_time=tts_synthesis_time
+            tts_synthesis_time=tts_synthesis_time,
+            session_id=session_id,
+            conversation_turn=len(session_data.conversation_history)
         )
 
     except Exception as e:
