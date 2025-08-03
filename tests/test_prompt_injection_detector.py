@@ -50,6 +50,7 @@ class TestPromptInjectionDetector:
             assert result.confidence_score >= 0.8, f"Low confidence for: {query}"
             assert result.injection_type == InjectionType.ROLE_CONFUSION.value
             assert result.risk_level == SecuritySeverity.CRITICAL
+            assert len(result.detected_patterns) > 0, f"No patterns detected for: {query}"
             assert any(
                 pattern in result.detected_patterns[0].lower()
                 for pattern in ["ignore previous", "forget previous", "disregard"]
@@ -211,9 +212,9 @@ class TestPromptInjectionDetector:
             if "should_contain" in case and isinstance(case["should_contain"], str):
                 assert case["should_contain"] in neutralized, \
                     f"Neutralized query missing expected content: {case['should_contain']}"
-            
-            if "should_not_contain" in case:
-                assert case["should_not_contain"] not in neutralized, \
+             if "should_not_contain" in case:
+                 assert case["should_not_contain"] not in neutralized, \
+                     f"Neutralized query still contains: {case['should_not_contain']}"
                     f"Neutralized query still contains: {case['should_not_contain']}"
             if "should_not_contain" in case:
                 assert case["should_not_contain"] not in neutralized, \
@@ -467,7 +468,7 @@ class TestPromptInjectionDetector:
         assert not result.injection_detected
         
         # Test neutralization with Unicode/emoji
-        neutralized = await detector.neutralize_injection(unicode_injection)
+        assert "忽略之前的指令" not in neutralized and "ignore previous instructions" not in neutralized
         assert "忽略之前的指令" not in neutralized or "ignore previous instructions" not in neutralized
     
     @pytest.mark.asyncio
@@ -755,10 +756,10 @@ class TestPromptInjectionDetectorIntegration:
         ]
         
         results = await asyncio.gather(*tasks)
-        
-        # Verify expected detection pattern (alternating malicious/benign)
-        expected_detections = [True, False, True, False, True, False, True, False, True, False]
+        # Verify detection counts instead of exact order
         actual_detections = [r.injection_detected for r in results]
+        assert sum(actual_detections) == 5  # 5 malicious queries
+        assert len(actual_detections) - sum(actual_detections) == 5  # 5 benign queries
         assert actual_detections == expected_detections
         
         # Verify confidence scores are appropriate for detected injections

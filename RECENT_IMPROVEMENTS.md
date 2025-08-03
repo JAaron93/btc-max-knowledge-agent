@@ -1,6 +1,6 @@
 # Recent Improvements Summary
 
-**Last updated:** August 1, 2025  
+**Last updated:** 2025-08-01 
 **Version:** 1.0
 
 This document summarizes the major improvements made to the Bitcoin Knowledge Assistant project.

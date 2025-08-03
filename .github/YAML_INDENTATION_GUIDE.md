@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest        # 4 spaces from left margin
     strategy:                     # 4 spaces from left margin
       matrix:                     # 6 spaces from left margin
-        python-version: ["3.8"]   # 8 spaces from left margin
+        python-version: [3.8, 3.9, 3.10]   # 8 spaces
     
     steps:                        # 4 spaces from left margin
       - uses: actions/checkout@v3 # 6 spaces from left margin (list item)
@@ -59,7 +59,9 @@ jobs:
 First, install the required tools:
 
 ```bash
-# Install YAML validation tools
+# Install YAML validation tools inside a virtualenv or with pipx
+python -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
 pip install pyyaml yamllint
 
 # Or install from development requirements (if available)
@@ -95,8 +97,8 @@ Then run: `make lint-yaml`
 ## Common Mistakes
 
 1. **List items at wrong level**: List items (`-`) must be indented from their parent key
-2. **Inconsistent spacing**: Mixing tabs and spaces or inconsistent space counts
+2. **Inconsistent spacing**: Mixing tabs, and spaces, or inconsistent space counts
 3. **Missing colons**: YAML keys must end with `:`
-4. **Incorrect nesting**: Child elements must be properly indented under parents
+4. **Incorrect nesting**: Child elements must be properly indented under parent
 
 The fix applied to `tests-example.yml` corrected the list item indentation under the `steps:` key, ensuring proper YAML parsing.

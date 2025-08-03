@@ -22,17 +22,18 @@
 
 **After (Optimized):**
 ```yaml
-- name: Run linting
-  # Run linting only on the default Python version
-  if: matrix.python-version == env.DEFAULT_PYTHON
-
-env:
-  DEFAULT_PYTHON: "3.11"
-  run: |
-    # This runs only once (on Python 3.11)
-    pylint src/
-    black --check src/ tests/
-    isort --check-only src/ tests/
+jobs:
+  test:
+    env:
+      DEFAULT_PYTHON: "3.11"
+    steps:
+      - name: Run linting
+        if: ${{ matrix.python-version == env.DEFAULT_PYTHON }}
+        run: |
+          # This runs only once (on Python 3.11)
+          pylint src/
+          black --check src/ tests/
+          isort --check-only src/ tests/
 ```
 
 ## Benefits Achieved
@@ -72,10 +73,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-test-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          key: "${{ runner.os }}-pip-test-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}"
           restore-keys: |
-            ${{ runner.os }}-pip-test-
-            ${{ runner.os }}-pip-
+            "${{ runner.os }}-pip-test-"
+            "${{ runner.os }}-pip-"
       # Test steps only
 
   lint:
@@ -92,15 +93,14 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          key: "${{ runner.os }}-pip-lint-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}"
           restore-keys: |
-            ${{ runner.os }}-pip-lint-
-            ${{ runner.os }}-pip-
+            "${{ runner.os }}-pip-lint-"
+            "${{ runner.os }}-pip-"
             
       - name: Install linting dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint black isort
           pip install -e ".[dev]"
           
       - name: Run linting

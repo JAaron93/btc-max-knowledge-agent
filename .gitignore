@@ -257,3 +257,9 @@ logs/
 # macOS
 .DS_Store
 .DS_Store?
+
+# Admin credentials (NEVER commit these!)
+.env.admin
+.env.production
+.env.staging
+admin_credentials.txt

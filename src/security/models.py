@@ -159,10 +159,13 @@ def get_contextual_severity_for_event_type(
 
         # Validate threshold values
         if not isinstance(threshold_high, (int, float)) or threshold_high <= 0:
+            # Log warning about invalid threshold_high
             threshold_high = 50  # fallback to default
         if not isinstance(threshold_low, (int, float)) or threshold_low <= 0:
+            # Log warning about invalid threshold_low
             threshold_low = 5   # fallback to default
         if threshold_low >= threshold_high:
+            # Log warning about invalid threshold relationship
             threshold_low, threshold_high = 5, 50  # reset to safe defaults
 
         if frequency == 'high' or attempt_count > threshold_high:

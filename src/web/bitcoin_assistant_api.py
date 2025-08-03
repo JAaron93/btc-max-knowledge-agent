@@ -10,13 +10,15 @@ import time
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Header, Response
+from fastapi import FastAPI, HTTPException, Header, Response, Cookie, Request
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Import session management
 from .session_manager import get_session_manager, SessionData
+from .rate_limiter import get_session_rate_limiter
+from .admin_router import admin_router
 
 # Import TTS components
 from ..utils.tts_service import get_tts_service, TTSError
@@ -36,6 +38,9 @@ app = FastAPI(
     description="AI-powered Bitcoin and blockchain knowledge assistant using Pinecone with TTS support",
     version="1.0.0",
 )
+
+# Include admin router with authentication
+app.include_router(admin_router)
 
 
 class QueryRequest(BaseModel):
@@ -58,8 +63,14 @@ class QueryResponse(BaseModel):
     audio_streaming_data: Optional[Dict] = None
     tts_enabled: bool = False
     tts_cached: bool = False
-    tts_synthesis_time: Optional[float] = None
-    session_id: str
+-    session_id: str
+-    conversation_turn: int
++    session_id: Optional[str] = None
++    conversation_turn: Optional[int] = None
++    session_id: Optional[str] = None
++    conversation_turn: Optional[int] = None
++    session_id: Optional[str] = None
++    conversation_turn: Optional[int] = None
     conversation_turn: int
 
 
@@ -246,14 +257,22 @@ async def root():
         "status": "running",
         "endpoints": [
             "/query", "/health", "/sources", 
-            "/session/new", "/session/{session_id}", "/sessions/stats", "/sessions/cleanup",
+            "/session/new", "/session/{session_id}",
             "/tts/status", "/tts/clear-cache", "/tts/streaming/status", "/tts/streaming/test",
             "/docs"
+        ],
+        "admin_endpoints": [
+            "/admin/login", "/admin/logout", "/admin/session/info",
+            "/admin/sessions/stats", "/admin/sessions/cleanup", "/admin/sessions/rate-limits",
+            "/admin/sessions/list", "/admin/sessions/{session_id}", "/admin/auth/stats", "/admin/health"
         ],
         "features": {
             "session_management": "Conversation isolation with unique session IDs",
             "conversation_context": "Maintains conversation history within sessions",
             "automatic_cleanup": "Expired sessions cleaned up automatically",
+            "admin_authentication": "Secure admin access with token-based authentication",
+            "rate_limiting": "Anti-enumeration protection with per-endpoint limits",
+            "security_logging": "Comprehensive logging of all access attempts",
             "text_to_speech": "Available with ElevenLabs integration",
             "audio_caching": "In-memory LRU cache for generated audio",
             "audio_streaming": "Real-time audio streaming with instant replay for cached content",
@@ -264,10 +283,22 @@ async def root():
 
 
 @app.post("/session/new")
-async def create_new_session(response: Response):
-    """Create a new session"""
+async def create_new_session(request: Request, response: Response):
+    """Create a new session with rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    # Get client IP for rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check rate limit
+    rate_limiter = get_session_rate_limiter()
+    if not rate_limiter.check_session_create_limit(client_ip):
+        logger.warning(f"Session creation rate limit exceeded for IP: {client_ip}")
+        raise HTTPException(
+            status_code=429, 
+            detail="Too many session creation requests. Please try again later."
+        )
     
     try:
         session_id = bitcoin_service.session_manager.create_session()
@@ -281,25 +312,64 @@ async def create_new_session(response: Response):
             samesite="lax"
         )
         
+        logger.info(f"New session created for IP {client_ip}: {session_id[:8]}...")
+        
         return {
             "session_id": session_id,
             "message": "New session created",
             "expires_in_minutes": 60
         }
     except Exception as e:
+        logger.error(f"Failed to create session for IP {client_ip}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/session/{session_id}")
-async def get_session_info(session_id: str):
-    """Get session information and conversation history"""
+async def get_session_info(
+    session_id: str,
+    request: Request,
+    btc_assistant_session: Optional[str] = Cookie(None)
+):
+    """Get session information and conversation history with authentication and rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
+    # Get client IP for rate limiting and logging
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check rate limit to prevent session enumeration attacks
+    rate_limiter = get_session_rate_limiter()
+    if not rate_limiter.check_session_info_limit(client_ip):
+        logger.warning(f"Session info rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}...")
+        raise HTTPException(
+            status_code=429, 
+            detail="Too many session info requests. Please try again later."
+        )
+    
     try:
+        # Validate session ownership - user can only access their own session info
+        current_session_id = btc_assistant_session
+        
+        if not current_session_id:
+            logger.warning(f"Unauthorized session access attempt from IP {client_ip} for session {session_id[:8]}...")
+            raise HTTPException(
+                status_code=401, 
+                detail="No active session found. Session access requires an active session cookie."
+            )
+        
+        if current_session_id != session_id:
+            logger.warning(f"Session ownership violation from IP {client_ip}: attempted access to {session_id[:8]}... with cookie {current_session_id[:8]}...")
+            raise HTTPException(
+                status_code=403, 
+                detail="Forbidden: You can only access your own session information. Session ownership validation failed."
+            )
+        
         session_data = bitcoin_service.session_manager.get_session(session_id)
         if not session_data:
+            logger.info(f"Session not found or expired: {session_id[:8]}... from IP {client_ip}")
             raise HTTPException(status_code=404, detail="Session not found or expired")
+        
+        logger.info(f"Session info accessed successfully: {session_id[:8]}... from IP {client_ip}")
         
         return {
             "session_info": session_data.to_dict(),
@@ -309,62 +379,82 @@ async def get_session_info(session_id: str):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Failed to get session info for {session_id[:8]}... from IP {client_ip}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get session info: {str(e)}")
 
 
 @app.delete("/session/{session_id}")
-async def delete_session(session_id: str, response: Response):
-    """Delete a specific session"""
+async def delete_session(
+    session_id: str, 
+    request: Request,
+    response: Response,
+    btc_assistant_session: Optional[str] = Cookie(None)
+):
+    """Delete a specific session with authentication, ownership validation, and rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
+    # Get client IP for rate limiting and logging
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check rate limit to prevent abuse
+    rate_limiter = get_session_rate_limiter()
+    if not rate_limiter.check_session_delete_limit(client_ip):
+        logger.warning(f"Session deletion rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}...")
+        raise HTTPException(
+            status_code=429, 
+            detail="Too many session deletion requests. Please try again later."
+        )
+    
     try:
+        # Validate session ownership - user can only delete their own session
+        current_session_id = btc_assistant_session
+        
+        if not current_session_id:
+            logger.warning(f"Unauthorized session deletion attempt from IP {client_ip} for session {session_id[:8]}...")
+            raise HTTPException(
+                status_code=401, 
+                detail="No active session found. Session deletion requires an active session cookie."
+            )
+        
+        if current_session_id != session_id:
+            logger.warning(f"Session deletion ownership violation from IP {client_ip}: attempted deletion of {session_id[:8]}... with cookie {current_session_id[:8]}...")
+            raise HTTPException(
+                status_code=403, 
+                detail="Forbidden: You can only delete your own session. Session ownership validation failed."
+            )
+        
+        # Verify the session exists before attempting deletion
+        session_data = bitcoin_service.session_manager.get_session(session_id)
+        if not session_data:
+            logger.info(f"Session deletion attempted for non-existent session: {session_id[:8]}... from IP {client_ip}")
+            raise HTTPException(status_code=404, detail="Session not found or already expired")
+        
+        # Proceed with deletion since ownership is validated
         removed = bitcoin_service.session_manager.remove_session(session_id)
         
         # Clear session cookie
         response.delete_cookie(key="btc_assistant_session")
         
         if removed:
-            return {"message": "Session deleted successfully"}
+            logger.info(f"Session deleted successfully: {session_id[:8]}... from IP {client_ip}")
+            return {
+                "message": "Session deleted successfully",
+                "session_id": session_id,
+                "deleted_at": time.time()
+            }
         else:
+            # This shouldn't happen since we verified existence above, but handle gracefully
+            logger.error(f"Session deletion failed unexpectedly: {session_id[:8]}... from IP {client_ip}")
             raise HTTPException(status_code=404, detail="Session not found")
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Failed to delete session {session_id[:8]}... from IP {client_ip}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
 
 
-@app.get("/sessions/stats")
-async def get_session_stats():
-    """Get session statistics"""
-    if not bitcoin_service:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    try:
-        stats = bitcoin_service.session_manager.get_session_stats()
-        return {
-            "session_statistics": stats,
-            "timestamp": time.time()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get session stats: {str(e)}")
-
-
-@app.post("/sessions/cleanup")
-async def cleanup_expired_sessions():
-    """Force cleanup of expired sessions"""
-    if not bitcoin_service:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    try:
-        bitcoin_service.session_manager.cleanup_expired_sessions()
-        stats = bitcoin_service.session_manager.get_session_stats()
-        return {
-            "message": "Expired sessions cleaned up",
-            "current_stats": stats
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to cleanup sessions: {str(e)}")
+# Admin endpoints moved to separate admin router for security
 
 
 @app.get("/health")
@@ -628,8 +718,8 @@ async def get_streaming_status():
             "streaming_manager": streaming_status,
             "tts_enabled": bitcoin_service.tts_service.is_enabled()
         }
-    if not bitcoin_service.tts_service or not bitcoin_service.tts_service.is_enabled():
-        raise HTTPException(status_code=503, detail="TTS service is not enabled")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get streaming status: {str(e)}")
 
 
 class StreamingTestRequest(BaseModel):

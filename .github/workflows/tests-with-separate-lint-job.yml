@@ -15,14 +15,14 @@ jobs:
       - name: Setup Python with dependencies
         uses: ./.github/actions/setup-python-deps
         with:
-          python-version: "3.11"
+          python-version: "3.8"
           extras: "dev"
       
       - name: Run linting
         run: |
           # Linting runs as fast-fail gate before tests
-          pylint src/
           black --check src/ tests/
+          pylint src/
           isort --check-only src/ tests/
 
   test:

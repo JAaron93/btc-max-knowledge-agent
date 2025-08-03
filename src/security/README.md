@@ -166,6 +166,8 @@ The system includes sophisticated prompt injection detection with technical-awar
 - **Context-Aware Analysis**: Considers technical term density when evaluating word repetition patterns
 - **Selective Filtering**: Focuses on non-technical word repetition for more accurate injection detection
 
+**Note**: The repetition thresholds (40% and 30%) are evaluated independently and prior to the global `INJECTION_DETECTION_THRESHOLD=0.8` defined in the Security thresholds section. The repetition analysis determines if content has suspicious patterns, while the global threshold controls the overall confidence score for blocking requests. To reduce false positives, adjust the repetition thresholds; to change overall detection sensitivity, modify the global threshold.
+
 This prevents legitimate technical queries like "Bitcoin mining uses Bitcoin blockchain technology for Bitcoin transaction validation" from being incorrectly flagged as injection attempts.
 
 ### Security Headers
@@ -346,15 +348,15 @@ Check security library status:
 
 **In an async context (e.g., FastAPI endpoint):**
 ```python
+# In a synchronous script
+import asyncio
 from src.security.validator import SecurityValidator
 from src.security.config import SecurityConfigurationManager
 
-# Load a validated config rather than instantiating a blank dataclass
 config = SecurityConfigurationManager().load_secure_config()
 validator = SecurityValidator(config)
-health_status = await validator.check_library_health()
+health_status = asyncio.run(validator.check_library_health())
 print(health_status)
-
 **In a synchronous script:**
 ```python
 import asyncio

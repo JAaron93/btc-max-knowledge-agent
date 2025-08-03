@@ -4,8 +4,9 @@ Session Management for Bitcoin Knowledge Assistant
 Provides conversation isolation without user authentication
 """
 
-import time
 import uuid
+import secrets
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import threading
@@ -17,11 +18,13 @@ logger = logging.getLogger(__name__)
 class SessionData:
     """Represents a user session with conversation context"""
     
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, max_history_turns: int = 50):
         self.session_id = session_id
         self.created_at = datetime.now()
         self.last_activity = datetime.now()
         self.conversation_history: List[Dict[str, Any]] = []
+        self._next_turn_id = 1
+        self.max_history_turns = max_history_turns  # Limit conversation history size
         self.pinecone_thread_id: Optional[str] = None
         self.tts_preferences = {
             'enabled': True,
@@ -31,16 +34,24 @@ class SessionData:
     def update_activity(self):
         """Update last activity timestamp"""
         self.last_activity = datetime.now()
-    
+
     def add_conversation_turn(self, question: str, answer: str, sources: List[Dict] = None):
-        """Add a conversation turn to history"""
+        """Add a conversation turn to history with automatic memory management"""
         self.conversation_history.append({
             'timestamp': datetime.now().isoformat(),
             'question': question,
             'answer': answer,
             'sources': sources or [],
-            'turn_id': len(self.conversation_history) + 1
+            'turn_id': self._next_turn_id
         })
+        self._next_turn_id += 1
+        
+        # Automatically trim history to prevent memory bloat
+        if len(self.conversation_history) > self.max_history_turns:
+            # Keep only the most recent turns
+            self.conversation_history = self.conversation_history[-self.max_history_turns:]
+            logger.info(f"Trimmed conversation history for session {self.session_id[:8]}... to {self.max_history_turns} turns")
+        
         self.update_activity()
     
     def get_conversation_context(self, max_turns: int = 5) -> List[Dict[str, Any]]:
@@ -52,13 +63,39 @@ class SessionData:
         expiry_time = self.last_activity + timedelta(minutes=timeout_minutes)
         return datetime.now() > expiry_time
     
+    def get_memory_usage(self) -> Dict[str, Any]:
+        """Get approximate memory usage statistics for this session"""
+        import sys
+        
+        # Rough memory calculation
+        history_size = sys.getsizeof(self.conversation_history)
+        for turn in self.conversation_history:
+            history_size += sys.getsizeof(turn)
+            for key, value in turn.items():
+                history_size += sys.getsizeof(key) + sys.getsizeof(value)
+                if isinstance(value, list):
+                    for item in value:
+                        history_size += sys.getsizeof(item)
+        
+        return {
+            'conversation_turns': len(self.conversation_history),
+            'estimated_memory_bytes': history_size,
+            'estimated_memory_kb': round(history_size / 1024, 2),
+            'max_history_turns': self.max_history_turns,
+            'memory_limit_reached': len(self.conversation_history) >= self.max_history_turns
+        }
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert session to dictionary for serialization"""
+        # Note: conversation_history is deliberately excluded from serialization
+        # for performance optimization (can be large) and privacy concerns.
+        # Only the conversation count is included for monitoring purposes.
         return {
             'session_id': self.session_id,
             'created_at': self.created_at.isoformat(),
             'last_activity': self.last_activity.isoformat(),
             'conversation_turns': len(self.conversation_history),
+            'max_history_turns': self.max_history_turns,
             'pinecone_thread_id': self.pinecone_thread_id,
             'tts_preferences': self.tts_preferences
         }
@@ -67,28 +104,46 @@ class SessionData:
 class SessionManager:
     """Manages user sessions with automatic cleanup"""
     
-    def __init__(self, session_timeout_minutes: int = 60, cleanup_interval_minutes: int = 10):
-        self.sessions: Dict[str, SessionData] = {}
-        self.session_timeout_minutes = session_timeout_minutes
-        self.cleanup_interval_minutes = cleanup_interval_minutes
-        self._lock = threading.RLock()
-        self._last_cleanup = time.time()
+    def __init__(self, session_timeout_minutes: int = None, cleanup_interval_minutes: int = None, max_history_turns: int = None):
+        import os
         
-        logger.info(f"SessionManager initialized with {session_timeout_minutes}min timeout")
+        self.sessions: Dict[str, SessionData] = {}
+        self.session_timeout_minutes = session_timeout_minutes or int(os.getenv("SESSION_TIMEOUT_MINUTES", "60"))
+        self.cleanup_interval_minutes = cleanup_interval_minutes or int(os.getenv("SESSION_CLEANUP_INTERVAL_MINUTES", "10"))
+        self.max_history_turns = max_history_turns or int(os.getenv("SESSION_MAX_HISTORY_TURNS", "50"))
+        self._lock = threading.RLock()
+        self._cleanup_timer: Optional[threading.Timer] = None
+        self._shutdown = False
+        
+        # Start background cleanup timer
+        self._start_cleanup_timer()
+        
+        logger.info(f"SessionManager initialized with {self.session_timeout_minutes}min timeout, {self.max_history_turns} max turns per session")
     
-    def create_session(self) -> str:
-        """Create a new session and return session ID"""
-        session_id = str(uuid.uuid4())
+    def create_session(self) -> tuple[str, SessionData]:
+        """Create a new session with cryptographically secure ID generation"""
+        # Generate cryptographically secure session ID with multiple entropy sources
+        base_uuid = str(uuid.uuid4())
+        timestamp = str(int(datetime.now().timestamp() * 1_000_000))  # Microsecond precision timestamp
+        random_bytes = secrets.token_hex(16)  # 16 bytes of cryptographically secure random data
+        
+        # Combine entropy sources and hash for consistent length and format
+        combined_entropy = f"{base_uuid}-{timestamp}-{random_bytes}"
+        session_id = hashlib.sha256(combined_entropy.encode()).hexdigest()[:32]  # 32 character hex string
         
         with self._lock:
-            session_data = SessionData(session_id)
+            # Ensure uniqueness (extremely unlikely collision, but safety first)
+            while session_id in self.sessions:
+                logger.warning(f"Session ID collision detected (extremely rare), regenerating...")
+                random_bytes = secrets.token_hex(16)
+                combined_entropy = f"{base_uuid}-{timestamp}-{random_bytes}"
+                session_id = hashlib.sha256(combined_entropy.encode()).hexdigest()[:32]
+            
+            session_data = SessionData(session_id, self.max_history_turns)
             self.sessions[session_id] = session_data
             
-            # Periodic cleanup
-            self._cleanup_expired_sessions()
-            
-            logger.info(f"Created new session: {session_id}")
-            return session_id
+            logger.info(f"Created new session: {session_id[:8]}... (length: {len(session_id)})")
+            return session_id, session_data
     
     def get_session(self, session_id: str) -> Optional[SessionData]:
         """Get session data by ID"""
@@ -116,10 +171,8 @@ class SessionManager:
             if session:
                 return session_id, session
         
-        # Create new session
-        new_session_id = self.create_session()
-        session = self.get_session(new_session_id)
-        return new_session_id, session
+        # Create new session - returns both ID and SessionData directly
+        return self.create_session()
     
     def _remove_session(self, session_id: str):
         """Remove session (internal method, assumes lock is held)"""
@@ -137,12 +190,6 @@ class SessionManager:
     
     def _cleanup_expired_sessions(self):
         """Clean up expired sessions (internal method, assumes lock is held)"""
-        current_time = time.time()
-        
-        # Only run cleanup periodically
-        if current_time - self._last_cleanup < (self.cleanup_interval_minutes * 60):
-            return
-        
         expired_sessions = []
         for session_id, session in self.sessions.items():
             if session.is_expired(self.session_timeout_minutes):
@@ -153,8 +200,39 @@ class SessionManager:
         
         if expired_sessions:
             logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
-        
-        self._last_cleanup = current_time
+    
+    def _start_cleanup_timer(self):
+        """Start the background cleanup timer"""
+        if self._shutdown:
+            return
+            
+        # Schedule next cleanup
+        self._cleanup_timer = threading.Timer(
+            self.cleanup_interval_minutes * 60,
+            self._background_cleanup
+        )
+        self._cleanup_timer.daemon = True
+        self._cleanup_timer.start()
+    
+    def _background_cleanup(self):
+        """Background cleanup method that runs in a separate thread"""
+        try:
+            with self._lock:
+                if not self._shutdown:
+                    self._cleanup_expired_sessions()
+        except Exception as e:
+            logger.error(f"Error during background cleanup: {e}")
+        finally:
+            # Schedule next cleanup if not shutting down
+            if not self._shutdown:
+                self._start_cleanup_timer()
+    
+    def shutdown(self):
+        """Shutdown the session manager and stop background cleanup"""
+        self._shutdown = True
+        if self._cleanup_timer:
+            self._cleanup_timer.cancel()
+        logger.info("SessionManager shutdown completed")
     
     def cleanup_expired_sessions(self):
         """Public method to force cleanup of expired sessions"""
@@ -170,18 +248,29 @@ class SessionManager:
             # Calculate session ages
             now = datetime.now()
             session_ages = []
+            total_memory_kb = 0
+            sessions_at_limit = 0
+            
             for session in self.sessions.values():
                 age_minutes = (now - session.created_at).total_seconds() / 60
                 session_ages.append(age_minutes)
+                
+                # Memory usage
+                memory_info = session.get_memory_usage()
+                total_memory_kb += memory_info['estimated_memory_kb']
+                if memory_info['memory_limit_reached']:
+                    sessions_at_limit += 1
             
             avg_age = sum(session_ages) / len(session_ages) if session_ages else 0
             
             return {
                 'active_sessions': active_sessions,
-                'total_conversation_turns': total_conversations,
-                'average_session_age_minutes': round(avg_age, 2),
-                'session_timeout_minutes': self.session_timeout_minutes,
-                'cleanup_interval_minutes': self.cleanup_interval_minutes
+                'total_conversations': total_conversations,
+                'average_session_age_minutes': avg_age,
+                'total_memory_usage_kb': round(total_memory_kb, 2),
+                'total_memory_usage_mb': round(total_memory_kb / 1024, 2),
+                'sessions_at_memory_limit': sessions_at_limit,
+                'max_history_turns_per_session': self.max_history_turns
             }
     
     def list_sessions(self) -> List[Dict[str, Any]]:
@@ -204,7 +293,8 @@ def get_session_manager() -> SessionManager:
 
 def create_session() -> str:
     """Convenience function to create a new session"""
-    return get_session_manager().create_session()
+    session_id, _ = get_session_manager().create_session()
+    return session_id
 
 
 def get_session(session_id: str) -> Optional[SessionData]:

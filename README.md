@@ -54,11 +54,26 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 #### Session Management
 - **User Isolation**: Each user gets a unique session ID ensuring conversation privacy
+- **Cryptographically Secure IDs**: 32-character hex strings using UUID4 + timestamp + secure random bytes
+- **Session Ownership Validation**: Users can only access and delete their own sessions
+- **Rate Limiting**: Anti-enumeration protection with different limits per endpoint type
 - **Conversation Context**: Maintains conversation history within sessions for better continuity
-- **Automatic Expiry**: Sessions expire after 60 minutes of inactivity with automatic cleanup
+- **Automatic Expiry**: Sessions expire after 60 minutes of inactivity with automatic cleanup (configurable via SESSION_TTL_MINUTES environment variable)
 - **No Authentication Required**: Sessions are created automatically without user registration
-- **Browser Persistence**: Session IDs stored in HTTP-only cookies for seamless experience
+- **Browser Persistence**: Session IDs stored in HTTP-only cookies with Secure and SameSite=Lax attributes for seamless experience
+- **Security Logging**: Comprehensive logging of all session access attempts and violations
+- **Attack Prevention**: Protects against hijacking, enumeration, CSRF, and cross-user access
 - **Memory Management**: Expired sessions are automatically cleaned up to prevent memory leaks
+
+#### Admin Security System
+- **Token-Based Authentication**: Secure bearer token authentication for admin access
+- **PBKDF2 Password Hashing**: 100,000 iterations with cryptographically secure salt
+- **Session Management**: Time-based token expiry (24h) and inactivity timeout (30min)
+- **Brute Force Protection**: Login delays and comprehensive attempt logging
+- **IP Address Monitoring**: All admin activities logged with client IP addresses
+- **Endpoint Protection**: All admin endpoints require valid authentication
+- **Secure Token Generation**: 256-bit entropy tokens with automatic cleanup
+- **Production Ready**: Configurable credentials and enterprise-grade security
 
 ## 📋 Prerequisites
 
@@ -111,6 +126,8 @@ For production deployments, install without development dependencies:
 ```bash
 pip install .
 ```
+
+**Note**: Use `pip install -e .` (editable install) for development work where you need code changes to be immediately reflected, while `pip install .` (non-editable) is suitable for production deployments where the code is stable.
 
 ### Benefits of Editable Installation
 
@@ -199,11 +216,52 @@ python src/web/bitcoin_assistant_ui.py
 
 ### Session Management Endpoints
 
-- `POST /session/new` - Create a new session
-- `GET /session/{session_id}` - Get session information and conversation history
-- `DELETE /session/{session_id}` - Delete a specific session
-- `GET /sessions/stats` - Get session statistics
-- `POST /sessions/cleanup` - Force cleanup of expired sessions
+- `POST /session/new` - Create a new session (rate limited: 10/min per IP)
+- `GET /session/{session_id}` - Get session information (requires ownership, rate limited: 20/min per IP)
+- `DELETE /session/{session_id}` - Delete a session (requires ownership, rate limited: 5/min per IP)
+
+### Admin Endpoints (Authentication Required)
+
+- `POST /admin/login` - Admin authentication
+- `POST /admin/logout` - Revoke admin session
+- `GET /admin/sessions/stats` - Get session statistics (admin only)
+- `GET /admin/sessions/rate-limits` - Get rate limiter statistics (admin only)
+- `POST /admin/sessions/cleanup` - Force cleanup expired sessions (admin only)
+- `GET /admin/sessions/list` - List all active sessions (admin only)
+- `DELETE /admin/sessions/{session_id}` - Force delete any session (admin only)
+- `GET /admin/auth/stats` - Get admin authentication statistics (admin only)
+- `GET /admin/health` - Admin health check (admin only)
+
+#### Session Security
+
+Session endpoints include comprehensive security measures:
+
+**Authentication & Authorization:**
+- **HTTP-only Cookies**: Secure session identification
+- **Ownership Validation**: Users can only access/delete their own sessions
+- **Cross-User Protection**: Prevents unauthorized session access
+
+**Rate Limiting (Anti-Enumeration):**
+- **Session Info**: 20 requests per minute per IP
+- **Session Delete**: 5 requests per minute per IP  
+- **Session Create**: 10 requests per minute per IP
+
+**Cryptographically Secure Session IDs:**
+- **Multiple Entropy Sources**: UUID4 + nanosecond timestamp + secure random bytes
+- **SHA-256 Hashing**: 32-character hex strings for consistent format
+- **Collision Detection**: Automatic regeneration on extremely rare collisions
+
+**Security Logging:**
+- **Access Attempts**: All session access attempts logged with IP addresses
+- **Rate Limit Violations**: Automatic logging of suspicious activity
+- **Ownership Violations**: Detailed logging of unauthorized access attempts
+
+**Error Handling:**
+- `401 Unauthorized`: Missing or empty session cookie
+- `403 Forbidden`: Session ownership violation
+- `404 Not Found`: Session doesn't exist or expired
+- `429 Too Many Requests`: Rate limit exceeded
+- `500 Internal Server Error`: Server-side security errors
 
 ### Query Example
 
@@ -212,7 +270,7 @@ curl -X POST "http://localhost:8000/query" \
      -H "Content-Type: application/json" \
      -d '{
        "question": "What is Bitcoin?",
-       "session_id": "optional-session-id"
+       "session_id": "optional-session-id"  // Optional: omit to create new session
      }'
 ```
 
@@ -232,14 +290,39 @@ Response:
 ### Session Management Examples
 
 ```bash
-# Create a new session
-curl -X POST "http://localhost:8000/session/new"
+# Create a new session (returns session cookie)
+curl -c cookies.txt -X POST "http://localhost:8000/session/new"
 
-# Get session information
-curl "http://localhost:8000/session/{session_id}"
+# Get session information (requires session cookie)
+curl -b cookies.txt "http://localhost:8000/session/{session_id}"
 
-# Get session statistics
-curl "http://localhost:8000/sessions/stats"
+# Delete session (requires session cookie and ownership)
+curl -b cookies.txt -X DELETE "http://localhost:8000/session/{session_id}"
+
+# Attempting to access another user's session returns 403 Forbidden
+curl -b other_cookies.txt "http://localhost:8000/session/{different_session_id}"
+```
+
+### Admin API Examples
+
+```bash
+# Admin login
+curl -X POST "http://localhost:8000/admin/login" \
+     -H "Content-Type: application/json" \
+     -d '{"username": "admin", "password": "your_password"}'
+
+# Get session statistics (admin only)
+curl -H "Authorization: Bearer your_admin_token" \
+     "http://localhost:8000/admin/sessions/stats"
+
+# Force cleanup expired sessions (admin only)
+curl -X POST \
+     -H "Authorization: Bearer your_admin_token" \
+     "http://localhost:8000/admin/sessions/cleanup"
+
+# List all active sessions (admin only)
+curl -H "Authorization: Bearer your_admin_token" \
+     "http://localhost:8000/admin/sessions/list"
 ```
 
 ## 🎨 Web Interface Features
