@@ -44,25 +44,40 @@ def demo_session_security():
     print("\n2. 🚦 RATE LIMITING (ANTI-ENUMERATION PROTECTION)")
     print("-" * 55)
     
+    # Reset rate limiter state for clean demo run
     rate_limiter = SessionRateLimiter()
     test_ip = "192.168.1.100"
+    
+    # Clear any existing rate limit state for demo IP
+    try:
+        rate_limiter.reset_ip_limits(test_ip)
+        print("   ✅ Rate limiter state reset for clean demo")
+    except AttributeError:
+        # If reset method doesn't exist, create fresh instance
+        rate_limiter = SessionRateLimiter()
+        print("   ✅ Fresh rate limiter instance created")
     
     print("   Testing session info endpoint rate limiting (20/min):")
     allowed_count = 0
     denied_count = 0
     
     for i in range(25):
-        allowed = rate_limiter.check_session_info_limit(test_ip)
-        if allowed:
-            allowed_count += 1
-        else:
+        try:
+            allowed = rate_limiter.check_session_info_limit(test_ip)
+            if allowed:
+                allowed_count += 1
+            else:
+                denied_count += 1
+            
+            if i < 3 or i >= 22:  # Show first 3 and last 3
+                status = "✅ Allowed" if allowed else "❌ Denied"
+                print(f"   • Request {i+1:2d}: {status}")
+            elif i == 3:
+                print("   • ... (requests 4-22) ...")
+                
+        except Exception as e:
+            print(f"   • Request {i+1:2d}: ❌ Error - {str(e)}")
             denied_count += 1
-        
-        if i < 3 or i >= 22:  # Show first 3 and last 3
-            status = "✅ Allowed" if allowed else "❌ Denied"
-            print(f"   • Request {i+1:2d}: {status}")
-        elif i == 3:
-            print("   • ... (requests 4-22) ...")
     
     print(f"\n   📊 Results: {allowed_count} allowed, {denied_count} denied")
     print(f"   ✅ Rate limiting prevents session enumeration attacks")
@@ -116,6 +131,8 @@ def demo_session_security():
     
     print("\n4. 📝 SECURITY LOGGING & MONITORING")
     print("-" * 55)
+
+    print("   Simulating ownership validation logic:")
     
     print("   Security events automatically logged:")
     print("   • ✅ Session creation with IP address")
@@ -124,6 +141,14 @@ def demo_session_security():
     print("   • ✅ Ownership validation failures")
     print("   • ✅ Session enumeration attempts")
     print("   • ✅ Suspicious activity patterns")
+    
+    print("\n   Example security log entries:")
+    print("   • [2024-01-01 10:00:00] Session created: sess_abc123 from 192.168.1.100")
+    print("   • [2024-01-01 10:00:01] Rate limit exceeded: 192.168.1.100")
+    print("   • [2024-01-01 10:00:02] Ownership validation failed: sess_abc123 != sess_def456")
+    print("   • [2024-01-01 10:00:03] Session access granted: sess_abc123 from 192.168.1.100")
+    print("   • [2024-01-01 10:00:04] Suspicious enumeration attempt: 192.168.1.101")
+    print("   • [2024-01-01 10:00:05] Session expired: sess_abc123 after 30 minutes")
     
     print("\n5. 🎯 ATTACK PREVENTION SUMMARY")
     print("-" * 55)
@@ -146,17 +171,29 @@ def demo_session_security():
     print("-" * 55)
     
     # Get rate limiter stats
-    stats = rate_limiter.get_all_stats()
-    
-    print("   Current rate limiter status:")
-    for endpoint, stat in stats.items():
-        endpoint_name = endpoint.replace('_', ' ').title()
-        clients = stat['active_clients']
-        requests = stat['total_active_requests']
-        max_req = stat['max_requests_per_window']
-        window = stat['window_seconds']
-        
-        print(f"   • {endpoint_name:15s}: {clients} clients, {requests}/{max_req} requests per {window}s")
+    try:
+        stats = rate_limiter.get_all_stats()
+        print("   Current rate limiter status:")
+        for endpoint, stat in stats.items():
+        # ... existing logic
+    except Exception as e:
+        print(f"   Error retrieving rate limiter stats: {e}")
+    try:
+        session_stats = manager.get_session_stats()
+        # ... existing logic  
+    except Exception as e:
+        print(f"   Error retrieving session stats: {e}")
+            endpoint_name = endpoint.replace('_', ' ').title()
+            clients = stat['active_clients']
+            requests = stat['total_active_requests']
+            max_req = stat['max_requests_per_window']
+            window = stat['window_seconds']
+            
+            print(f"   • {endpoint_name:15s}: {clients} clients, "
+                  f"{requests}/{max_req} requests per {window}s")
+    except Exception as e:
+        print(f"   ❌ Error retrieving rate limiter stats: {str(e)}")
+        print("   • Rate limiter may not be properly initialized")
     
     # Session manager stats
     session_stats = manager.get_session_stats()

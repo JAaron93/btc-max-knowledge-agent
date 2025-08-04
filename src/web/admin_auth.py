@@ -4,17 +4,16 @@ Admin Authentication and Authorization
 Provides secure access control for administrative endpoints
 """
 
+import asyncio
+import logging
 import os
 import secrets
-import hashlib
-import hmac
-import time
-import logging
-from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
-from fastapi import HTTPException, Header, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from fastapi import Header, HTTPException, Request
 
 logger = logging.getLogger(__name__)
 
@@ -22,143 +21,237 @@ logger = logging.getLogger(__name__)
 ADMIN_TOKEN_EXPIRY_HOURS = 24
 ADMIN_SESSION_TIMEOUT_MINUTES = 30
 
+# Rate limiting configuration
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 15
+
 
 class AdminAuthenticator:
     """Handles admin authentication and authorization"""
-    
+
     def __init__(self):
         # Load admin credentials from environment
         self.admin_username = os.getenv("ADMIN_USERNAME", "admin")
         self.admin_password_hash = os.getenv("ADMIN_PASSWORD_HASH")
         self.admin_secret_key = os.getenv("ADMIN_SECRET_KEY")
-        
+
         # Generate secret key if not provided (for development)
         if not self.admin_secret_key:
             self.admin_secret_key = secrets.token_hex(32)
-            logger.warning("Admin secret key not configured, using generated key (development only)")
-        
-        # Generate default password hash if not provided (for development)
+            logger.warning(
+                "Admin secret key not configured, using generated key (development only)"
+            )
+
+        # Validate admin password hash is configured
         if not self.admin_password_hash:
-            default_password = "admin123"  # Change this in production!
-            self.admin_password_hash = self._hash_password(default_password)
-            logger.warning(f"Admin password not configured, using default password '{default_password}' (CHANGE IN PRODUCTION!)")
-        
+            error_msg = (
+                "Admin password hash not configured. "
+                "Set ADMIN_PASSWORD_HASH environment variable or run: "
+                "python3 scripts/generate_admin_hash.py"
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
         # Active admin sessions (in-memory for simplicity)
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        
+
+        # Rate limiting tracking
+        self.failed_attempts: Dict[str, Dict[str, Any]] = {}
+
+        # Argon2id password hasher (OWASP recommended)
+        self.password_hasher = PasswordHasher()
+
+        # Background cleanup task
+        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_interval_minutes = 5  # Run cleanup every 5 minutes
+
         logger.info("AdminAuthenticator initialized")
-    
+
     def _hash_password(self, password: str) -> str:
-        """Hash password using PBKDF2 with salt"""
-        salt = secrets.token_bytes(32)
-        pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
-        return salt.hex() + ':' + pwdhash.hex()
-    
+        """Hash password using Argon2id (OWASP recommended)"""
+        return self.password_hasher.hash(password)
+
     def _verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify password against hash"""
+        """Verify password against Argon2id hash"""
         try:
-            salt_hex, pwdhash_hex = password_hash.split(':')
-            salt = bytes.fromhex(salt_hex)
-            pwdhash = bytes.fromhex(pwdhash_hex)
-            
-            # Hash the provided password with the same salt
-            test_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
-            
-            # Use constant-time comparison to prevent timing attacks
-            return hmac.compare_digest(pwdhash, test_hash)
-        except (ValueError, TypeError):
+            self.password_hasher.verify(password_hash, password)
+            return True
+        except VerifyMismatchError:
             return False
-    
-    def authenticate_admin(self, username: str, password: str, client_ip: str) -> Optional[str]:
+
+    def _is_ip_locked_out(self, client_ip: str) -> bool:
+        """Check if an IP address is currently locked out"""
+        if client_ip not in self.failed_attempts:
+            return False
+
+        attempt_data = self.failed_attempts[client_ip]
+
+        # Check if lockout has expired
+        if "locked_until" in attempt_data:
+            if datetime.now() > attempt_data["locked_until"]:
+                # Lockout expired, clear the record
+                del self.failed_attempts[client_ip]
+                return False
+            return True
+
+        return False
+
+    def _record_failed_attempt(self, client_ip: str):
+        """Record a failed login attempt for an IP address"""
+        now = datetime.now()
+
+        if client_ip not in self.failed_attempts:
+            self.failed_attempts[client_ip] = {
+                "count": 1,
+                "first_attempt": now,
+                "last_attempt": now,
+            }
+        else:
+            self.failed_attempts[client_ip]["count"] += 1
+            self.failed_attempts[client_ip]["last_attempt"] = now
+
+        attempt_data = self.failed_attempts[client_ip]
+
+        # Check if we should lock out this IP
+        if attempt_data["count"] >= MAX_LOGIN_ATTEMPTS:
+            lockout_until = now + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+            attempt_data["locked_until"] = lockout_until
+            logger.warning(
+                f"IP {client_ip} locked out after {attempt_data['count']} "
+                f"failed attempts. Lockout until: {lockout_until}"
+            )
+        else:
+            logger.warning(
+                f"Failed login attempt {attempt_data['count']}/{MAX_LOGIN_ATTEMPTS} "
+                f"from IP {client_ip}"
+            )
+
+    def _clear_failed_attempts(self, client_ip: str):
+        """Clear failed login attempts for an IP address after successful login"""
+        if client_ip in self.failed_attempts:
+            del self.failed_attempts[client_ip]
+            logger.debug(f"Cleared failed login attempts for IP {client_ip}")
+
+    def authenticate_admin(
+        self, username: str, password: str, client_ip: str
+    ) -> Optional[str]:
         """
         Authenticate admin user and return session token
-        
+
         Args:
             username: Admin username
             password: Admin password
             client_ip: Client IP address for logging
-            
+
         Returns:
             Session token if authentication successful, None otherwise
         """
-        # Verify credentials
-        if username != self.admin_username or not self._verify_password(password, self.admin_password_hash):
-            logger.warning(f"Failed admin login attempt from IP {client_ip} with username '{username}'")
+        # Check if IP is locked out due to too many failed attempts
+        if self._is_ip_locked_out(client_ip):
+            logger.warning(f"Login attempt from locked out IP {client_ip}")
             return None
-        
+
+        # Verify credentials
+        if username != self.admin_username or not self._verify_password(
+            password, self.admin_password_hash
+        ):
+            self._record_failed_attempt(client_ip)
+            logger.warning(
+                f"Failed admin login attempt from IP {client_ip} with username '{username}'"
+            )
+            return None
+
+        # Clear any previous failed attempts on successful login
+        self._clear_failed_attempts(client_ip)
+
         # Generate secure session token
         session_token = secrets.token_urlsafe(32)
-        
+
         # Store session info
         self.active_sessions[session_token] = {
             "username": username,
             "client_ip": client_ip,
             "created_at": datetime.now(),
             "last_activity": datetime.now(),
-            "expires_at": datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS)
+            "expires_at": datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS),
         }
-        
-        logger.info(f"Admin user '{username}' authenticated successfully from IP {client_ip}")
+
+        logger.info(
+            f"Admin user '{username}' authenticated successfully from IP {client_ip}"
+        )
         return session_token
-    
+
     def validate_admin_session(self, token: str, client_ip: str) -> bool:
         """
         Validate admin session token
-        
+
         Args:
             token: Session token
             client_ip: Client IP address
-            
+
         Returns:
             True if session is valid, False otherwise
         """
+        # Clean up expired sessions before validation
+        self.cleanup_expired_sessions()
+
         if not token or token not in self.active_sessions:
             logger.warning(f"Invalid admin session token from IP {client_ip}")
             return False
-        
+
         session = self.active_sessions[token]
         now = datetime.now()
-        
+
         # Check if session has expired
         if now > session["expires_at"]:
-            logger.info(f"Admin session expired for user '{session['username']}' from IP {client_ip}")
+            logger.info(
+                f"Admin session expired for user '{session['username']}' from IP {client_ip}"
+            )
             del self.active_sessions[token]
             return False
-        
+
         # Check session timeout (inactivity)
-        if now > session["last_activity"] + timedelta(minutes=ADMIN_SESSION_TIMEOUT_MINUTES):
-            logger.info(f"Admin session timed out for user '{session['username']}' from IP {client_ip}")
+        if now > session["last_activity"] + timedelta(
+            minutes=ADMIN_SESSION_TIMEOUT_MINUTES
+        ):
+            logger.info(
+                f"Admin session timed out for user '{session['username']}' from IP {client_ip}"
+            )
             del self.active_sessions[token]
             return False
-        
+
         # Check IP consistency (optional security measure)
         if session["client_ip"] != client_ip:
-            logger.warning(f"Admin session IP mismatch: expected {session['client_ip']}, got {client_ip}")
+            logger.warning(
+                f"Admin session IP mismatch: expected {session['client_ip']}, got {client_ip}"
+            )
             # Don't fail here as IPs can change legitimately, but log for monitoring
-        
+
         # Update last activity
         session["last_activity"] = now
-        
+
         return True
-    
+
     def revoke_admin_session(self, token: str, client_ip: str) -> bool:
         """
         Revoke admin session
-        
+
         Args:
             token: Session token to revoke
             client_ip: Client IP address
-            
+
         Returns:
             True if session was revoked, False if not found
         """
         if token in self.active_sessions:
             session = self.active_sessions[token]
-            logger.info(f"Admin session revoked for user '{session['username']}' from IP {client_ip}")
+            logger.info(
+                f"Admin session revoked for user '{session['username']}' from IP {client_ip}"
+            )
             del self.active_sessions[token]
             return True
         return False
-    
+
     def get_admin_session_info(self, token: str) -> Optional[Dict[str, Any]]:
         """Get admin session information"""
         if token in self.active_sessions:
@@ -169,45 +262,168 @@ class AdminAuthenticator:
             session["expires_at"] = session["expires_at"].isoformat()
             return session
         return None
-    
+
     def cleanup_expired_sessions(self):
-        """Clean up expired admin sessions"""
+        """Clean up expired admin sessions and lockouts"""
         now = datetime.now()
         expired_tokens = []
-        
+
+        # Clean up expired sessions
         for token, session in self.active_sessions.items():
-            if (now > session["expires_at"] or 
-                now > session["last_activity"] + timedelta(minutes=ADMIN_SESSION_TIMEOUT_MINUTES)):
+            if now > session["expires_at"] or now > session[
+                "last_activity"
+            ] + timedelta(minutes=ADMIN_SESSION_TIMEOUT_MINUTES):
                 expired_tokens.append(token)
-        
+
         for token in expired_tokens:
             session = self.active_sessions[token]
-            logger.info(f"Cleaning up expired admin session for user '{session['username']}'")
+            logger.info(
+                f"Cleaning up expired admin session for user '{session['username']}'"
+            )
             del self.active_sessions[token]
-        
+
+        # Clean up expired lockouts
+        expired_ips = []
+        for ip, attempt_data in self.failed_attempts.items():
+            if "locked_until" in attempt_data and now > attempt_data["locked_until"]:
+                expired_ips.append(ip)
+
+        for ip in expired_ips:
+            logger.info(f"Cleaning up expired lockout for IP {ip}")
+            del self.failed_attempts[ip]
+
         return len(expired_tokens)
-    
+
     def get_admin_stats(self) -> Dict[str, Any]:
         """Get admin authentication statistics"""
         active_sessions = len(self.active_sessions)
-        
+
         # Get session details
         sessions_info = []
         for token, session in self.active_sessions.items():
-            sessions_info.append({
-                "username": session["username"],
-                "client_ip": session["client_ip"],
-                "created_at": session["created_at"].isoformat(),
-                "last_activity": session["last_activity"].isoformat(),
-                "expires_at": session["expires_at"].isoformat()
-            })
-        
+            sessions_info.append(
+                {
+                    "username": session["username"],
+                    "client_ip": session["client_ip"],
+                    "created_at": session["created_at"].isoformat(),
+                    "last_activity": session["last_activity"].isoformat(),
+                    "expires_at": session["expires_at"].isoformat(),
+                }
+            )
+
+        # Get rate limiting info
+        locked_ips = []
+        failed_attempts_info = []
+        now = datetime.now()
+
+        for ip, attempt_data in self.failed_attempts.items():
+            if "locked_until" in attempt_data:
+                if now < attempt_data["locked_until"]:
+                    locked_ips.append(
+                        {
+                            "ip": ip,
+                            "locked_until": attempt_data["locked_until"].isoformat(),
+                            "failed_attempts": attempt_data["count"],
+                        }
+                    )
+            else:
+                failed_attempts_info.append(
+                    {
+                        "ip": ip,
+                        "failed_attempts": attempt_data["count"],
+                        "first_attempt": attempt_data["first_attempt"].isoformat(),
+                        "last_attempt": attempt_data["last_attempt"].isoformat(),
+                    }
+                )
+
         return {
             "active_admin_sessions": active_sessions,
             "session_timeout_minutes": ADMIN_SESSION_TIMEOUT_MINUTES,
             "token_expiry_hours": ADMIN_TOKEN_EXPIRY_HOURS,
-            "sessions": sessions_info
+            "sessions": sessions_info,
+            "rate_limiting": {
+                "max_login_attempts": MAX_LOGIN_ATTEMPTS,
+                "lockout_duration_minutes": LOCKOUT_DURATION_MINUTES,
+                "locked_ips": locked_ips,
+                "failed_attempts": failed_attempts_info,
+            },
         }
+
+    def simulate_session_expiry(self, token: str) -> bool:
+        """
+        Simulate session expiry for demo purposes
+
+        Args:
+            token: Session token to expire
+
+        Returns:
+            True if session was found and expired, False otherwise
+        """
+        if token in self.active_sessions:
+            # Set expiry time to 1 hour ago
+            expired_time = datetime.now() - timedelta(hours=1)
+            self.active_sessions[token]["expires_at"] = expired_time
+            logger.info(f"Simulated session expiry for demo purposes: {token[:16]}...")
+            return True
+        return False
+
+    def unlock_ip(self, client_ip: str) -> bool:
+        """
+        Manually unlock an IP address (admin function)
+
+        Args:
+            client_ip: IP address to unlock
+
+        Returns:
+            True if IP was unlocked, False if not found or not locked
+        """
+        if client_ip in self.failed_attempts:
+            del self.failed_attempts[client_ip]
+            logger.info(f"Manually unlocked IP address: {client_ip}")
+            return True
+        return False
+
+    async def _background_cleanup_task(self):
+        """Background task to periodically clean up expired sessions"""
+        while True:
+            try:
+                await asyncio.sleep(
+                    self._cleanup_interval_minutes * 60
+                )  # Convert to seconds
+                expired_count = self.cleanup_expired_sessions()
+                if expired_count > 0:
+                    logger.info(
+                        f"Background cleanup removed {expired_count} expired admin sessions"
+                    )
+                else:
+                    logger.debug("Background cleanup found no expired admin sessions")
+            except asyncio.CancelledError:
+                logger.info("Admin session background cleanup task cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Error in admin session background cleanup: {e}")
+                # Continue running despite errors
+
+    def start_background_cleanup(self):
+        """Start the background cleanup task"""
+        if self._cleanup_task is None or self._cleanup_task.done():
+            try:
+                loop = asyncio.get_event_loop()
+                self._cleanup_task = loop.create_task(self._background_cleanup_task())
+                logger.info(
+                    f"Started admin session background cleanup task (interval: {self._cleanup_interval_minutes} minutes)"
+                )
+            except RuntimeError:
+                # No event loop running, this is expected in some contexts
+                logger.warning(
+                    "Cannot start background cleanup task: no event loop running"
+                )
+
+    def stop_background_cleanup(self):
+        """Stop the background cleanup task"""
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+            logger.info("Stopped admin session background cleanup task")
 
 
 # Global admin authenticator instance
@@ -223,50 +439,54 @@ def get_admin_authenticator() -> AdminAuthenticator:
 
 
 async def verify_admin_access(
-    request: Request,
-    authorization: Optional[str] = Header(None)
+    request: Request, authorization: Optional[str] = Header(None)
 ) -> bool:
     """
     Dependency to verify admin access
-    
+
     Args:
         request: FastAPI request object
         authorization: Authorization header
-        
+
     Returns:
         True if admin access is valid
-        
+
     Raises:
         HTTPException: If access is denied
     """
     client_ip = request.client.host if request.client else "unknown"
-    
+
     # Check for authorization header
     if not authorization:
-        logger.warning(f"Admin access attempt without authorization header from IP {client_ip}")
+        logger.warning(
+            f"Admin access attempt without authorization header from IP {client_ip}"
+        )
         raise HTTPException(
             status_code=401,
             detail="Admin access requires authorization header",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Extract bearer token
     if not authorization.startswith("Bearer "):
-        logger.warning(f"Admin access attempt with invalid authorization format from IP {client_ip}")
+        logger.warning(
+            f"Admin access attempt with invalid authorization format from IP {client_ip}"
+        )
         raise HTTPException(
             status_code=401,
             detail="Invalid authorization format. Use 'Bearer <token>'",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     token = authorization[7:]  # Remove "Bearer " prefix
-    
+
     # Validate admin session
     authenticator = get_admin_authenticator()
     if not authenticator.validate_admin_session(token, client_ip):
         raise HTTPException(
-            status_code=403,
-            detail="Invalid or expired admin session"
+            status_code=401,
+            detail="Invalid or expired admin session",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return True

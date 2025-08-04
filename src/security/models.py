@@ -5,12 +5,15 @@ This module defines all data structures used throughout the security system,
 including events, results, configurations, and supporting enums.
 """
 
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, List, Optional, Union, TypedDict
 import uuid
+import logging
 
+logger = logging.getLogger(__name__)
 
 class SecurityEventType(Enum):
     """
@@ -159,13 +162,22 @@ def get_contextual_severity_for_event_type(
 
         # Validate threshold values
         if not isinstance(threshold_high, (int, float)) or threshold_high <= 0:
-            # Log warning about invalid threshold_high
+            logger.warning(
+                "Invalid threshold_high value in rate limit context: %s (type: %s). Using default: 50", 
+                threshold_high, type(threshold_high).__name__
+            )
             threshold_high = 50  # fallback to default
         if not isinstance(threshold_low, (int, float)) or threshold_low <= 0:
-            # Log warning about invalid threshold_low
+            logger.warning(
+                "Invalid threshold_low value in rate limit context: %s (type: %s). Using default: 5",
+                threshold_low, type(threshold_low).__name__
+            )
             threshold_low = 5   # fallback to default
         if threshold_low >= threshold_high:
-            # Log warning about invalid threshold relationship
+            logger.warning(
+                "Invalid threshold relationship: threshold_low (%s) >= threshold_high (%s). Resetting to defaults (5, 50)", 
+                threshold_low, threshold_high
+            )
             threshold_low, threshold_high = 5, 50  # reset to safe defaults
 
         if frequency == 'high' or attempt_count > threshold_high:

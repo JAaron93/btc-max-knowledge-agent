@@ -18,12 +18,14 @@ jobs:
           python-version: "3.8"
           extras: "dev"
       
-      - name: Run linting
-        run: |
-          # Linting runs as fast-fail gate before tests
-          black --check src/ tests/
-          pylint src/
-          isort --check-only src/ tests/
+      - name: Check code formatting with Black
+        run: black --check src/ tests/
+      
+      - name: Run static analysis with Pylint
+        run: pylint src/
+      
+      - name: Check import sorting with isort
+        run: isort --check-only src/ tests/
 
   test:
     runs-on: ubuntu-latest

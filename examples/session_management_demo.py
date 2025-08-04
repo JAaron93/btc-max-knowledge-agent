@@ -93,6 +93,7 @@ def demo_session_management():
             print(f"   👤 {user}: {history_length} turns (expected: {expected_length}) ✅")
         else:
             print(f"   👤 {user}: {history_length} turns (expected: {expected_length}) ❌ ISOLATION FAILED")
+            # Consider if demo should exit here or continue with degraded functionality
     
     print("\n6. Demonstrating session expiry...")
     

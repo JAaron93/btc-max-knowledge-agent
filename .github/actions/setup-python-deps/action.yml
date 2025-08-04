@@ -13,14 +13,22 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set up Python
+    - name: Set up Python ${{ inputs.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ inputs.python-version }}
         cache: "pip"
+        # Include both dependency files and lock files to ensure cache invalidation
+        # when dependencies are updated across different package managers
         cache-dependency-path: |
           **/requirements*.txt
           **/pyproject.toml
+          **/poetry.lock
+          **/requirements.lock
+          **/Pipfile.lock
+          **/uv.lock
+          **/pdm.lock
+          **/pixi.lock
     
     - name: Install dependencies
       shell: bash
@@ -28,8 +36,9 @@ runs:
         set -euo pipefail
         python -m pip install --upgrade pip
         # Install the project in development mode - eliminates path hacks
-        if [ -n "${{ inputs.extras }}" ]; then
-          pip install -e ".[${{ inputs.extras }}]"
+        extras="$(echo "${{ inputs.extras }}" | tr -d '[:space:]')"
+        if [ -n "$extras" ]; then
+          pip install -e ".[${extras}]"
         else
           pip install -e .
         fi

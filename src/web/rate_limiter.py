@@ -6,7 +6,7 @@ Provides protection against enumeration attacks and abuse
 
 import time
 import threading
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from collections import defaultdict, deque
 import logging
 
@@ -24,6 +24,11 @@ class RateLimiter:
             max_requests: Maximum requests allowed per window
             window_seconds: Time window in seconds
         """
+        if max_requests <= 0:
+            raise ValueError("max_requests must be positive")
+        if window_seconds <= 0:
+            raise ValueError("window_seconds must be positive")
+        
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self._requests: Dict[str, deque] = defaultdict(deque)
@@ -58,7 +63,12 @@ class RateLimiter:
             while client_requests and client_requests[0] < cutoff_time:
                 client_requests.popleft()
             
-            # Check if under limit
+                import hashlib
+                client_hash = hashlib.sha256(client_id.encode()).hexdigest()[:8]
+                logger.warning(
+                    f"Rate limit exceeded for client {client_hash}: "
+                    f"{len(client_requests)} requests in {self.window_seconds}s"
+                )
             if len(client_requests) < self.max_requests:
                 client_requests.append(current_time)
                 return True
@@ -86,7 +96,7 @@ class RateLimiter:
         if clients_to_remove:
             logger.debug(f"Cleaned up {len(clients_to_remove)} inactive client entries")
     
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> Dict[str, Any]:
         """Get rate limiter statistics"""
         with self._lock:
             active_clients = len(self._requests)
@@ -121,7 +131,7 @@ class SessionRateLimiter:
         """Check rate limit for session create requests"""
         return self.session_create_limiter.is_allowed(f"create_{client_ip}")
     
-    def get_all_stats(self) -> Dict[str, any]:
+    def get_all_stats(self) -> Dict[str, Any]:
         """Get statistics for all rate limiters"""
         return {
             "session_info": self.session_info_limiter.get_stats(),
@@ -134,9 +144,14 @@ class SessionRateLimiter:
 _session_rate_limiter: Optional[SessionRateLimiter] = None
 
 
+import threading
+_session_rate_limiter_lock = threading.Lock()
+
 def get_session_rate_limiter() -> SessionRateLimiter:
     """Get the global session rate limiter instance"""
     global _session_rate_limiter
     if _session_rate_limiter is None:
-        _session_rate_limiter = SessionRateLimiter()
+        with _session_rate_limiter_lock:
+            if _session_rate_limiter is None:
+                _session_rate_limiter = SessionRateLimiter()
     return _session_rate_limiter

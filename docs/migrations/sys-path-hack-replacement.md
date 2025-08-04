@@ -1,4 +1,4 @@
-# Completion Summary: sys.path Hack Replacement
+# Completion Summary: `sys.path` Hack Replacement
 
 ## Overview
 

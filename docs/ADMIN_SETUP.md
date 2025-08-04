@@ -10,7 +10,7 @@ Add these environment variables to your `.env` file:
 # Admin Authentication Configuration
 ADMIN_USERNAME=your_admin_username
 ADMIN_PASSWORD_HASH=your_hashed_password
-ADMIN_SECRET_KEY=your_secret_key_32_chars_minimum
+ADMIN_SECRET_KEY=your_secret_key_64_hex_characters_32_bytes
 
 # Optional: Admin session configuration
 ADMIN_TOKEN_EXPIRY_HOURS=24
@@ -19,6 +19,11 @@ ADMIN_SESSION_TIMEOUT_MINUTES=30
 
 ## Password Hash Generation
 
+**Requirements**: Install the argon2-cffi library:
+```bash
+pip install argon2-cffi
+```
+
 To generate a secure password hash, use the provided utility:
 
 ```python
@@ -26,14 +31,13 @@ To generate a secure password hash, use the provided utility:
 """Generate admin password hash"""
 
 import secrets
-import hashlib
 import getpass
+from argon2 import PasswordHasher
 
 def hash_password(password: str) -> str:
-    """Hash password using PBKDF2 with salt"""
-    salt = secrets.token_bytes(32)
-    pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
-    return salt.hex() + ':' + pwdhash.hex()
+    """Hash password using Argon2id (OWASP recommended)"""
+    hasher = PasswordHasher()
+    return hasher.hash(password)
 
 if __name__ == "__main__":
     password = getpass.getpass("Enter admin password: ")
@@ -42,18 +46,28 @@ if __name__ == "__main__":
     print(f"\nAdd this to your .env file:")
     print(f"ADMIN_PASSWORD_HASH={password_hash}")
     
-    # Generate secret key
+    # Generate secret key (64 hex characters = 32 bytes)
     secret_key = secrets.token_hex(32)
     print(f"ADMIN_SECRET_KEY={secret_key}")
 ```
 
-## Quick Setup (Development Only)
+## Credential Setup (All Environments)
 
-For development, you can use the default credentials:
-- Username: `admin`
-- Password: `admin123`
+**🔒 Security Best Practice**: Always generate unique credentials for each environment.
 
-**⚠️ WARNING: Change these credentials in production!**
+Run the credential generator script to create secure admin credentials:
+
+```bash
+python3 scripts/generate_admin_hash.py
+```
+
+This script will:
+- Prompt you to create a secure username and password
+- Generate a cryptographically secure password hash
+- Create a random secret key
+- Optionally save credentials to `.env.admin` file with proper permissions
+
+**Never use default or weak credentials in any environment.**
 
 ## Admin API Usage
 
@@ -80,20 +94,32 @@ Response:
 
 ### 2. Use Admin Endpoints
 
-Include the token in the Authorization header:
+First, export the token to an environment variable to avoid exposing it in shell history:
+
+```bash
+# Extract token from login response (if saved to file)
+export ADMIN_TOKEN=$(jq -r '.access_token' login_response.json)
+
+# Or set it directly (replace with your actual token)
+export ADMIN_TOKEN="your_access_token_here"
+```
+
+> **Security Note**: Using environment variables prevents sensitive tokens from being stored in shell history, reducing the risk of accidental token exposure.
+
+Then use the environment variable in your curl commands:
 
 ```bash
 # Get session statistics
-curl -H "Authorization: Bearer your_access_token_here" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:8000/admin/sessions/stats"
 
 # Cleanup expired sessions
 curl -X POST \
-     -H "Authorization: Bearer your_access_token_here" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:8000/admin/sessions/cleanup"
 
 # Get rate limit statistics
-curl -H "Authorization: Bearer your_access_token_here" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:8000/admin/sessions/rate-limits"
 ```
 
@@ -101,7 +127,7 @@ curl -H "Authorization: Bearer your_access_token_here" \
 
 ```bash
 curl -X POST \
-     -H "Authorization: Bearer your_access_token_here" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:8000/admin/logout"
 ```
 
@@ -124,7 +150,7 @@ curl -X POST \
 
 ### Authentication
 - **Token-based**: Secure bearer token authentication
-- **Password Hashing**: PBKDF2 with salt (100,000 iterations)
+- **Password Hashing**: Argon2id with automatic salt generation (OWASP recommended)
 - **Session Management**: Time-based token expiry and inactivity timeout
 
 ### Authorization
@@ -142,13 +168,13 @@ curl -X POST \
 
 ### 1. Set Strong Credentials
 ```bash
-# Generate strong password hash
-python3 generate_admin_hash.py
+# Generate strong credentials using the provided script
+python3 scripts/generate_admin_hash.py
 
-# Set in production environment
-export ADMIN_USERNAME="secure_admin_username"
-export ADMIN_PASSWORD_HASH="generated_hash_from_script"
-export ADMIN_SECRET_KEY="64_character_random_hex_string"
+# The script will output environment variables like:
+export ADMIN_USERNAME="your_admin_username"
+export ADMIN_PASSWORD_HASH="$argon2id$v=19$m=65536,t=3,p=4$..."
+export ADMIN_SECRET_KEY="64_character_random_hex_string_32_bytes"
 ```
 
 ### 2. Network Security
@@ -176,7 +202,11 @@ export ADMIN_SECRET_KEY="64_character_random_hex_string"
 
 3. **Default Password Warning**
    - Set `ADMIN_PASSWORD_HASH` environment variable
-   - Use the password hash generation script
+   - Use the credential generation script: `python3 scripts/generate_admin_hash.py`
+
+4. **Invalid Secret Key Format**
+   - Ensure `ADMIN_SECRET_KEY` is exactly 64 hex characters (32 bytes)
+   - Generate with: `python3 -c "import secrets; print(secrets.token_hex(32))"`
 
 ### Debug Mode
 
@@ -189,7 +219,7 @@ logging.getLogger("src.web.admin_auth").setLevel(logging.DEBUG)
 
 ## Security Best Practices
 
-1. **Change Default Credentials**: Never use default credentials in production
+1. **Generate Unique Credentials**: Always use the credential generator script for all environments
 2. **Use Strong Passwords**: Minimum 12 characters with mixed case, numbers, symbols
 3. **Rotate Tokens**: Regularly update admin credentials
 4. **Monitor Access**: Review admin access logs regularly

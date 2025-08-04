@@ -7,7 +7,7 @@ The Bitcoin Knowledge Assistant now includes a comprehensive admin authenticatio
 ## 🛡️ Security Features Implemented
 
 ### 1. Authentication System
-- **PBKDF2 Password Hashing**: 100,000 iterations with cryptographically secure salt
+- **PBKDF2 Password Hashing**: ≥ 310,000 iterations with cryptographically secure salt
 - **Bearer Token Authentication**: Industry-standard OAuth2-style token authentication
 - **Secure Token Generation**: 256-bit entropy tokens using `secrets.token_urlsafe(32)`
 - **Time-Based Expiry**: Configurable token lifetime (default: 24 hours)
@@ -84,10 +84,10 @@ ADMIN_TOKEN_EXPIRY_HOURS=24
 ADMIN_SESSION_TIMEOUT_MINUTES=30
 ```
 
-### Default Development Credentials
-- Username: `admin`
-- Password: `pc4qTB7mSiMom!P&`
-- **⚠️ Change these in production!**
+### Credential Setup
+- Username: `<your_admin_username>`
+- Password: `<your_secure_password>`
+- **🔒 Generate unique credentials using: `python3 scripts/generate_admin_hash.py`**
 
 ## 🚀 Usage Examples
 
@@ -95,7 +95,7 @@ ADMIN_SESSION_TIMEOUT_MINUTES=30
 ```bash
 curl -X POST "http://localhost:8000/admin/login" \
      -H "Content-Type: application/json" \
-     -d '{"username": "admin", "password": "pc4qTB7mSiMom!P&"}'
+     -d '{"username": "<your_admin_username>", "password": "<your_secure_password>"}'
 ```
 
 ### 2. Access Protected Endpoint
@@ -199,6 +199,6 @@ python examples/admin_security_demo.py
 
 ## 🎯 Conclusion
 
-The admin security system provides military-grade protection for administrative functions while maintaining ease of use for legitimate administrators. The implementation follows industry best practices and is ready for enterprise production deployment.
+The admin security system provides strong, industry-standard protection for administrative functions while maintaining ease of use for legitimate administrators. The implementation follows industry best practices and is ready for enterprise production deployment.
 
 **Key Achievement**: Transformed vulnerable public endpoints into a secure, authenticated admin system with comprehensive audit trails and attack prevention measures.

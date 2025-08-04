@@ -97,8 +97,8 @@ Then run: `make lint-yaml`
 ## Common Mistakes
 
 1. **List items at wrong level**: List items (`-`) must be indented from their parent key
-2. **Inconsistent spacing**: Mixing tabs, and spaces, or inconsistent space counts
+2. **Inconsistent spacing**: Mixing tabs and spaces, or inconsistent space counts
 3. **Missing colons**: YAML keys must end with `:`
-4. **Incorrect nesting**: Child elements must be properly indented under parent
+4. **Incorrect nesting**: Child elements must be properly indented under their parent
 
 The fix applied to `tests-example.yml` corrected the list item indentation under the `steps:` key, ensuring proper YAML parsing.

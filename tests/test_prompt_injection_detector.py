@@ -468,8 +468,8 @@ class TestPromptInjectionDetector:
         assert not result.injection_detected
         
         # Test neutralization with Unicode/emoji
+        neutralized = await detector.neutralize_injection(unicode_injection)
         assert "忽略之前的指令" not in neutralized and "ignore previous instructions" not in neutralized
-        assert "忽略之前的指令" not in neutralized or "ignore previous instructions" not in neutralized
     
     @pytest.mark.asyncio
     async def test_extremely_long_inputs(self, detector, sample_context):
@@ -760,7 +760,16 @@ class TestPromptInjectionDetectorIntegration:
         actual_detections = [r.injection_detected for r in results]
         assert sum(actual_detections) == 5  # 5 malicious queries
         assert len(actual_detections) - sum(actual_detections) == 5  # 5 benign queries
-        assert actual_detections == expected_detections
+        
+        # Verify that each malicious query was detected (indices 0,2,4,6,8)
+        malicious_indices = [0, 2, 4, 6, 8]
+        for idx in malicious_indices:
+            assert actual_detections[idx], f"Failed to detect malicious query at index {idx}: {queries[idx]}"
+        
+        # Verify that each benign query was not detected (indices 1,3,5,7,9)
+        benign_indices = [1, 3, 5, 7, 9]
+        for idx in benign_indices:
+            assert not actual_detections[idx], f"False positive for benign query at index {idx}: {queries[idx]}"
         
         # Verify confidence scores are appropriate for detected injections
         for i, result in enumerate(results):

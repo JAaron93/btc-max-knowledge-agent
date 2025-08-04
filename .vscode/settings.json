@@ -37,15 +37,15 @@
     },
     // File watcher exclusions (ignore changes but keep visible in explorer)
     "files.watcherExclude": {
-        "**/__pycache__": true,
-        "**/*.pyc": true,
-        ".pytest_cache": true,
-        ".ruff_cache": true,
-        "*.egg-info": true
+        "*.egg-info": true,
+        "**/*.pyd": true,
+        "**/*.so": true,
+        "**/build": true,
+        "**/dist": true
     },
     // Auto-save and formatting on save
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true
+        "source.organizeImports": "explicit"
     }
 }

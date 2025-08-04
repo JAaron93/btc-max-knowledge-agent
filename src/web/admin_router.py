@@ -61,8 +61,11 @@ async def admin_login(request: Request, login_data: AdminLoginRequest):
     
     if not session_token:
         # Add delay to prevent brute force attacks
-        import asyncio
-        await asyncio.sleep(1)
+# At the top of src/web/admin_router.py
+import time
+import logging
+import asyncio
+from typing import Optional
         
         raise HTTPException(
             status_code=401,
@@ -76,7 +79,10 @@ async def admin_login(request: Request, login_data: AdminLoginRequest):
 
 
 @admin_router.post("/logout")
-async def admin_logout(request: Request, authorization: Optional[str] = None):
+from fastapi import Header
+
+async def admin_logout(request: Request, authorization: Optional[str] = Header(None)):
+    # ... rest of function body unchanged ...
     """Admin logout endpoint"""
     client_ip = request.client.host if request.client else "unknown"
     
@@ -88,7 +94,7 @@ async def admin_logout(request: Request, authorization: Optional[str] = None):
         if revoked:
             return {"message": "Admin session revoked successfully"}
         else:
-            return {"message": "Session not found or already expired"}
+async def get_admin_session_info(request: Request, authorization: Optional[str] = Header(None)):
     
     return {"message": "No active session to revoke"}
 
@@ -175,14 +181,11 @@ async def get_rate_limit_stats():
         
         logger.info("Admin accessed rate limit statistics")
         
+        actual_limits = rate_limiter.get_configured_limits()
         return {
             "rate_limit_stats": stats,
             "timestamp": time.time(),
-            "limits": {
-                "session_info": "20 requests per 60 seconds",
-                "session_delete": "5 requests per 60 seconds", 
-                "session_create": "10 requests per 60 seconds"
-            },
+            "limits": actual_limits,
             "admin_access": True
         }
     except Exception as e:
@@ -191,7 +194,7 @@ async def get_rate_limit_stats():
 
 
 @admin_router.get("/sessions/list")
-async def list_all_sessions():
+async def list_all_sessions(skip: int = 0, limit: int = 100):
     """List all active sessions (admin only)"""
     try:
         # Import here to avoid circular imports
@@ -200,13 +203,15 @@ async def list_all_sessions():
         if not bitcoin_service:
             raise HTTPException(status_code=503, detail="Service not initialized")
         
-        sessions = bitcoin_service.session_manager.list_sessions()
+        sessions = bitcoin_service.session_manager.list_sessions(skip=skip, limit=limit)
         
         logger.info(f"Admin accessed session list ({len(sessions)} sessions)")
         
         return {
             "sessions": sessions,
-            "total_sessions": len(sessions),
+            "displayed_sessions": len(sessions),
+            "skip": skip,
+            "limit": limit,
             "timestamp": time.time(),
             "admin_access": True
         }

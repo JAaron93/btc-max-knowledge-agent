@@ -54,7 +54,7 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 #### Session Management
 - **User Isolation**: Each user gets a unique session ID ensuring conversation privacy
-- **Cryptographically Secure IDs**: 32-character hex strings using UUID4 + timestamp + secure random bytes
+- **Cryptographically Secure IDs**: 32-character hex strings (truncated from SHA-256 hash) using UUID4 + timestamp + secure random bytes
 - **Session Ownership Validation**: Users can only access and delete their own sessions
 - **Rate Limiting**: Anti-enumeration protection with different limits per endpoint type
 - **Conversation Context**: Maintains conversation history within sessions for better continuity
@@ -67,12 +67,12 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 #### Admin Security System
 - **Token-Based Authentication**: Secure bearer token authentication for admin access
-- **PBKDF2 Password Hashing**: 100,000 iterations with cryptographically secure salt
+- **PBKDF2-HMAC-SHA-256 Password Hashing**: 100,000 iterations with cryptographically secure salt, following OWASP recommendations for password storage. Consider upgrading to Argon2id for enhanced resistance against GPU-based attacks and memory-hard properties
 - **Session Management**: Time-based token expiry (24h) and inactivity timeout (30min)
 - **Brute Force Protection**: Login delays and comprehensive attempt logging
 - **IP Address Monitoring**: All admin activities logged with client IP addresses
 - **Endpoint Protection**: All admin endpoints require valid authentication
-- **Secure Token Generation**: 256-bit entropy tokens with automatic cleanup
+- **Secure Token Generation**: 256-bit entropy tokens generated using `secrets.token_urlsafe(32)` for cryptographically secure randomness with automatic cleanup
 - **Production Ready**: Configurable credentials and enterprise-grade security
 
 ## 📋 Prerequisites
@@ -248,7 +248,8 @@ Session endpoints include comprehensive security measures:
 
 **Cryptographically Secure Session IDs:**
 - **Multiple Entropy Sources**: UUID4 + nanosecond timestamp + secure random bytes
-- **SHA-256 Hashing**: 32-character hex strings for consistent format
+- **SHA-256 Hashing**: Full 64-character hash generated, then truncated to 32 characters (128 bits of entropy)
+- **Configurable Format**: Default 32-character hex strings, customizable via SESSION_ID_LENGTH environment variable
 - **Collision Detection**: Automatic regeneration on extremely rare collisions
 
 **Security Logging:**
@@ -270,9 +271,11 @@ curl -X POST "http://localhost:8000/query" \
      -H "Content-Type: application/json" \
      -d '{
        "question": "What is Bitcoin?",
-       "session_id": "optional-session-id"  // Optional: omit to create new session
+       "session_id": "optional-session-id"
      }'
 ```
+
+The `session_id` field is optional - omit it to create a new session automatically.
 
 Response:
 ```json

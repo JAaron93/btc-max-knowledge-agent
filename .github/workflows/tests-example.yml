@@ -24,7 +24,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt', '**/setup.cfg', '**/setup.py', '**/poetry.lock', '**/Pipfile.lock') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt', '**/setup.cfg', '**/setup.py') }}
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.python-version }}-
             ${{ runner.os }}-pip-

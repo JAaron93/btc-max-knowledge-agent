@@ -4,34 +4,38 @@ Bitcoin Knowledge Assistant API using FastAPI and Pinecone Assistant
 """
 
 import asyncio
-import os
 import logging
+import os
 import time
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Header, Response, Cookie, Request
+from fastapi import Cookie, FastAPI, Header, HTTPException, Request, Response
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
 from pydantic import BaseModel, Field
 
-# Import session management
-from .session_manager import get_session_manager, SessionData
-from .rate_limiter import get_session_rate_limiter
-from .admin_router import admin_router
+from utils.audio_utils import (
+    create_gradio_streaming_audio,
+    extract_tts_content,
+    get_audio_streaming_manager,
+    prepare_audio_for_gradio,
+)
 
 # Import TTS components
-from ..utils.tts_service import get_tts_service, TTSError
-from utils.audio_utils import (
-    extract_tts_content, 
-    prepare_audio_for_gradio, 
-    get_audio_streaming_manager,
-    create_gradio_streaming_audio
-)
+from ..utils.tts_service import TTSError, get_tts_service
+from .admin_router import admin_router
+from .rate_limiter import get_session_rate_limiter
+
+# Import session management
+from .session_manager import SessionData, get_session_manager
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+# Constants
+SESSION_COOKIE_NAME = "btc_assistant_session"
 
 app = FastAPI(
     title="Bitcoin Knowledge Assistant",
@@ -40,19 +44,29 @@ app = FastAPI(
 )
 
 # Include admin router with authentication
-app.include_router(admin_router)
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
-class QueryRequest(BaseModel):
-    question: str
-    enable_tts: Optional[bool] = False
-    volume: Optional[float] = Field(
-        default=0.7,
-        ge=0.0,
-        le=1.0,
-        description="Audio volume level (0.0 to 1.0)",
-    )
-    session_id: Optional[str] = None
+@app.on_event("startup")
+async def startup_event():
+    """Initialize background tasks on application startup"""
+    from .admin_auth import get_admin_authenticator
+
+    # Start admin session cleanup background task
+    admin_auth = get_admin_authenticator()
+    admin_auth.start_background_cleanup()
+    logger.info("Application startup completed - background tasks initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up background tasks on application shutdown"""
+    from .admin_auth import get_admin_authenticator
+
+    # Stop admin session cleanup background task
+    admin_auth = get_admin_authenticator()
+    admin_auth.stop_background_cleanup()
+    logger.info("Application shutdown completed - background tasks stopped")
 
 
 class QueryResponse(BaseModel):
@@ -63,15 +77,8 @@ class QueryResponse(BaseModel):
     audio_streaming_data: Optional[Dict] = None
     tts_enabled: bool = False
     tts_cached: bool = False
--    session_id: str
--    conversation_turn: int
-+    session_id: Optional[str] = None
-+    conversation_turn: Optional[int] = None
-+    session_id: Optional[str] = None
-+    conversation_turn: Optional[int] = None
-+    session_id: Optional[str] = None
-+    conversation_turn: Optional[int] = None
-    conversation_turn: int
+    session_id: Optional[str] = None
+    conversation_turn: Optional[int] = None
 
 
 class BitcoinAssistantService:
@@ -85,10 +92,10 @@ class BitcoinAssistantService:
         # Initialize Pinecone client with assistant plugin
         self.pc = Pinecone(api_key=self.api_key)
         self.assistant = self.pc.assistant.Assistant(assistant_name=self.assistant_name)
-        
+
         # Initialize session manager
         self.session_manager = get_session_manager()
-        
+
         # Initialize TTS service and streaming manager
         try:
             self.tts_service = get_tts_service()
@@ -97,19 +104,22 @@ class BitcoinAssistantService:
             logger.warning(f"Failed to initialize TTS services: {e}")
             self.tts_service = None
             self.streaming_manager = None
-    def get_assistant_response(self, question: str, session_data: SessionData = None) -> Dict:
+
+    def get_assistant_response(
+        self, question: str, session_data: SessionData = None
+    ) -> Dict:
         """Get intelligent response from Pinecone Assistant with session context"""
         try:
             # Build conversation context from session history
             messages = []
-            
+
             if session_data:
                 # Add recent conversation context for continuity
                 context = session_data.get_conversation_context(max_turns=3)
                 for turn in context:
                     messages.append(Message(role="user", content=turn["question"]))
                     messages.append(Message(role="assistant", content=turn["answer"]))
-            
+
             # Add current question
             messages.append(Message(role="user", content=question))
 
@@ -173,79 +183,86 @@ class BitcoinAssistantService:
 
         return formatted_response
 
-    async def synthesize_response_audio(self, response_text: str, volume: float = 0.7) -> Optional[Dict[str, any]]:
+    async def synthesize_response_audio(
+        self, response_text: str, volume: float = 0.7
+    ) -> Optional[Dict[str, any]]:
         """
         Synthesize audio for response text using TTS service with streaming support.
-        
+
         Args:
             response_text: The formatted response text
             volume: Audio volume level (0.0 to 1.0)
-            
+
         Returns:
             Dictionary with audio data, streaming data, and metadata, or None if TTS fails
         """
         if not self.tts_service.is_enabled():
             logger.warning("TTS service is not enabled")
             return None
-        
+
         try:
             # Extract clean content for TTS (filter out sources and metadata)
             clean_content = extract_tts_content(response_text)
-            
+
             if not clean_content.strip():
                 logger.warning("No content available for TTS synthesis")
                 return None
-            
+
             # Check if audio is cached (instant replay)
             cached_audio = self.tts_service.get_cached_audio(clean_content)
             if cached_audio:
                 logger.info("Using cached audio for instant replay")
-                
+
                 # Prepare streaming data for cached audio
-                streaming_data = self.streaming_manager.create_instant_replay_data(cached_audio)
-                
+                streaming_data = self.streaming_manager.create_instant_replay_data(
+                    cached_audio
+                )
+
                 # Convert to Gradio format for backward compatibility
                 audio_data = prepare_audio_for_gradio(cached_audio)
-                
+
                 return {
                     "audio_data": audio_data,
                     "streaming_data": streaming_data,
                     "cached": True,
                     "instant_replay": True,
                     "content_length": len(clean_content),
-                    "synthesis_time": 0.0
+                    "synthesis_time": 0.0,
                 }
-            
+
             # Synthesize new audio
             synthesis_start = asyncio.get_event_loop().time()
             logger.info(f"Synthesizing audio for {len(clean_content)} characters")
-            
-            audio_bytes = await self.tts_service.synthesize_text(clean_content, volume=volume)
+
+            audio_bytes = await self.tts_service.synthesize_text(
+                clean_content, volume=volume
+            )
             synthesis_time = asyncio.get_event_loop().time() - synthesis_start
-            
+
             # Prepare streaming data for new synthesis
             streaming_data = self.streaming_manager.create_synthesized_audio_data(
                 audio_bytes, synthesis_time
             )
-            
+
             # Convert to Gradio format for backward compatibility
             audio_data = prepare_audio_for_gradio(audio_bytes)
-            
+
             return {
                 "audio_data": audio_data,
                 "streaming_data": streaming_data,
                 "cached": False,
                 "instant_replay": False,
                 "content_length": len(clean_content),
-                "synthesis_time": synthesis_time
+                "synthesis_time": synthesis_time,
             }
-            
+
         except TTSError as e:
             logger.error(f"TTS synthesis failed: {e}")
             return None
         except Exception as e:
             logger.error(f"Unexpected error during TTS synthesis: {e}")
             return None
+
     print(f"Failed to initialize Bitcoin Assistant Service: {e}")
     bitcoin_service = None
 
@@ -256,15 +273,28 @@ async def root():
         "message": "Bitcoin Knowledge Assistant API",
         "status": "running",
         "endpoints": [
-            "/query", "/health", "/sources", 
-            "/session/new", "/session/{session_id}",
-            "/tts/status", "/tts/clear-cache", "/tts/streaming/status", "/tts/streaming/test",
-            "/docs"
+            "/query",
+            "/health",
+            "/sources",
+            "/session/new",
+            "/session/{session_id}",
+            "/tts/status",
+            "/tts/clear-cache",
+            "/tts/streaming/status",
+            "/tts/streaming/test",
+            "/docs",
         ],
         "admin_endpoints": [
-            "/admin/login", "/admin/logout", "/admin/session/info",
-            "/admin/sessions/stats", "/admin/sessions/cleanup", "/admin/sessions/rate-limits",
-            "/admin/sessions/list", "/admin/sessions/{session_id}", "/admin/auth/stats", "/admin/health"
+            "/admin/login",
+            "/admin/logout",
+            "/admin/session/info",
+            "/admin/sessions/stats",
+            "/admin/sessions/cleanup",
+            "/admin/sessions/rate-limits",
+            "/admin/sessions/list",
+            "/admin/sessions/{session_id}",
+            "/admin/auth/stats",
+            "/admin/health",
         ],
         "features": {
             "session_management": "Conversation isolation with unique session IDs",
@@ -277,8 +307,8 @@ async def root():
             "audio_caching": "In-memory LRU cache for generated audio",
             "audio_streaming": "Real-time audio streaming with instant replay for cached content",
             "content_filtering": "Automatic source removal for clean TTS",
-            "instant_replay": "Cached audio plays instantly without re-synthesis"
-        }
+            "instant_replay": "Cached audio plays instantly without re-synthesis",
+        },
     }
 
 
@@ -287,171 +317,205 @@ async def create_new_session(request: Request, response: Response):
     """Create a new session with rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    
+
     # Get client IP for rate limiting
     client_ip = request.client.host if request.client else "unknown"
-    
+
     # Check rate limit
     rate_limiter = get_session_rate_limiter()
     if not rate_limiter.check_session_create_limit(client_ip):
         logger.warning(f"Session creation rate limit exceeded for IP: {client_ip}")
         raise HTTPException(
-            status_code=429, 
-            detail="Too many session creation requests. Please try again later."
+            status_code=429,
+            detail="Too many session creation requests. Please try again later.",
         )
-    
+
     try:
         session_id = bitcoin_service.session_manager.create_session()
-        
+
         # Set session cookie
         response.set_cookie(
-            key="btc_assistant_session",
+            key=SESSION_COOKIE_NAME,
             value=session_id,
             max_age=3600,  # 1 hour
             httponly=True,
-            samesite="lax"
+            samesite="lax",
         )
-        
+
         logger.info(f"New session created for IP {client_ip}: {session_id[:8]}...")
-        
+
         return {
             "session_id": session_id,
             "message": "New session created",
-            "expires_in_minutes": 60
+            "expires_in_minutes": 60,
         }
     except Exception as e:
         logger.error(f"Failed to create session for IP {client_ip}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create session: {str(e)}"
+        )
 
 
 @app.get("/session/{session_id}")
 async def get_session_info(
     session_id: str,
     request: Request,
-    btc_assistant_session: Optional[str] = Cookie(None)
+    btc_assistant_session: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME),
 ):
     """Get session information and conversation history with authentication and rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    
+
     # Get client IP for rate limiting and logging
     client_ip = request.client.host if request.client else "unknown"
-    
+
     # Check rate limit to prevent session enumeration attacks
     rate_limiter = get_session_rate_limiter()
     if not rate_limiter.check_session_info_limit(client_ip):
-        logger.warning(f"Session info rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}...")
-        raise HTTPException(
-            status_code=429, 
-            detail="Too many session info requests. Please try again later."
+        logger.warning(
+            f"Session info rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}..."
         )
-    
+        raise HTTPException(
+            status_code=429,
+            detail="Too many session info requests. Please try again later.",
+        )
+
     try:
         # Validate session ownership - user can only access their own session info
         current_session_id = btc_assistant_session
-        
+
         if not current_session_id:
-            logger.warning(f"Unauthorized session access attempt from IP {client_ip} for session {session_id[:8]}...")
-            raise HTTPException(
-                status_code=401, 
-                detail="No active session found. Session access requires an active session cookie."
+            logger.warning(
+                f"Unauthorized session access attempt from IP {client_ip} for session {session_id[:8]}..."
             )
-        
+            raise HTTPException(
+                status_code=401,
+                detail="No active session found. Session access requires an active session cookie.",
+            )
+
         if current_session_id != session_id:
-            logger.warning(f"Session ownership violation from IP {client_ip}: attempted access to {session_id[:8]}... with cookie {current_session_id[:8]}...")
-            raise HTTPException(
-                status_code=403, 
-                detail="Forbidden: You can only access your own session information. Session ownership validation failed."
+            logger.warning(
+                f"Session ownership violation from IP {client_ip}: attempted access to {session_id[:8]}... with cookie {current_session_id[:8]}..."
             )
-        
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: You can only access your own session information. Session ownership validation failed.",
+            )
+
         session_data = bitcoin_service.session_manager.get_session(session_id)
         if not session_data:
-            logger.info(f"Session not found or expired: {session_id[:8]}... from IP {client_ip}")
+            logger.info(
+                f"Session not found or expired: {session_id[:8]}... from IP {client_ip}"
+            )
             raise HTTPException(status_code=404, detail="Session not found or expired")
-        
-        logger.info(f"Session info accessed successfully: {session_id[:8]}... from IP {client_ip}")
-        
+
+        logger.info(
+            f"Session info accessed successfully: {session_id[:8]}... from IP {client_ip}"
+        )
+
         return {
             "session_info": session_data.to_dict(),
             "conversation_history": session_data.conversation_history,
-            "conversation_context": session_data.get_conversation_context()
+            "conversation_context": session_data.get_conversation_context(),
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get session info for {session_id[:8]}... from IP {client_ip}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get session info: {str(e)}")
+        logger.error(
+            f"Failed to get session info for {session_id[:8]}... from IP {client_ip}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get session info: {str(e)}"
+        )
 
 
 @app.delete("/session/{session_id}")
 async def delete_session(
-    session_id: str, 
+    session_id: str,
     request: Request,
     response: Response,
-    btc_assistant_session: Optional[str] = Cookie(None)
+    btc_assistant_session: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME),
 ):
     """Delete a specific session with authentication, ownership validation, and rate limiting"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    
+
     # Get client IP for rate limiting and logging
     client_ip = request.client.host if request.client else "unknown"
-    
+
     # Check rate limit to prevent abuse
     rate_limiter = get_session_rate_limiter()
     if not rate_limiter.check_session_delete_limit(client_ip):
-        logger.warning(f"Session deletion rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}...")
-        raise HTTPException(
-            status_code=429, 
-            detail="Too many session deletion requests. Please try again later."
+        logger.warning(
+            f"Session deletion rate limit exceeded for IP: {client_ip}, session: {session_id[:8]}..."
         )
-    
+        raise HTTPException(
+            status_code=429,
+            detail="Too many session deletion requests. Please try again later.",
+        )
+
     try:
         # Validate session ownership - user can only delete their own session
         current_session_id = btc_assistant_session
-        
+
         if not current_session_id:
-            logger.warning(f"Unauthorized session deletion attempt from IP {client_ip} for session {session_id[:8]}...")
-            raise HTTPException(
-                status_code=401, 
-                detail="No active session found. Session deletion requires an active session cookie."
+            logger.warning(
+                f"Unauthorized session deletion attempt from IP {client_ip} for session {session_id[:8]}..."
             )
-        
+            raise HTTPException(
+                status_code=401,
+                detail="No active session found. Session deletion requires an active session cookie.",
+            )
+
         if current_session_id != session_id:
-            logger.warning(f"Session deletion ownership violation from IP {client_ip}: attempted deletion of {session_id[:8]}... with cookie {current_session_id[:8]}...")
-            raise HTTPException(
-                status_code=403, 
-                detail="Forbidden: You can only delete your own session. Session ownership validation failed."
+            logger.warning(
+                f"Session deletion ownership violation from IP {client_ip}: attempted deletion of {session_id[:8]}... with cookie {current_session_id[:8]}..."
             )
-        
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: You can only delete your own session. Session ownership validation failed.",
+            )
+
         # Verify the session exists before attempting deletion
         session_data = bitcoin_service.session_manager.get_session(session_id)
         if not session_data:
-            logger.info(f"Session deletion attempted for non-existent session: {session_id[:8]}... from IP {client_ip}")
-            raise HTTPException(status_code=404, detail="Session not found or already expired")
-        
+            logger.info(
+                f"Session deletion attempted for non-existent session: {session_id[:8]}... from IP {client_ip}"
+            )
+            raise HTTPException(
+                status_code=404, detail="Session not found or already expired"
+            )
+
         # Proceed with deletion since ownership is validated
         removed = bitcoin_service.session_manager.remove_session(session_id)
-        
+
         # Clear session cookie
-        response.delete_cookie(key="btc_assistant_session")
-        
+        response.delete_cookie(key=SESSION_COOKIE_NAME)
+
         if removed:
-            logger.info(f"Session deleted successfully: {session_id[:8]}... from IP {client_ip}")
+            logger.info(
+                f"Session deleted successfully: {session_id[:8]}... from IP {client_ip}"
+            )
             return {
                 "message": "Session deleted successfully",
                 "session_id": session_id,
-                "deleted_at": time.time()
+                "deleted_at": time.time(),
             }
         else:
             # This shouldn't happen since we verified existence above, but handle gracefully
-            logger.error(f"Session deletion failed unexpectedly: {session_id[:8]}... from IP {client_ip}")
+            logger.error(
+                f"Session deletion failed unexpectedly: {session_id[:8]}... from IP {client_ip}"
+            )
             raise HTTPException(status_code=404, detail="Session not found")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to delete session {session_id[:8]}... from IP {client_ip}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
+        logger.error(
+            f"Failed to delete session {session_id[:8]}... from IP {client_ip}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete session: {str(e)}"
+        )
 
 
 # Admin endpoints moved to separate admin router for security
@@ -472,7 +536,9 @@ async def health_check():
         tts_status = "disabled"
         tts_api_key_configured = False
         if bitcoin_service.tts_service:
-            tts_status = "enabled" if bitcoin_service.tts_service.is_enabled() else "disabled"
+            tts_status = (
+                "enabled" if bitcoin_service.tts_service.is_enabled() else "disabled"
+            )
             tts_api_key_configured = bool(bitcoin_service.tts_service.config.api_key)
         return {
             "status": "healthy",
@@ -493,15 +559,17 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
 
     try:
         # Get or create session
-        session_id, session_data = bitcoin_service.session_manager.get_or_create_session(request.session_id)
-        
+        session_id, session_data = (
+            bitcoin_service.session_manager.get_or_create_session(request.session_id)
+        )
+
         # Set session cookie for browser persistence
         response.set_cookie(
-            key="btc_assistant_session",
+            key=SESSION_COOKIE_NAME,
             value=session_id,
             max_age=3600,  # 1 hour
             httponly=True,
-            samesite="lax"
+            samesite="lax",
         )
 
         # Get response from Pinecone Assistant with session context (run in thread to avoid blocking)
@@ -523,11 +591,13 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
         audio_streaming_data = None
         tts_cached = False
         tts_synthesis_time = None
-        
+
         # Process TTS if enabled
         if request.enable_tts and bitcoin_service.tts_service:
             try:
-                tts_result = await bitcoin_service.synthesize_response_audio(answer, request.volume)
+                tts_result = await bitcoin_service.synthesize_response_audio(
+                    answer, request.volume
+                )
                 if tts_result:
                     audio_data = tts_result["audio_data"]
                     audio_streaming_data = tts_result.get("streaming_data")
@@ -535,9 +605,11 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
                     tts_synthesis_time = tts_result.get("synthesis_time")
             except Exception as e:
                 # Log TTS error but don't fail the entire request
-                logger.warning(f"TTS synthesis failed, continuing with text-only response: {e}")
+                logger.warning(
+                    f"TTS synthesis failed, continuing with text-only response: {e}"
+                )
                 # TTS variables remain None, indicating fallback to muted state
-        
+
         return QueryResponse(
             answer=answer,
             sources=sources,
@@ -547,7 +619,7 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
             tts_enabled=request.enable_tts and bitcoin_service.tts_service.is_enabled(),
             tts_synthesis_time=tts_synthesis_time,
             session_id=session_id,
-            conversation_turn=len(session_data.conversation_history)
+            conversation_turn=len(session_data.conversation_history),
         )
 
     except Exception as e:
@@ -563,8 +635,7 @@ async def list_available_sources():
     try:
         # Get a broad context to see available sources (run in thread to avoid blocking)
         context = await asyncio.to_thread(
-            bitcoin_service.get_assistant_response,
-            "Bitcoin blockchain cryptocurrency"
+            bitcoin_service.get_assistant_response, "Bitcoin blockchain cryptocurrency"
         )
 
         sources = {s.get("name") for s in context.get("sources", []) if s.get("name")}
@@ -576,17 +647,18 @@ async def list_available_sources():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list sources: {str(e)}")
 
+
 @app.get("/tts/status")
 async def get_tts_status():
     """Get TTS service status and configuration with performance metrics"""
     if not bitcoin_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    
+
     if not bitcoin_service.tts_service:
         return {
             "enabled": False,
             "api_key_configured": False,
-            "error": "TTS service not initialized"
+            "error": "TTS service not initialized",
         }
 
     try:
@@ -594,7 +666,7 @@ async def get_tts_status():
         cache_stats = tts_service.get_cache_stats()
         error_state = tts_service.get_error_state()
         performance_stats = tts_service.get_performance_stats()
-        
+
         return {
             "enabled": tts_service.is_enabled(),
             "api_key_configured": bool(tts_service.config.api_key),
@@ -606,11 +678,13 @@ async def get_tts_status():
             "config": {
                 "cache_size": tts_service.config.cache_size,
                 "output_format": tts_service.config.output_format,
-                "volume": tts_service.config.volume
-            }
+                "volume": tts_service.config.volume,
+            },
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get TTS status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get TTS status: {str(e)}"
+        )
 
 
 @app.post("/tts/recovery")
@@ -625,14 +699,18 @@ async def attempt_tts_recovery():
     try:
         recovery_successful = await bitcoin_service.tts_service.attempt_recovery()
         error_state = bitcoin_service.tts_service.get_error_state()
-        
+
         return {
             "recovery_attempted": True,
             "recovery_successful": recovery_successful,
-            "current_error_state": error_state
+            "current_error_state": error_state,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Recovery attempt failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Recovery attempt failed: {str(e)}"
+        )
+
+
 @app.post("/tts/clear-cache")
 async def clear_tts_cache():
     """Clear TTS audio cache"""
@@ -646,7 +724,9 @@ async def clear_tts_cache():
         bitcoin_service.tts_service.clear_cache()
         return {"message": "TTS cache cleared successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to clear TTS cache: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear TTS cache: {str(e)}"
+        )
 
 
 @app.post("/tts/optimize")
@@ -660,19 +740,23 @@ async def optimize_tts_performance():
 
     try:
         optimization_results = bitcoin_service.tts_service.optimize_performance()
-        
+
         # Also optimize streaming manager if available
         streaming_optimization = {}
         if bitcoin_service.streaming_manager:
-            streaming_optimization = bitcoin_service.streaming_manager.optimize_streaming_performance()
-        
+            streaming_optimization = (
+                bitcoin_service.streaming_manager.optimize_streaming_performance()
+            )
+
         return {
             "message": "Performance optimization completed",
             "tts_optimization": optimization_results,
-            "streaming_optimization": streaming_optimization
+            "streaming_optimization": streaming_optimization,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Performance optimization failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Performance optimization failed: {str(e)}"
+        )
 
 
 @app.get("/tts/performance")
@@ -687,17 +771,20 @@ async def get_tts_performance_metrics():
     try:
         performance_stats = bitcoin_service.tts_service.get_performance_stats()
         streaming_status = {}
-        
+
         if bitcoin_service.streaming_manager:
             streaming_status = bitcoin_service.streaming_manager.get_stream_status()
-        
+
         return {
             "tts_performance": performance_stats,
             "streaming_status": streaming_status,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get performance metrics: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get performance metrics: {str(e)}"
+        )
+
 
 @app.get("/tts/streaming/status")
 async def get_streaming_status():
@@ -709,17 +796,19 @@ async def get_streaming_status():
         return {
             "streaming_manager": None,
             "tts_enabled": False,
-            "error": "TTS services not initialized"
+            "error": "TTS services not initialized",
         }
 
     try:
         streaming_status = bitcoin_service.streaming_manager.get_stream_status()
         return {
             "streaming_manager": streaming_status,
-            "tts_enabled": bitcoin_service.tts_service.is_enabled()
+            "tts_enabled": bitcoin_service.tts_service.is_enabled(),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get streaming status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get streaming status: {str(e)}"
+        )
 
 
 class StreamingTestRequest(BaseModel):
@@ -739,14 +828,16 @@ async def test_streaming_audio(request: StreamingTestRequest):
     try:
         # Synthesize test audio
         tts_result = await bitcoin_service.synthesize_response_audio(request.text, 0.7)
-        
+
         if not tts_result:
-            raise HTTPException(status_code=500, detail="Failed to synthesize test audio")
-        
+            raise HTTPException(
+                status_code=500, detail="Failed to synthesize test audio"
+            )
+
         streaming_data = tts_result.get("streaming_data")
         if not streaming_data:
             raise HTTPException(status_code=500, detail="No streaming data generated")
-        
+
         return {
             "message": "Streaming test successful",
             "streaming_data": {
@@ -754,12 +845,12 @@ async def test_streaming_audio(request: StreamingTestRequest):
                 "is_cached": streaming_data.get("is_cached"),
                 "instant_replay": streaming_data.get("instant_replay"),
                 "size_bytes": streaming_data.get("size_bytes"),
-                "synthesis_time": streaming_data.get("synthesis_time")
+                "synthesis_time": streaming_data.get("synthesis_time"),
             },
             "audio_available": bool(tts_result.get("audio_data")),
-            "cached": tts_result.get("cached", False)
+            "cached": tts_result.get("cached", False),
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Streaming test failed: {str(e)}")
 

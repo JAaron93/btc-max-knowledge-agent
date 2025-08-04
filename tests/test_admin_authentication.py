@@ -3,20 +3,20 @@
 Tests for Admin Authentication System
 """
 
-import pytest
-import time
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.web.admin_auth import AdminAuthenticator, get_admin_authenticator
+from src.web.admin_auth import AdminAuthenticator
 from src.web.admin_router import admin_router
-from fastapi import FastAPI
 
 
 class TestAdminAuthenticator:
@@ -25,106 +25,134 @@ class TestAdminAuthenticator:
     def setup_method(self):
         """Set up test authenticator"""
         # Create test authenticator with known credentials
+        # Use default credentials (admin/admin123) for testing
+        # Generate a test password hash for "admin123"
+        import hashlib
+        import secrets
+        
+        def hash_password(password: str) -> str:
+            salt = secrets.token_bytes(32)
+            pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 200000)
+            return salt.hex() + ':' + pwdhash.hex()
+        
+        test_password_hash = hash_password("admin123")
+        
         with patch.dict('os.environ', {
             'ADMIN_USERNAME': 'test_admin',
-            'ADMIN_PASSWORD_HASH': 'test_salt:test_hash',
-            'ADMIN_SECRET_KEY': 'test_secret_key_32_characters_long'
-        }):
+            'ADMIN_PASSWORD_HASH': test_password_hash,
+            'ADMIN_SECRET_KEY': 'test_secret_key_64_hex_chars_representing_32_bytes_total'
+        }, clear=False):
             self.authenticator = AdminAuthenticator()
     
-    def test_password_hashing(self):
-        """Test password hashing and verification"""
-        password = "test_password_123"
+    def test_password_verification_through_authentication(self):
+        """Test password verification through public authentication interface"""
+        # Test with correct credentials - should succeed
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", "192.168.1.1"
+        )
+        assert token is not None
+        assert len(token) > 20
+        assert token in self.authenticator.active_sessions
         
-        # Hash password
-        password_hash = self.authenticator._hash_password(password)
+        # Clean up the session
+        self.authenticator.revoke_admin_session(token, "192.168.1.1")
         
-        # Verify correct password
-        assert self.authenticator._verify_password(password, password_hash) == True
+        # Test with incorrect password - should fail
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "wrong_password", "192.168.1.1"
+        )
+        assert token is None
         
-        # Verify incorrect password
-        assert self.authenticator._verify_password("wrong_password", password_hash) == False
+        # Test with incorrect username - should fail
+        token = self.authenticator.authenticate_admin(
+            "wrong_user", "admin123", "192.168.1.1"
+        )
+        assert token is None
     
     def test_admin_authentication_success(self):
         """Test successful admin authentication"""
-        # Mock password verification to return True
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            token = self.authenticator.authenticate_admin("test_admin", "correct_password", "192.168.1.1")
-            
-            assert token is not None
-            assert len(token) > 20  # Should be a substantial token
-            assert token in self.authenticator.active_sessions
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", "192.168.1.1"
+        )
+        
+        assert token is not None
+        assert len(token) > 20  # Should be a substantial token
+        assert token in self.authenticator.active_sessions
     
     def test_admin_authentication_failure(self):
         """Test failed admin authentication"""
-        # Mock password verification to return False
-        with patch.object(self.authenticator, '_verify_password', return_value=False):
-            token = self.authenticator.authenticate_admin("test_admin", "wrong_password", "192.168.1.1")
-            
-            assert token is None
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "wrong_password", "192.168.1.1"
+        )
+        
+        assert token is None
     
     def test_session_validation_success(self):
         """Test successful session validation"""
         # Create a session first
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            token = self.authenticator.authenticate_admin("test_admin", "correct_password", "192.168.1.1")
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", "192.168.1.1"
+        )
         
         # Validate the session
         is_valid = self.authenticator.validate_admin_session(token, "192.168.1.1")
-        assert is_valid == True
+        assert is_valid
     
     def test_session_validation_invalid_token(self):
         """Test session validation with invalid token"""
-        is_valid = self.authenticator.validate_admin_session("invalid_token", "192.168.1.1")
-        assert is_valid == False
+        is_valid = self.authenticator.validate_admin_session(
+            "invalid_token", "192.168.1.1"
+        )
+        assert not is_valid
     
     def test_session_expiry(self):
         """Test session expiry functionality"""
         # Create a session
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            token = self.authenticator.authenticate_admin("test_admin", "correct_password", "192.168.1.1")
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", "192.168.1.1"
+        )
         
-        # Manually expire the session
-        from datetime import datetime, timedelta
-        self.authenticator.active_sessions[token]["expires_at"] = datetime.now() - timedelta(hours=1)
+        # Use the public method to simulate expiry
+        self.authenticator.simulate_session_expiry(token)
         
         # Validation should fail
         is_valid = self.authenticator.validate_admin_session(token, "192.168.1.1")
-        assert is_valid == False
+        assert not is_valid
         
-        # Session should be removed
+        # Session should be removed after validation attempt
         assert token not in self.authenticator.active_sessions
     
     def test_session_revocation(self):
         """Test session revocation"""
         # Create a session
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            token = self.authenticator.authenticate_admin("test_admin", "correct_password", "192.168.1.1")
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", "192.168.1.1"
+        )
         
         # Revoke the session
         revoked = self.authenticator.revoke_admin_session(token, "192.168.1.1")
-        assert revoked == True
+        assert revoked
         
         # Session should be removed
         assert token not in self.authenticator.active_sessions
         
         # Revoking again should return False
         revoked = self.authenticator.revoke_admin_session(token, "192.168.1.1")
-        assert revoked == False
+        assert not revoked
     
     def test_session_cleanup(self):
         """Test cleanup of expired sessions"""
         # Create multiple sessions
         tokens = []
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            for i in range(3):
-                token = self.authenticator.authenticate_admin("test_admin", "correct_password", f"192.168.1.{i}")
-                tokens.append(token)
+        for i in range(3):
+            token = self.authenticator.authenticate_admin(
+                "test_admin", "admin123", f"192.168.1.{i}"
+            )
+            tokens.append(token)
         
-        # Expire some sessions
-        from datetime import datetime, timedelta
-        self.authenticator.active_sessions[tokens[0]]["expires_at"] = datetime.now() - timedelta(hours=1)
-        self.authenticator.active_sessions[tokens[1]]["last_activity"] = datetime.now() - timedelta(hours=1)
+        # Expire some sessions using the public method
+        self.authenticator.simulate_session_expiry(tokens[0])
+        self.authenticator.simulate_session_expiry(tokens[1])
         
         # Run cleanup
         expired_count = self.authenticator.cleanup_expired_sessions()
@@ -137,9 +165,10 @@ class TestAdminAuthenticator:
     def test_admin_stats(self):
         """Test admin statistics"""
         # Create some sessions
-        with patch.object(self.authenticator, '_verify_password', return_value=True):
-            for i in range(2):
-                self.authenticator.authenticate_admin("test_admin", "correct_password", f"192.168.1.{i}")
+        for i in range(2):
+            self.authenticator.authenticate_admin(
+                "test_admin", "admin123", f"192.168.1.{i}"
+            )
         
         stats = self.authenticator.get_admin_stats()
         
@@ -147,6 +176,42 @@ class TestAdminAuthenticator:
         assert "session_timeout_minutes" in stats
         assert "token_expiry_hours" in stats
         assert len(stats["sessions"]) == 2
+        assert "rate_limiting" in stats
+    
+    def test_rate_limiting_through_authentication(self):
+        """Test rate limiting functionality through public interface"""
+        test_ip = "192.168.1.100"
+        
+        # Make multiple failed authentication attempts
+        for i in range(6):  # Exceed the limit of 5
+            token = self.authenticator.authenticate_admin(
+                "test_admin", "wrong_password", test_ip
+            )
+            assert token is None
+        
+        # Check that IP is now locked out
+        stats = self.authenticator.get_admin_stats()
+        rate_limiting = stats["rate_limiting"]
+        
+        # Should have locked IPs or failed attempts recorded
+        assert (len(rate_limiting["locked_ips"]) > 0 or 
+                len(rate_limiting["failed_attempts"]) > 0)
+        
+        # Even correct password should fail due to lockout
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", test_ip
+        )
+        assert token is None
+        
+        # Test manual unlock
+        unlocked = self.authenticator.unlock_ip(test_ip)
+        assert unlocked
+        
+        # Should be able to authenticate after unlock
+        token = self.authenticator.authenticate_admin(
+            "test_admin", "admin123", test_ip
+        )
+        assert token is not None
 
 
 class TestAdminRouter:
@@ -287,4 +352,4 @@ class TestAdminRouter:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    pytest.main([__file__])    pytest.main([__file__])

@@ -260,6 +260,5 @@ logs/
 
 # Admin credentials (NEVER commit these!)
 .env.admin
-.env.production
 .env.staging
 admin_credentials.txt

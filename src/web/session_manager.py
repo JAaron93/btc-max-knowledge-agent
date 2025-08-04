@@ -2,6 +2,19 @@
 """
 Session Management for Bitcoin Knowledge Assistant
 Provides conversation isolation without user authentication
+
+Session ID Configuration:
+- Default format: 32-character hexadecimal strings (e.g., 'a1b2c3d4e5f6789012345678901234ab')
+- Configurable length and character set via SessionManager constructor
+- Minimum length: 16 characters (for security)
+- Minimum charset size: 2 characters
+- Environment variables: SESSION_ID_LENGTH, SESSION_ID_CHARSET
+
+Security Features:
+- Cryptographically secure random generation using multiple entropy sources
+- Collision detection with automatic regeneration
+- Configurable format for different security requirements
+- SHA-256 based entropy combination for consistent output
 """
 
 import uuid
@@ -65,18 +78,14 @@ class SessionData:
     
     def get_memory_usage(self) -> Dict[str, Any]:
         """Get approximate memory usage statistics for this session"""
-        import sys
-        
-        # Rough memory calculation
-        history_size = sys.getsizeof(self.conversation_history)
-        for turn in self.conversation_history:
-            history_size += sys.getsizeof(turn)
-            for key, value in turn.items():
-                history_size += sys.getsizeof(key) + sys.getsizeof(value)
-                if isinstance(value, list):
-                    for item in value:
-                        history_size += sys.getsizeof(item)
-        
+        try:
+            from pympler import asizeof
+            history_size = asizeof.asizeof(self.conversation_history)
+        except ImportError:
+            # Fallback to a simple estimation based on string representation
+            import json
+            history_size = len(json.dumps(self.conversation_history, default=str).encode('utf-8'))
+
         return {
             'conversation_turns': len(self.conversation_history),
             'estimated_memory_bytes': history_size,
@@ -102,15 +111,44 @@ class SessionData:
 
 
 class SessionManager:
-    """Manages user sessions with automatic cleanup"""
+    """
+    Manages user sessions with automatic cleanup
     
-    def __init__(self, session_timeout_minutes: int = None, cleanup_interval_minutes: int = None, max_history_turns: int = None):
+    Session ID Format:
+    - Default: 32-character hexadecimal strings (e.g., 'a1b2c3d4e5f6789012345678901234ab')
+    - Generated using SHA-256 hash of combined entropy sources
+    - Configurable length and character set via constructor parameters
+    - Cryptographically secure with collision detection
+    
+    Entropy Sources:
+    - UUID4 (128-bit random)
+    - Microsecond timestamp
+    - 16 bytes of cryptographically secure random data
+    """
+    
+    def __init__(self, 
+                 session_timeout_minutes: int = None, 
+                 cleanup_interval_minutes: int = None, 
+                 max_history_turns: int = None,
+                 session_id_length: int = None,
+                 session_id_charset: str = None):
         import os
         
         self.sessions: Dict[str, SessionData] = {}
         self.session_timeout_minutes = session_timeout_minutes or int(os.getenv("SESSION_TIMEOUT_MINUTES", "60"))
         self.cleanup_interval_minutes = cleanup_interval_minutes or int(os.getenv("SESSION_CLEANUP_INTERVAL_MINUTES", "10"))
         self.max_history_turns = max_history_turns or int(os.getenv("SESSION_MAX_HISTORY_TURNS", "50"))
+        
+        # Session ID configuration
+        self.session_id_length = session_id_length or int(os.getenv("SESSION_ID_LENGTH", "32"))
+        self.session_id_charset = session_id_charset or os.getenv("SESSION_ID_CHARSET", "0123456789abcdef")
+        
+        # Validate session ID configuration
+        if self.session_id_length < 16:
+            raise ValueError("Session ID length must be at least 16 characters for security")
+        if len(self.session_id_charset) < 2:
+            raise ValueError("Session ID charset must contain at least 2 characters")
+        
         self._lock = threading.RLock()
         self._cleanup_timer: Optional[threading.Timer] = None
         self._shutdown = False
@@ -118,32 +156,97 @@ class SessionManager:
         # Start background cleanup timer
         self._start_cleanup_timer()
         
-        logger.info(f"SessionManager initialized with {self.session_timeout_minutes}min timeout, {self.max_history_turns} max turns per session")
+        logger.info(f"SessionManager initialized with {self.session_timeout_minutes}min timeout, "
+                   f"{self.max_history_turns} max turns per session, "
+                   f"{self.session_id_length}-char session IDs using charset: {self.session_id_charset[:10]}...")
     
     def create_session(self) -> tuple[str, SessionData]:
-        """Create a new session with cryptographically secure ID generation"""
-        # Generate cryptographically secure session ID with multiple entropy sources
-        base_uuid = str(uuid.uuid4())
-        timestamp = str(int(datetime.now().timestamp() * 1_000_000))  # Microsecond precision timestamp
-        random_bytes = secrets.token_hex(16)  # 16 bytes of cryptographically secure random data
+        """
+        Create a new session with cryptographically secure ID generation
         
-        # Combine entropy sources and hash for consistent length and format
-        combined_entropy = f"{base_uuid}-{timestamp}-{random_bytes}"
-        session_id = hashlib.sha256(combined_entropy.encode()).hexdigest()[:32]  # 32 character hex string
+        Returns:
+            tuple[str, SessionData]: Session ID and session data object
+            
+        Session ID Generation:
+        - Uses multiple entropy sources for maximum security
+        - Format determined by session_id_length and session_id_charset parameters
+        - Default: 32-character hexadecimal string
+        - Includes collision detection and automatic regeneration
+        """
+        session_id = self._generate_session_id()
         
         with self._lock:
             # Ensure uniqueness (extremely unlikely collision, but safety first)
+            collision_count = 0
             while session_id in self.sessions:
-                logger.warning(f"Session ID collision detected (extremely rare), regenerating...")
-                random_bytes = secrets.token_hex(16)
-                combined_entropy = f"{base_uuid}-{timestamp}-{random_bytes}"
-                session_id = hashlib.sha256(combined_entropy.encode()).hexdigest()[:32]
+                collision_count += 1
+                logger.warning(f"Session ID collision detected (attempt {collision_count}), regenerating...")
+                session_id = self._generate_session_id()
+                
+                # Prevent infinite loop in case of implementation issues
+                if collision_count > 10:
+                    raise RuntimeError("Unable to generate unique session ID after 10 attempts")
             
             session_data = SessionData(session_id, self.max_history_turns)
             self.sessions[session_id] = session_data
             
             logger.info(f"Created new session: {session_id[:8]}... (length: {len(session_id)})")
             return session_id, session_data
+    
+    def _generate_session_id(self) -> str:
+        """
+        Generate a cryptographically secure session ID
+        
+        Returns:
+            str: Session ID with configured length and character set
+        """
+        # Generate cryptographically secure session ID with multiple entropy sources
+        base_uuid = str(uuid.uuid4())
+        timestamp = str(int(datetime.now().timestamp() * 1_000_000))  # Microsecond precision timestamp
+        random_bytes = secrets.token_hex(16)  # 16 bytes of cryptographically secure random data
+        
+        # Combine entropy sources and hash for consistent format
+        combined_entropy = f"{base_uuid}-{timestamp}-{random_bytes}"
+        full_hash = hashlib.sha256(combined_entropy.encode()).hexdigest()
+        
+        # Convert to desired character set if not hexadecimal
+        if self.session_id_charset == "0123456789abcdef":
+            # Optimized path for hexadecimal (default)
+            session_id = full_hash[:self.session_id_length]
+        else:
+            # Convert hash to custom character set
+            session_id = self._convert_to_charset(full_hash, self.session_id_charset, self.session_id_length)
+        
+        return session_id
+    
+    def _convert_to_charset(self, hex_string: str, charset: str, target_length: int) -> str:
+        """
+        Convert hexadecimal string to custom character set
+        
+        Args:
+            hex_string: Input hexadecimal string
+            charset: Target character set
+            target_length: Desired output length
+            
+        Returns:
+            str: String using only characters from charset
+        """
+        # Convert hex to integer
+        num = int(hex_string, 16)
+        
+        # Convert to target base
+        base = len(charset)
+        result = []
+        
+        while num > 0 and len(result) < target_length:
+            result.append(charset[num % base])
+            num //= base
+        
+        # Pad with first character if needed
+        while len(result) < target_length:
+            result.append(charset[0])
+        
+        return ''.join(result[:target_length])
     
     def get_session(self, session_id: str) -> Optional[SessionData]:
         """Get session data by ID"""
@@ -239,6 +342,22 @@ class SessionManager:
         with self._lock:
             self._cleanup_expired_sessions()
     
+    def get_session_id_config(self) -> Dict[str, Any]:
+        """
+        Get session ID configuration information
+        
+        Returns:
+            Dict containing session ID format specifications
+        """
+        return {
+            'length': self.session_id_length,
+            'charset': self.session_id_charset,
+            'charset_size': len(self.session_id_charset),
+            'format_description': f"{self.session_id_length}-character string using charset: {self.session_id_charset}",
+            'example_pattern': f"{''.join([self.session_id_charset[0]] * min(8, self.session_id_length))}..." if self.session_id_length > 8 else ''.join([self.session_id_charset[0]] * self.session_id_length),
+            'entropy_bits': self.session_id_length * (len(self.session_id_charset).bit_length() - 1)
+        }
+    
     def get_session_stats(self) -> Dict[str, Any]:
         """Get statistics about active sessions"""
         with self._lock:
@@ -270,7 +389,8 @@ class SessionManager:
                 'total_memory_usage_kb': round(total_memory_kb, 2),
                 'total_memory_usage_mb': round(total_memory_kb / 1024, 2),
                 'sessions_at_memory_limit': sessions_at_limit,
-                'max_history_turns_per_session': self.max_history_turns
+                'max_history_turns_per_session': self.max_history_turns,
+                'session_id_config': self.get_session_id_config()
             }
     
     def list_sessions(self) -> List[Dict[str, Any]]:

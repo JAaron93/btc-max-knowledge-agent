@@ -6,6 +6,7 @@ Tests for Enhanced Session Security Features
 import pytest
 import time
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -125,71 +126,171 @@ class TestEnhancedSessionManager:
     """Test enhanced session ID generation"""
     
     def test_cryptographically_secure_session_ids(self):
-        """Test that session IDs are cryptographically secure"""
+        """Test that session IDs are cryptographically secure with default configuration"""
         manager = SessionManager()
+        
+        # Get session ID configuration
+        config = manager.get_session_id_config()
+        expected_length = config['length']
+        expected_charset = config['charset']
         
         # Generate multiple session IDs
         session_ids = set()
         for i in range(100):
-            session_id = manager.create_session()
+            session_id, _ = manager.create_session()
             
-            # Should be 32 characters (hex string)
-            assert len(session_id) == 32
+            # Should match configured length
+            assert len(session_id) == expected_length, f"Expected length {expected_length}, got {len(session_id)}"
+            
+            # Should be unique
+            assert session_id not in session_ids, f"Duplicate session ID generated: {session_id}"
+            session_ids.add(session_id)
+            
+            # Should use only characters from configured charset
+            assert all(c in expected_charset for c in session_id), f"Session ID contains invalid characters: {session_id}"
+    
+    def test_configurable_session_id_format(self):
+        """Test that session ID format can be configured"""
+        # Test custom configuration
+        custom_length = 16
+        custom_charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        
+        manager = SessionManager(
+            session_id_length=custom_length,
+            session_id_charset=custom_charset
+        )
+        
+        # Verify configuration
+        config = manager.get_session_id_config()
+        assert config['length'] == custom_length
+        assert config['charset'] == custom_charset
+        
+        # Test session ID generation with custom format
+        session_ids = set()
+        for i in range(50):
+            session_id, _ = manager.create_session()
+            
+            # Should match custom length
+            assert len(session_id) == custom_length
+            
+            # Should use only custom charset characters
+            assert all(c in custom_charset for c in session_id)
             
             # Should be unique
             assert session_id not in session_ids
             session_ids.add(session_id)
-            
-            # Should be hexadecimal
-            assert all(c in '0123456789abcdef' for c in session_id)
+    
+    def test_session_id_configuration_validation(self):
+        """Test that invalid session ID configurations are rejected"""
+        # Test minimum length validation
+        with pytest.raises(ValueError, match="Session ID length must be at least 16"):
+            SessionManager(session_id_length=8)
+        
+        # Test charset validation
+        with pytest.raises(ValueError, match="Session ID charset must contain at least 2"):
+            SessionManager(session_id_charset="A")
     
     def test_session_id_collision_handling(self):
         """Test that session ID collisions are handled (though extremely unlikely)"""
         manager = SessionManager()
+        config = manager.get_session_id_config()
+        expected_length = config['length']
+        charset = config['charset']
         
         # Mock the sessions dict to simulate a collision
-        fake_session_id = "a" * 32
+        fake_session_id = charset[0] * expected_length
         manager.sessions[fake_session_id] = Mock()
         
         # Create a new session - should not collide
         with patch('hashlib.sha256') as mock_hash:
             # First call returns collision, second call returns unique ID
+            collision_hash = fake_session_id + "0" * (64 - expected_length)  # Pad to 64 chars
+            unique_hash = charset[1] * expected_length + "0" * (64 - expected_length)  # Pad to 64 chars
+            
             mock_hash.return_value.hexdigest.side_effect = [
-                fake_session_id,  # Collision
-                "b" * 64  # Unique (will be truncated to 32)
+                collision_hash,  # Collision
+                unique_hash  # Unique
             ]
             
-            session_id = manager.create_session()
+            session_id, _ = manager.create_session()
             
             # Should get the non-colliding ID
-            assert session_id == "b" * 32
+            expected_unique_id = charset[1] * expected_length
+            assert session_id == expected_unique_id
             assert session_id != fake_session_id
     
     def test_session_id_entropy_sources(self):
         """Test that session IDs use multiple entropy sources"""
         manager = SessionManager()
+        config = manager.get_session_id_config()
+        expected_length = config['length']
         
         # Generate session IDs at different times
-        session_id1 = manager.create_session()
-        time.sleep(0.001)  # Small delay to ensure different timestamp
-        session_id2 = manager.create_session()
+        with patch('time.time', side_effect=[1000.0, 1000.1]):
+            session_id1, _ = manager.create_session()
+            session_id2, _ = manager.create_session()
         
         # Should be different due to timestamp entropy
         assert session_id1 != session_id2
         
         # Both should be valid format
-        assert len(session_id1) == 32
-        assert len(session_id2) == 32
+        assert len(session_id1) == expected_length
+        assert len(session_id2) == expected_length
 
 
 class TestSecurityLogging:
     """Test security-related logging"""
     
     def test_session_access_logging(self):
-        """Test that session access attempts are logged"""
-        # This would require integration testing with the actual API
-        # For now, we verify the logging structure is in place
-        pass
+        """Test that session lifecycle events are properly logged for security monitoring"""
+        with patch('src.web.session_manager.logger') as mock_logger:
+            manager = SessionManager()
+            
+            # Test session creation logging
+            session_id, session_data = manager.create_session()
+            
+            # Verify session creation was logged
+            mock_logger.info.assert_called()
+            create_log_calls = [call for call in mock_logger.info.call_args_list 
+                              if 'Created new session' in str(call)]
+            assert len(create_log_calls) > 0, "Session creation should be logged"
+            
+            # Verify log contains session ID (truncated for security)
+            create_log_message = str(create_log_calls[-1])
+            assert session_id[:8] in create_log_message, "Log should contain truncated session ID"
+            
+            # Reset mock for next test
+            mock_logger.reset_mock()
+            
+            # Test session expiry logging
+            # Make session appear expired
+            session_data.last_activity = datetime.now() - timedelta(hours=2)
+            
+            # Try to get expired session
+            result = manager.get_session(session_id)
+            assert result is None, "Expired session should return None"
+            
+            # Verify expiry was logged
+            mock_logger.info.assert_called()
+            expiry_log_calls = [call for call in mock_logger.info.call_args_list 
+                               if 'expired and removed' in str(call)]
+            assert len(expiry_log_calls) > 0, "Session expiry should be logged"
+            
+            # Reset mock for cleanup test
+            mock_logger.reset_mock()
+            
+            # Test manual session removal logging
+            new_session_id, _ = manager.create_session()
+            mock_logger.reset_mock()  # Clear creation log
+            
+            removed = manager.remove_session(new_session_id)
+            assert removed is True, "Session should be successfully removed"
+            
+            # Verify manual removal was logged
+            mock_logger.info.assert_called()
+            removal_log_calls = [call for call in mock_logger.info.call_args_list 
+                                if 'Manually removed session' in str(call)]
+            assert len(removal_log_calls) > 0, "Manual session removal should be logged"
     
     def test_rate_limit_violation_logging(self):
         """Test that rate limit violations are logged"""

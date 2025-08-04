@@ -24,11 +24,9 @@
 ```yaml
 jobs:
   test:
-    env:
-      DEFAULT_PYTHON: "3.11"
     steps:
       - name: Run linting
-        if: ${{ matrix.python-version == env.DEFAULT_PYTHON }}
+        if: ${{ matrix.python-version == '3.11' }}
         run: |
           # This runs only once (on Python 3.11)
           pylint src/
@@ -73,7 +71,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: "${{ runner.os }}-pip-test-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}"
+          key: "${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}"
           restore-keys: |
             "${{ runner.os }}-pip-test-"
             "${{ runner.os }}-pip-"
