@@ -6,7 +6,8 @@ Test backward compatibility with documents that don't have URLs
 import os
 import tempfile
 
-from btc_max_knowledge_agent.utils.url_utils import extract_domain, is_url_valid
+from btc_max_knowledge_agent.utils.url_utils import (extract_domain,
+                                                     is_url_valid)
 
 
 def test_documents_without_urls():
@@ -92,14 +93,12 @@ def test_mixed_document_formatting():
             if url and is_url_valid(url):
                 f.write(f"**Source URL:** {url}\n")
                 # Use extract_domain for display name or fallback to source
-                source = doc.get('source', 'View Source')
-                if source.startswith('http'):
+                source = doc.get("source", "View Source")
+                if source.startswith("http"):
                     display_name = extract_domain(source) or source
                 else:
                     display_name = source
-                f.write(
-                    f"**Original Article:** [{display_name}]({url})\n"
-                )
+                f.write(f"**Original Article:** [{display_name}]({url})\n")
                 f.write(f"**Direct Link:** <{url}>\n")
             else:
                 f.write("**Source URL:** Not available\n")
@@ -157,9 +156,9 @@ def test_mixed_document_formatting():
 def main():
     print("🚀 Backward Compatibility Test Suite")
     print("=" * 50)
-    
+
     test_results = []
-    
+
     # Test 1: Documents without URLs
     try:
         test_documents_without_urls()
@@ -185,19 +184,20 @@ def main():
     print("📊 Test Results Summary:")
     passed_count = sum(1 for _, passed, _ in test_results if passed)
     total_count = len(test_results)
-    
+
     for test_name, passed, error in test_results:
         status = "✅ PASSED" if passed else "❌ FAILED"
         print(f"  {test_name}: {status}")
         if error:
             print(f"    Error: {error}")
-    
+
     print(f"\n🔍 Test execution completed: {passed_count}/{total_count} tests passed")
-    
+
     # Return exit code for CI/CD systems
     return 0 if passed_count == total_count else 1
 
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(main())

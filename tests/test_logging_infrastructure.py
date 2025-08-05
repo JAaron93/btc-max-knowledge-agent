@@ -9,24 +9,16 @@ from unittest.mock import patch
 
 import pytest
 
-from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import \
+    BitcoinDataCollector
 from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
-    URLMetadataMonitor,
-    record_upload,
-    record_validation,
-    url_metadata_monitor,
-)
-from btc_max_knowledge_agent.utils.url_error_handler import exponential_backoff_retry
+    URLMetadataMonitor, record_upload, record_validation, url_metadata_monitor)
+from btc_max_knowledge_agent.utils.url_error_handler import \
+    exponential_backoff_retry
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    LOG_ROTATION_BACKUP_COUNT,
-    LOG_ROTATION_MAX_BYTES,
-    URLMetadataLogger,
-    correlation_context,
-    log_retry,
-    log_upload,
-    log_validation,
-    url_metadata_logger,
-)
+    LOG_ROTATION_BACKUP_COUNT, LOG_ROTATION_MAX_BYTES, URLMetadataLogger,
+    correlation_context, log_retry, log_upload, log_validation,
+    url_metadata_logger)
 from btc_max_knowledge_agent.utils.url_utils import is_secure_url
 
 
@@ -296,14 +288,19 @@ class TestURLMetadataMonitor:
         ), "Second alert should be blocked by cooldown"
 
         # Simulate time passing beyond cooldown period (120 minutes for validation_failure_rate)
-        with patch("btc_max_knowledge_agent.monitoring.url_metadata_monitor.datetime") as mock_datetime:
+        with patch(
+            "btc_max_knowledge_agent.monitoring.url_metadata_monitor.datetime"
+        ) as mock_datetime:
             from datetime import timezone
-            future_time = (first_alert_time + timedelta(minutes=121)).replace(tzinfo=timezone.utc)
-            
+
+            future_time = (first_alert_time + timedelta(minutes=121)).replace(
+                tzinfo=timezone.utc
+            )
+
             # Mock the datetime module properly
             mock_datetime.now.return_value = future_time
             mock_datetime.fromisoformat = datetime.fromisoformat
-            
+
             # Add more failures and check alerts again
             for i in range(5, 10):
                 self.monitor.record_validation(
@@ -357,7 +354,9 @@ class TestLoggingIntegration:
         mock_head.return_value.status_code = 200
 
         # Test is_secure_url with logging
-        with patch("btc_max_knowledge_agent.utils.url_utils.log_validation") as mock_log:
+        with patch(
+            "btc_max_knowledge_agent.utils.url_utils.log_validation"
+        ) as mock_log:
             result = is_secure_url("https://example.com")
             assert result is True
             # Verify logging occurred
@@ -375,13 +374,16 @@ class TestLoggingIntegration:
                 raise ValueError("Test error")
             return "success"
 
-        with patch("btc_max_knowledge_agent.utils.url_error_handler.log_retry") as mock_log_retry:
+        with patch(
+            "btc_max_knowledge_agent.utils.url_error_handler.log_retry"
+        ) as mock_log_retry:
             result = failing_function()
 
             assert result == "success"
             assert call_count == 3
             # Check that retry logging occurred
             assert mock_log_retry.call_count == 2  # Two retries
+
     def test_data_collector_logging(self):
         """Test logging in data collector."""
         collector = BitcoinDataCollector()
@@ -390,7 +392,9 @@ class TestLoggingIntegration:
         with patch.object(collector, "collect_from_sources") as mock_fetch:
             mock_fetch.return_value = [{"url": "http://example.com", "content": "test"}]
 
-            with patch("btc_max_knowledge_agent.knowledge.data_collector.log_validation") as mock_log:
+            with patch(
+                "btc_max_knowledge_agent.knowledge.data_collector.log_validation"
+            ) as mock_log:
                 # Test collection with logging
                 documents = collector.collect_bitcoin_basics()
 
@@ -400,6 +404,8 @@ class TestLoggingIntegration:
 
                 # Verify logging occurred
                 assert mock_log.call_count > 0
+
+
 class TestPerformanceImpact:
     """Test performance impact of logging."""
 
@@ -593,7 +599,6 @@ class TestErrorHandling:
         assert (
             "timestamp" in summary or len(summary) == 0
         )  # Could be empty if all data was rejected
-
 
 
 class TestConvenienceFunctions:

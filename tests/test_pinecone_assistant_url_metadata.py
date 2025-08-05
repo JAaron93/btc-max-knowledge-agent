@@ -17,53 +17,55 @@ from btc_max_knowledge_agent.utils.url_error_handler import RetryExhaustedError
 
 class TestPineconeAssistantURLMetadata(unittest.TestCase):
     """Test class for PineconeAssistantAgent URL metadata handling"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         # Mock the config and environment variables
-        self.config_patcher = patch('agents.pinecone_assistant_agent.Config')
+        self.config_patcher = patch("agents.pinecone_assistant_agent.Config")
         self.mock_config = self.config_patcher.start()
-        self.mock_config.PINECONE_API_KEY = 'test-api-key'
-        
-        self.env_patcher = patch.dict(os.environ, {'PINECONE_ASSISTANT_HOST': 'https://test-host.pinecone.io'})
+        self.mock_config.PINECONE_API_KEY = "test-api-key"
+
+        self.env_patcher = patch.dict(
+            os.environ, {"PINECONE_ASSISTANT_HOST": "https://test-host.pinecone.io"}
+        )
         self.env_patcher.start()
-        
+
         self.agent = PineconeAssistantAgent()
-    
+
     def tearDown(self):
         """Clean up after tests"""
         self.config_patcher.stop()
         self.env_patcher.stop()
-                
+
     # Test data constants
     VALID_URLS = [
-        'https://example.com',
-        'http://example.com',
-        'https://subdomain.example.com',
-        'https://example.com/path',
-        'https://example.com/path?query=value'
+        "https://example.com",
+        "http://example.com",
+        "https://subdomain.example.com",
+        "https://example.com/path",
+        "https://example.com/path?query=value",
     ]
-    
+
     URL_PROTOCOL_TEST_CASES = [
-        ('example.com', 'https://example.com'),
-        ('subdomain.example.com', 'https://subdomain.example.com'),
-        ('example.com/path', 'https://example.com/path')
+        ("example.com", "https://example.com"),
+        ("subdomain.example.com", "https://subdomain.example.com"),
+        ("example.com/path", "https://example.com/path"),
     ]
-    
+
     INVALID_URLS = [
         None,
-        '',
-        '   ',
-        'not-a-url',
-        'http://',
-        'https://',
-        'ftp://example.com',  # Wrong protocol
-        'invalid-domain',
-        'http://localhost',  # No TLD
+        "",
+        "   ",
+        "not-a-url",
+        "http://",
+        "https://",
+        "ftp://example.com",  # Wrong protocol
+        "invalid-domain",
+        "http://localhost",  # No TLD
         123,  # Not a string
-        []    # Not a string
+        [],  # Not a string
     ]
-    
+
     def test_validate_and_sanitize_url_valid_urls(self):
         """Test URL validation with valid URLs"""
         for url in self.VALID_URLS:
@@ -74,7 +76,9 @@ class TestPineconeAssistantURLMetadata(unittest.TestCase):
         """Test URL validation with missing protocol"""
         for input_url, expected in self.URL_PROTOCOL_TEST_CASES:
             result = self.agent._validate_and_sanitize_url(input_url)
-            self.assertEqual(result, expected, f"URL {input_url} should be sanitized to {expected}")
+            self.assertEqual(
+                result, expected, f"URL {input_url} should be sanitized to {expected}"
+            )
 
     def test_validate_and_sanitize_url_invalid_urls(self):
         """Test URL validation with invalid URLs"""

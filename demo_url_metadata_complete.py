@@ -21,19 +21,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List
 
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
-    URLMetadataMonitor,
-)
-from btc_max_knowledge_agent.utils.result_formatter import (
-    QueryResultFormatter,
-)
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import \
+    URLMetadataMonitor
+from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy,
-    GracefulDegradation,
-)
-from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    URLMetadataLogger,
-)
+    FallbackURLStrategy, GracefulDegradation)
+from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 from btc_max_knowledge_agent.utils.url_utils import URLValidator
 
 
@@ -198,7 +191,7 @@ class URLMetadataDemo:
         # Create data entry with URL metadata
         # url_validated should be True only if both URL validation AND metadata extraction succeeded
         url_fully_validated = is_valid and metadata_extraction_successful
-        
+
         data_entry = {
             "id": str(uuid.uuid4()),
             "text": source["content"],

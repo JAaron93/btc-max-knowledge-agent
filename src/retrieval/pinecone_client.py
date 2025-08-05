@@ -8,15 +8,9 @@ from pinecone import Pinecone, ServerlessSpec
 from btc_max_knowledge_agent.utils.config import Config
 from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    MAX_QUERY_RETRIES,
-    FallbackURLStrategy,
-    GracefulDegradation,
-    URLRetrievalError,
-    URLValidationError,
-    exponential_backoff_retry,
-    query_retry_with_backoff,
-    retry_url_validation,
-)
+    MAX_QUERY_RETRIES, FallbackURLStrategy, GracefulDegradation,
+    URLRetrievalError, URLValidationError, exponential_backoff_retry,
+    query_retry_with_backoff, retry_url_validation)
 from utils.url_utils import sanitize_url_for_storage
 
 logger = logging.getLogger(__name__)
@@ -85,7 +79,9 @@ class PineconeClient:
             if sanitized_url:
                 return sanitized_url
             else:
-                raise URLValidationError("URL failed validation or sanitization", url=url)
+                raise URLValidationError(
+                    "URL failed validation or sanitization", url=url
+                )
         except Exception as e:
             raise URLValidationError("URL validation failed", url=url, original_error=e)
 
@@ -218,19 +214,19 @@ class PineconeClient:
 
     def query(self, *args, **kwargs):
         """Direct query method that delegates to the index.
-        
+
         This method is expected by backward compatibility tests.
         It delegates directly to the index query and returns matches as a list.
         """
         index = self.get_index()
         response = index.query(*args, **kwargs)
-        
+
         # If the response is a dict with matches, return the matches directly
         if isinstance(response, dict) and "matches" in response:
             return response["matches"]
         # Otherwise return the response as-is (for backward compatibility)
         return response
-    
+
     @exponential_backoff_retry(
         max_retries=3,
         initial_delay=0.5,

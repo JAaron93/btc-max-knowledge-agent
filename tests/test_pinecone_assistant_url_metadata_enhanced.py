@@ -70,9 +70,7 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     @patch("src.utils.url_utils.validate_url")
-    def test_upload_with_url_validation_timeout(
-        self, mock_validate_url, mock_post
-    ):
+    def test_upload_with_url_validation_timeout(self, mock_validate_url, mock_post):
         """Test upload operation when URL validation times out."""
         # Mock validation timeout
         mock_validate.side_effect = FuturesTimeoutError("Validation timed out")

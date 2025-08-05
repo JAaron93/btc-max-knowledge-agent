@@ -67,7 +67,11 @@ def start_api_server():
         api_host,
         "--port",
         str(api_port),
-        *([] if os.getenv("API_RELOAD", "false").lower() not in {"1", "true"} else ["--reload"]),
+        *(
+            []
+            if os.getenv("API_RELOAD", "false").lower() not in {"1", "true"}
+            else ["--reload"]
+        ),
     ]
 
     return subprocess.Popen(cmd)
@@ -87,7 +91,7 @@ def start_gradio_ui():
         "--host",
         ui_host,
         "--port",
-        str(ui_port)
+        str(ui_port),
     ]
 
     return subprocess.Popen(cmd)

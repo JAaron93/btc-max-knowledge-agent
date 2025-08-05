@@ -14,18 +14,10 @@ from unittest.mock import call, patch
 import pytest
 
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy,
-    GracefulDegradation,
-    RetryExhaustedError,
-    URLMetadataError,
-    URLMetadataUploadError,
-    URLRetrievalError,
-    URLValidationError,
-    exponential_backoff_retry,
-    retry_url_retrieval,
-    retry_url_upload,
-    retry_url_validation,
-)
+    FallbackURLStrategy, GracefulDegradation, RetryExhaustedError,
+    URLMetadataError, URLMetadataUploadError, URLRetrievalError,
+    URLValidationError, exponential_backoff_retry, retry_url_retrieval,
+    retry_url_upload, retry_url_validation)
 
 
 class TestCustomExceptions:
@@ -586,9 +578,7 @@ class TestIntegrationScenarios:
         assert result == {"url": "https://example.com", "valid": True}
 
     @patch("btc_max_knowledge_agent.utils.url_metadata_logger.log_retry")
-    @patch(
-        "monitoring.url_metadata_monitor.url_metadata_monitor"
-    )
+    @patch("monitoring.url_metadata_monitor.url_metadata_monitor")
     def test_monitoring_integration(self, mock_monitor, mock_log_retry):
         """Test integration with monitoring and logging."""
 

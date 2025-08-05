@@ -3,8 +3,8 @@
 Demo script to showcase TTS UI components
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -16,42 +16,32 @@ project_root = Path(__file__).resolve().parents[1]  # assumes repo_root/src/…
 sys.path.insert(0, str(project_root))
 from src.web.bitcoin_assistant_ui import create_bitcoin_assistant_ui
 
+
 def parse_args():
     """Parse command-line arguments for launch configuration."""
     parser = argparse.ArgumentParser(
         description="Demo script to showcase TTS UI components",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="Host address to bind the server to"
+        "--host", default="127.0.0.1", help="Host address to bind the server to"
     )
 
     parser.add_argument(
-        "--port",
-        type=int,
-        default=7860,
-        help="Port number to run the server on"
+        "--port", type=int, default=7860, help="Port number to run the server on"
     )
 
     parser.add_argument(
-        "--share",
-        action="store_true",
-        help="Create a public shareable link"
+        "--share", action="store_true", help="Create a public shareable link"
     )
 
-    parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress verbose output"
-    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress verbose output")
 
     parser.add_argument(
         "--no-error-display",
         action="store_true",
-        help="Disable error display in the interface"
+        help="Disable error display in the interface",
     )
 
     return parser.parse_args()
@@ -80,5 +70,5 @@ if __name__ == "__main__":
         server_port=args.port,
         share=args.share,
         show_error=not args.no_error_display,
-        quiet=args.quiet
+        quiet=args.quiet,
     )

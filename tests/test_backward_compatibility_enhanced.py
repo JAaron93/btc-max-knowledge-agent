@@ -16,8 +16,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
+from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
 
 
 class TestBackwardCompatibilityEnhanced:
@@ -98,7 +98,9 @@ class TestBackwardCompatibilityEnhanced:
         """Create PineconeClient with mocked index."""
         with patch(
             "btc_max_knowledge_agent.retrieval.pinecone_client.Pinecone"
-        ) as mock_pinecone_class, patch("btc_max_knowledge_agent.utils.config.Config") as mock_config:
+        ) as mock_pinecone_class, patch(
+            "btc_max_knowledge_agent.utils.config.Config"
+        ) as mock_config:
             # Mock the config validation and properties
             mock_config.validate.return_value = None
             mock_config.PINECONE_API_KEY = "test-key"
@@ -113,7 +115,7 @@ class TestBackwardCompatibilityEnhanced:
             # Create client and patch get_index method directly
             client = PineconeClient()
             client.get_index = Mock(return_value=mock_pinecone_index)
-            
+
             return client
 
     def test_query_legacy_vectors_only(self, pinecone_client, mock_pinecone_index):
@@ -251,7 +253,9 @@ class TestBackwardCompatibilityEnhanced:
             id=vector_id, metadata=enriched_metadata
         )
 
-    @pytest.mark.skip(reason="This test was written for a different PineconeAssistantAgent implementation that doesn't exist")
+    @pytest.mark.skip(
+        reason="This test was written for a different PineconeAssistantAgent implementation that doesn't exist"
+    )
     def test_assistant_agent_backward_compatibility(self, mock_pinecone_index):
         """Test PineconeAssistantAgent with mixed vector formats."""
         with patch(
@@ -442,10 +446,11 @@ class TestMigrationStrategies:
         # Verify complete migration
         assert migrated_count == total_vectors
         assert len(migration_log) == total_vectors // migration_batch_size
+
     def test_rollback_capability(self):
         """Test ability to rollback URL metadata changes."""
         import copy
-        
+
         # Original vector
         original_vector = {
             "id": "test_rollback",

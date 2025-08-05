@@ -25,6 +25,10 @@ The admin authentication system has been upgraded from PBKDF2 to Argon2id passwo
 Add to your `requirements.txt`:
 ```
 argon2-cffi>=23.1.0
+
+**Note**: If you ship a package, remember to add the same line to
+`setup.py` / `pyproject.toml` under *install_requires* so automated
+builds pull the dependency in every environment.
 ```
 
 Install with:
@@ -72,10 +76,12 @@ python examples/test_argon2_upgrade.py
 
 The PasswordHasher uses secure defaults:
 - **Time cost**: 2 iterations
-- **Memory cost**: 102400 KB (100 MB)
+- **Memory cost**: 102400 KB (100 MB)**\***
 - **Parallelism**: 8 threads
 - **Hash length**: 32 bytes
 - **Salt length**: 16 bytes
+
+**\*** If your production pods/containers have <512 MB RAM, consider reducing this to 65536 KB (64 MB) and compensating by slightly raising `time_cost`.
 
 These can be customized if needed:
 ```python

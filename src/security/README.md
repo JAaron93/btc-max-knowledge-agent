@@ -350,13 +350,19 @@ Check security library status:
 
 **In an async context (e.g., FastAPI endpoint):**
 ```python
-from src.security.validator import SecurityValidator
-from src.security.config import SecurityConfigurationManager
+async def check_security_health():
+    from src.security.validator import SecurityValidator
+    from src.security.config import SecurityConfigurationManager
 
-config = SecurityConfigurationManager().load_secure_config()
-validator = SecurityValidator(config)
-health_status = await validator.check_library_health()
-print(health_status)
+    config = SecurityConfigurationManager().load_secure_config()
+    validator = SecurityValidator(config)
+    health_status = await validator.check_library_health()
+    print(health_status)
+
+# Usage in FastAPI endpoint:
+# @app.get("/security/health")
+# async def get_security_health():
+#     return await check_security_health()
 ```
 
 **In a synchronous script:**

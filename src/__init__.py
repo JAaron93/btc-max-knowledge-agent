@@ -16,7 +16,7 @@ from importlib import import_module
 from typing import List
 
 # Ensure this behaves as a namespace package for importlib
-__path__: List[str] = [os.path.dirname(__file__)]  # type: ignore[assignment]
+__path__: List[str] = [os.path.dirname(__file__)]  # type: ignore[no-redef]
 
 # Dynamically forward common subpackages to their new implementations.
 _forward_subs = (

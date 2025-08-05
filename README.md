@@ -54,7 +54,7 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 #### Session Management
 - **User Isolation**: Each user gets a unique session ID ensuring conversation privacy
-- **Cryptographically Secure IDs**: 32-character hex strings (truncated from SHA-256 hash) using UUID4 + timestamp + secure random bytes
+- **Cryptographically Secure IDs**: 32-character hex strings (truncated from SHA-256 hash, ≈128-bit entropy, sufficient for session IDs) using UUID4 + timestamp + secure random bytes
 - **Session Ownership Validation**: Users can only access and delete their own sessions
 - **Rate Limiting**: Anti-enumeration protection with different limits per endpoint type
 - **Conversation Context**: Maintains conversation history within sessions for better continuity
@@ -67,12 +67,12 @@ A modern web application that provides intelligent Bitcoin and blockchain knowle
 
 #### Admin Security System
 - **Token-Based Authentication**: Secure bearer token authentication for admin access
-- **PBKDF2-HMAC-SHA-256 Password Hashing**: 100,000 iterations with cryptographically secure salt, following OWASP recommendations for password storage. Consider upgrading to Argon2id for enhanced resistance against GPU-based attacks and memory-hard properties
+- **Argon2id Password Hashing**: OWASP recommended algorithm with memory-hard properties, providing superior security against GPU-based attacks compared to PBKDF2
 - **Session Management**: Time-based token expiry (24h) and inactivity timeout (30min)
 - **Brute Force Protection**: Login delays and comprehensive attempt logging
 - **IP Address Monitoring**: All admin activities logged with client IP addresses
 - **Endpoint Protection**: All admin endpoints require valid authentication
-- **Secure Token Generation**: 256-bit entropy tokens generated using `secrets.token_urlsafe(32)` for cryptographically secure randomness with automatic cleanup
+- **Secure Token Generation**: 256-bit entropy tokens generated using `secrets.token_urlsafe(32)` (produces 43-44 character Base64URL strings, not hex) for cryptographically secure randomness with automatic cleanup
 - **Production Ready**: Configurable credentials and enterprise-grade security
 
 ## 📋 Prerequisites
@@ -959,6 +959,14 @@ curl http://localhost:8000/security/status
 3. Make your changes
 4. Test thoroughly (including URL metadata tests)
 5. Submit a pull request
+
+### Developer Documentation
+
+For detailed developer information, see [`README.dev.md`](README.dev.md), which includes:
+- Admin setup verification tools and helpers
+- Environment variable loading with conflict detection
+- Development workflow tips
+- Testing guidance
 
 ## 📄 License
 

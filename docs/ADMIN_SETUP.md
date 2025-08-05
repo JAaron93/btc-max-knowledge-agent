@@ -21,7 +21,7 @@ ADMIN_SESSION_TIMEOUT_MINUTES=30
 
 **Requirements**: Install the argon2-cffi library:
 ```bash
-pip install argon2-cffi
+pip install "argon2-cffi>=25.0.0,<26.0.0"
 ```
 
 To generate a secure password hash, use the provided utility:
@@ -36,14 +36,26 @@ from argon2 import PasswordHasher
 
 def hash_password(password: str) -> str:
     """Hash password using Argon2id (OWASP recommended)"""
-    hasher = PasswordHasher()
+    # Argon2id parameters: t=3, m=64 MiB, p=4, 32-byte hash
+    hasher = PasswordHasher(
+        time_cost=3,
+        memory_cost=65536,
+        parallelism=4,
+        hash_len=32,
+    )
     return hasher.hash(password)
 
 if __name__ == "__main__":
+    # Prompt for admin username
+    username = input("Enter admin username (default: admin): ").strip()
+    if not username:
+        username = "admin"
+    
     password = getpass.getpass("Enter admin password: ")
     password_hash = hash_password(password)
     
     print(f"\nAdd this to your .env file:")
+    print(f"ADMIN_USERNAME={username}")
     print(f"ADMIN_PASSWORD_HASH={password_hash}")
     
     # Generate secret key (64 hex characters = 32 bytes)
@@ -106,6 +118,19 @@ export ADMIN_TOKEN="your_access_token_here"
 
 > **Security Note**: Using environment variables prevents sensitive tokens from being stored in shell history, reducing the risk of accidental token exposure.
 
+> **⚠️ Production Security Caution**: Environment variables can still be exposed through:
+> - Process lists (`ps e`, `ps aux`, etc.) showing environment variables
+> - System commands like `env` or `printenv` 
+> - Process monitoring tools and system logs
+> - Child processes inheriting the environment
+> 
+> **Recommended Safer Practices for Production**:
+> - **Use `direnv`**: Automatically loads/unloads environment variables per directory
+> - **Limit to sub-shells**: `(export ADMIN_TOKEN="..."; curl -H "Authorization: Bearer $ADMIN_TOKEN" ...)`
+> - **Use credential managers**: AWS Secrets Manager, HashiCorp Vault, etc.
+> - **Implement token rotation**: Short-lived tokens with automatic refresh
+> - **Consider service accounts**: Avoid manual token handling in automated environments
+
 Then use the environment variable in your curl commands:
 
 ```bash
@@ -121,6 +146,19 @@ curl -X POST \
 # Get rate limit statistics
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:8000/admin/sessions/rate-limits"
+```
+
+**Alternative: Sub-shell approach for enhanced security**:
+```bash
+# Token is only available within the sub-shell and doesn't persist
+(export ADMIN_TOKEN="your_token_here"; \
+ curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+      "http://localhost:8000/admin/sessions/stats")
+
+# Or using direnv (if installed):
+# echo 'export ADMIN_TOKEN="your_token_here"' > .envrc
+# direnv allow
+# curl -H "Authorization: Bearer $ADMIN_TOKEN" "http://localhost:8000/admin/sessions/stats"
 ```
 
 ### 3. Logout
@@ -173,7 +211,7 @@ python3 scripts/generate_admin_hash.py
 
 # The script will output environment variables like:
 export ADMIN_USERNAME="your_admin_username"
-export ADMIN_PASSWORD_HASH="$argon2id$v=19$m=65536,t=3,p=4$..."
+export ADMIN_PASSWORD_HASH='$argon2id$v=19$m=65536,t=3,p=4$...'
 export ADMIN_SECRET_KEY="64_character_random_hex_string_32_bytes"
 ```
 

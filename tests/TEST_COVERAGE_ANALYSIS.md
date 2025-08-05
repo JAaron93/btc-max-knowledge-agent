@@ -1,4 +1,6 @@
 # Security Test Coverage Analysis
++
++_Generated on **2025-08-21** from CI job `coverage-report@<commit-sha>`_
 
 ## Overview
 This document provides a comprehensive analysis of the current test coverage for security-related functionality in the Bitcoin Knowledge Assistant project.

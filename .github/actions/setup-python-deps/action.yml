@@ -18,13 +18,14 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache: "pip"
-        # Include both dependency files and lock files to ensure cache invalidation
-        # when dependencies are updated across different package managers
+        # Cache based on the specific dependency files used by this project
+        # This provides faster cache key computation while remaining comprehensive
         cache-dependency-path: |
+          requirements.txt
+          pyproject.toml
           **/requirements*.txt
           **/pyproject.toml
           **/poetry.lock
-          **/requirements.lock
           **/Pipfile.lock
           **/uv.lock
           **/pdm.lock
@@ -36,7 +37,10 @@ runs:
         set -euo pipefail
         python -m pip install --upgrade pip
         # Install the project in development mode - eliminates path hacks
-        extras="$(echo "${{ inputs.extras }}" | tr -d '[:space:]')"
+        # Trim leading/trailing whitespace but keep internal separators.
+        extras="$(echo "${{ inputs.extras }}" | xargs)"
+        # Replace remaining spaces with commas so both “dev test” and “dev, test” work.
+        extras="${extras// /,}"
         if [ -n "$extras" ]; then
           pip install -e ".[${extras}]"
         else

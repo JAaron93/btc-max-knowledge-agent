@@ -129,14 +129,12 @@ def normalize_url_format(url: str) -> Optional[str]:
     return normalize_url_rfc3986(url)
 
 
-
-
 def is_private_ip(url: str) -> bool:
     """Backward compatibility alias for checking if URL uses private IP.
-    
+
     Args:
         url: URL to check
-        
+
     Returns:
         bool: True if URL appears to use private IP, False otherwise
     """
@@ -278,7 +276,9 @@ def is_secure_url(url: str) -> bool:
                         details=validation_details,
                         duration_ms=duration_ms,
                     )
-                    record_validation(url, False, duration_ms, error_type="localhost_ip_not_allowed")
+                    record_validation(
+                        url, False, duration_ms, error_type="localhost_ip_not_allowed"
+                    )
                     return False
             else:
                 # Check for other private IP ranges
@@ -293,7 +293,9 @@ def is_secure_url(url: str) -> bool:
                             details=validation_details,
                             duration_ms=duration_ms,
                         )
-                        record_validation(url, False, duration_ms, error_type="private_ip")
+                        record_validation(
+                            url, False, duration_ms, error_type="private_ip"
+                        )
                         return False
                 # Extra safeguards – block unspecified (0.0.0.0/::), link-local, multicast etc.
                 if ip.is_unspecified or ip.is_multicast or ip.is_reserved:
@@ -965,36 +967,41 @@ def sanitize_url(url: str) -> Optional[str]:
         return None
 
 
-def _handle_accessibility_error(url: str, exception: Exception, start_time: float) -> bool:
+def _handle_accessibility_error(
+    url: str, exception: Exception, start_time: float
+) -> bool:
     """
     Helper function to handle common accessibility check errors.
-    
+
     Args:
         url: The URL being checked
         exception: The exception that occurred
         start_time: When the request started
-        
+
     Returns:
         bool: Always returns False (error case)
     """
     duration_ms = (time.time() - start_time) * 1000
-    
+
     # Determine error type based on exception class
     if isinstance(exception, requests.exceptions.TooManyRedirects):
         error_type = "too_many_redirects"
         details = {"error": str(exception), "error_type": error_type}
-    elif isinstance(exception, (
-        requests.exceptions.SSLError,
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        requests.exceptions.RequestException,
-    )):
+    elif isinstance(
+        exception,
+        (
+            requests.exceptions.SSLError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.RequestException,
+        ),
+    ):
         error_type = "request_failed"
         details = {"error": str(exception), "error_type": type(exception).__name__}
     else:
         error_type = "unexpected_error"
         details = {"error": str(exception), "error_type": "unexpected_error"}
-    
+
     # Log the validation failure
     log_validation(
         url,
@@ -1003,10 +1010,10 @@ def _handle_accessibility_error(url: str, exception: Exception, start_time: floa
         details=details,
         duration_ms=duration_ms,
     )
-    
+
     # Record the validation failure
     record_validation(url, False, duration_ms, error_type=error_type)
-    
+
     return False
 
 

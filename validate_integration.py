@@ -8,7 +8,6 @@ validates URL metadata flow, logging, monitoring, and performance.
 
 import argparse
 import json
-
 # Add src to Python path to enable direct imports
 import os
 import queue
@@ -18,14 +17,16 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+# Add src directory to Python path using pathlib for robust path resolution
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-# Add src directory to Python path using pathlib for robust path resolution
-from pathlib import Path
 src_dir = Path(__file__).parent / "src"
-src_dir = src_dir.resolve()  # Normalize path to avoid duplicate entries from different representations
+src_dir = (
+    src_dir.resolve()
+)  # Normalize path to avoid duplicate entries from different representations
 
 # Check if directory exists before adding to sys.path
 if src_dir.exists() and str(src_dir) not in sys.path:
@@ -34,12 +35,9 @@ if src_dir.exists() and str(src_dir) not in sys.path:
 # Direct imports from modules
 from src.utils.config import Config
 from src.utils.result_formatter import QueryResultFormatter
-from src.utils.url_error_handler import (
-    MAX_QUERY_RETRIES,
-)
-from src.utils.url_error_handler import (
-    GracefulDegradation as ImportedGracefulDegradation,
-)
+from src.utils.url_error_handler import MAX_QUERY_RETRIES
+from src.utils.url_error_handler import \
+    GracefulDegradation as ImportedGracefulDegradation
 from src.utils.url_metadata_logger import URLMetadataLogger
 from src.utils.url_utils import URLValidator
 

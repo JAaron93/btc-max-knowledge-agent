@@ -9,20 +9,22 @@ Prerequisites:
 
 import logging
 import sys
-from requests.exceptions import RequestException, ConnectionError, Timeout
+
+from requests.exceptions import ConnectionError, RequestException, Timeout
 from urllib3.exceptions import HTTPError
 
-from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import \
+    BitcoinDataCollector
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('setup_pinecone.log')
-    ]
+        logging.FileHandler("setup_pinecone.log"),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -78,19 +80,25 @@ def main():
             print("⚠️  Warning: No results found from test query!")
             print("This may be due to index eventual consistency.")
             print("The index might need a few moments to become queryable.")
-            print("Setup completed successfully, but please verify query results later.")
+            print(
+                "Setup completed successfully, but please verify query results later."
+            )
         print("Top 3 results:")
         for i, result in enumerate(results, 1):
             print(f"   {i}. {result['title']} (score: {result['score']:.3f})")
 
     except (RequestException, ConnectionError, Timeout, HTTPError) as e:
         logger.error(f"Network/API error during setup: {e}")
-        logger.error("This may indicate network connectivity issues or API service problems")
+        logger.error(
+            "This may indicate network connectivity issues or API service problems"
+        )
         logger.error("Please check your internet connection and API service status")
         raise
     except KeyError as e:
         logger.error(f"Configuration error - missing required key: {e}")
-        logger.error("Make sure you have created a .env file with all required API keys")
+        logger.error(
+            "Make sure you have created a .env file with all required API keys"
+        )
         logger.error("Required keys: PINECONE_API_KEY, OPENAI_API_KEY")
         sys.exit(1)
     except FileNotFoundError as e:

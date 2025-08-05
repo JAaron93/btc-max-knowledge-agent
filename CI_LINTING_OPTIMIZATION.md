@@ -73,8 +73,8 @@ jobs:
           path: ~/.cache/pip
           key: "${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}"
           restore-keys: |
-            "${{ runner.os }}-pip-test-"
             "${{ runner.os }}-pip-"
+            "${{ runner.os }}-pip-test-"
       # Test steps only
 
   lint:

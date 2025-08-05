@@ -14,20 +14,98 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
+def parse_env_file(file_path):
+    """
+    Parse a .env-style file and return a dict of key-value pairs.
+
+    This helper function reads a file, strips leading/trailing whitespace
+    from each line, and splits it into a key and value at the first '='
+    sign. It skips empty lines and lines starting with '#'.
+
+    To prevent silent configuration errors, it also checks if a variable
+    is already defined in the environment and prints a warning if so.
+
+    Args:
+        file_path (str): The path to the .env file.
+
+    Returns:
+        dict: A dictionary of environment variables.
+    """
+    env_vars = {}
+    try:
+        with open(file_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    if key.isidentifier():
+                        # Warn if the variable is already set in the environment
+                        if key in os.environ:
+                            print(
+                                f'⚠️  Warning: "{key}" is already set in the '
+                                f"environment. The value from {file_path} will override it."
+                            )
+                        env_vars[key] = value
+    except Exception as e:
+        print(f"❌ Failed to parse {file_path}: {e}")
+    return env_vars
+
+
 def get_admin_password_securely():
-    """Securely get admin password from environment or user input"""
+    """Securely get admin password from environment or user input with validation"""
     # First try to get from environment variable (for automated testing)
     password = os.getenv("ADMIN_PASSWORD")
 
-    if not password:
-        # If not in environment, prompt user securely
+    if password:
+        # Validate environment password
+        if len(password) < 8:
+            print(
+                "⚠️  Warning: Environment password is too short (minimum 8 characters)"
+            )
+            print("   Consider updating ADMIN_PASSWORD environment variable")
+            return None
+        return password
+
+    # If not in environment, prompt user securely with validation loop
+    max_attempts = 3
+    attempt = 0
+
+    while attempt < max_attempts:
         try:
-            password = getpass.getpass("Enter admin password for testing (optional): ")
+            password = getpass.getpass(
+                "Enter admin password for testing (minimum 8 characters, optional): "
+            )
+
+            # Allow empty password (user can skip)
+            if not password:
+                print("No password provided - skipping admin authentication tests")
+                return None
+
+            # Validate password strength
+            if len(password) < 8:
+                attempt += 1
+                remaining = max_attempts - attempt
+                if remaining > 0:
+                    print(
+                        f"❌ Password too short. Must be at least 8 characters. ({remaining} attempts remaining)"
+                    )
+                    continue
+                else:
+                    print(
+                        "❌ Maximum attempts reached. Admin authentication tests will be skipped."
+                    )
+                    return None
+
+            # Password meets requirements
+            print("✅ Password meets minimum requirements")
+            return password
+
         except KeyboardInterrupt:
             print("\nPassword input cancelled.")
             return None
 
-    return password
+    return None
 
 
 def verify_admin_setup():
@@ -45,21 +123,12 @@ def verify_admin_setup():
         print("✅ .env.admin file found")
 
         # Read and verify contents
-        with open(env_admin_path, "r") as f:
-            lines = f.readlines()
+        env_vars = parse_env_file(env_admin_path)
 
+        # Check for required variables
         required_vars = ["ADMIN_USERNAME", "ADMIN_PASSWORD_HASH", "ADMIN_SECRET_KEY"]
-        found_vars = set()
-
-        for line in lines:
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                var_name = line.split("=", 1)[0].strip()
-                if var_name in required_vars:
-                    found_vars.add(var_name)
-
         for var in required_vars:
-            if var in found_vars:
+            if var in env_vars:
                 print(f"✅ {var} configured")
             else:
                 print(f"❌ {var} missing")
@@ -87,17 +156,13 @@ def verify_admin_setup():
 
     # Load environment variables from .env.admin
     if env_admin_path.exists():
-        try:
-            with open(env_admin_path, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        key, value = line.split("=", 1)
-                        # Basic validation
-                        if key.isidentifier():
-                            os.environ[key] = value
-        except Exception as e:
-            print(f"❌ Failed to load .env.admin: {e}")
+        env_vars = parse_env_file(env_admin_path)
+        if env_vars:
+            # Set the parsed environment variables
+            for key, value in env_vars.items():
+                os.environ[key] = value
+        else:
+            print("❌ Failed to load .env.admin: No valid environment variables found")
             return
 
     try:

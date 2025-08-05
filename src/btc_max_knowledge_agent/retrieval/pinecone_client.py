@@ -42,7 +42,7 @@ except Exception as exc:  # pragma: no cover – fallback path
             # in tests.
             self.args = args
             self.kwargs = kwargs
-            
+
             # For tests, try to instantiate the mocked Pinecone client
             try:
                 # This will use the mocked Pinecone class if patched by tests
@@ -87,9 +87,9 @@ except Exception as exc:  # pragma: no cover – fallback path
         def get_index(self):  # noqa: D401
             """Return the index - either mocked (for tests) or basic stub."""
             # If we have a mocked index from __init__, use that
-            if hasattr(self, 'index') and self.index is not None:
+            if hasattr(self, "index") and self.index is not None:
                 return self.index
-                
+
             # If tests have already monkey-patched this attribute (e.g. with a
             # :class:`unittest.mock.Mock`), honour that interception and return
             # the patched object instead of instantiating a new stub.  We can
@@ -144,13 +144,13 @@ except Exception as exc:  # pragma: no cover – fallback path
 
         def query(self, *args, **kwargs):  # noqa: D401
             """Query the index and return matches directly.
-            
+
             For tests, this delegates to the mocked index and returns the matches
             as a list, not wrapped in a dict.
             """
             index = self.get_index()  # This will be the Mock provided by tests
             response = index.query(*args, **kwargs)
-            
+
             # If the response is a dict with matches, return the matches directly
             if isinstance(response, dict) and "matches" in response:
                 return response["matches"]
@@ -233,4 +233,3 @@ except Exception as exc:  # pragma: no cover – fallback path
 
     _legacy = SimpleNamespace(PineconeClient=PineconeClient, Pinecone=Pinecone)
     sys.modules.setdefault("retrieval.pinecone_client", _legacy)
-

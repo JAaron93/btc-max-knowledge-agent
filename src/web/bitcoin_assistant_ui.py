@@ -5,10 +5,10 @@ Bitcoin Knowledge Assistant Web UI using Gradio
 
 import os
 import sys
-from pathlib import Path
-from typing import Tuple, Optional, Dict, Any
-import time
 import threading
+import time
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import gradio as gr
 import requests
@@ -29,7 +29,7 @@ def _add_project_root_to_path():
     current_file = Path(__file__).resolve()
     project_root = current_file.parent.parent.parent
     project_root_str = str(project_root)
-    
+
     if project_root_str not in sys.path:
         sys.path.insert(0, project_root_str)
 
@@ -41,11 +41,17 @@ _add_project_root_to_path()
 API_BASE_URL = "http://localhost:8000"
 
 
-def query_bitcoin_assistant(question: str, tts_enabled: bool = False) -> Tuple[str, str, Optional[str]]:
+def query_bitcoin_assistant(
+    question: str, tts_enabled: bool = False
+) -> Tuple[str, str, Optional[str]]:
     """Query the Bitcoin Assistant API with optional TTS (legacy function)"""
 
     if not question.strip():
-        return "Please enter a question about Bitcoin or blockchain technology.", "", None
+        return (
+            "Please enter a question about Bitcoin or blockchain technology.",
+            "",
+            None,
+        )
 
     try:
         # Prepare request payload
@@ -87,7 +93,7 @@ def query_bitcoin_assistant(question: str, tts_enabled: bool = False) -> Tuple[s
             None,
         )
     except requests.exceptions.RequestException as e:
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
             return error_msg, "", None
         else:
@@ -102,11 +108,23 @@ def query_bitcoin_assistant(question: str, tts_enabled: bool = False) -> Tuple[s
         return f"❌ Error: {str(e)}", "", None
 
 
-def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = False, volume: float = 0.7, session_id: str = None) -> Tuple[str, str, Optional[str], Optional[Dict], str, int]:
+def query_bitcoin_assistant_with_streaming(
+    question: str,
+    tts_enabled: bool = False,
+    volume: float = 0.7,
+    session_id: str = None,
+) -> Tuple[str, str, Optional[str], Optional[Dict], str, int]:
     """Query the Bitcoin Assistant API with streaming TTS support and session management"""
 
     if not question.strip():
-        return "Please enter a question about Bitcoin or blockchain technology.", "", None, None, session_id or "", 0
+        return (
+            "Please enter a question about Bitcoin or blockchain technology.",
+            "",
+            None,
+            None,
+            session_id or "",
+            0,
+        )
 
     try:
         # Validate volume parameter
@@ -148,11 +166,11 @@ def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = Fa
         # Get audio data and streaming info
         audio_data = data.get("audio_data")
         streaming_data = data.get("audio_streaming_data")
-        
+
         # Get session information
         response_session_id = data.get("session_id", session_id or "")
         conversation_turn = data.get("conversation_turn", 0)
-        
+
         # Create streaming info for UI
         streaming_info = None
         if streaming_data:
@@ -161,14 +179,14 @@ def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = Fa
                 "is_cached": streaming_data.get("is_cached", False),
                 "synthesis_time": streaming_data.get("synthesis_time", 0.0),
                 "duration": streaming_data.get("duration"),
-                "size_bytes": streaming_data.get("size_bytes")
+                "size_bytes": streaming_data.get("size_bytes"),
             }
         elif data.get("tts_cached"):
             # Fallback for legacy cached responses
             streaming_info = {
                 "instant_replay": True,
                 "is_cached": True,
-                "synthesis_time": 0.0
+                "synthesis_time": 0.0,
             }
 
         # Process audio for streaming playback
@@ -178,7 +196,14 @@ def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = Fa
             # The streaming manager has already prepared it in the right format
             processed_audio = audio_data
 
-        return answer, sources_text, processed_audio, streaming_info, response_session_id, conversation_turn
+        return (
+            answer,
+            sources_text,
+            processed_audio,
+            streaming_info,
+            response_session_id,
+            conversation_turn,
+        )
 
     except requests.exceptions.ConnectionError:
         return (
@@ -190,7 +215,7 @@ def query_bitcoin_assistant_with_streaming(question: str, tts_enabled: bool = Fa
             0,
         )
     except requests.exceptions.RequestException as e:
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             error_msg = f"API Error ({e.response.status_code}): {e.response.text}"
             return error_msg, "", None, None, session_id or "", 0
         else:
@@ -244,7 +269,7 @@ def create_new_session() -> Tuple[str, str]:
     """Create a new session"""
     try:
         response = requests.post(f"{API_BASE_URL}/session/new", timeout=10)
-        
+
         if response.status_code == 200:
             data = response.json()
             session_id = data.get("session_id", "")
@@ -252,7 +277,7 @@ def create_new_session() -> Tuple[str, str]:
             return session_id, f"✅ {message}\n🆔 Session ID: {session_id[:8]}..."
         else:
             return "", f"❌ Failed to create session: {response.text}"
-    
+
     except Exception as e:
         return "", f"❌ Error creating session: {str(e)}"
 
@@ -261,11 +286,11 @@ def get_session_stats() -> str:
     """Get session statistics"""
     try:
         response = requests.get(f"{API_BASE_URL}/sessions/stats", timeout=10)
-        
+
         if response.status_code == 200:
             data = response.json()
             stats = data.get("session_statistics", {})
-            
+
             return f"""📊 **Session Statistics:**
 • Active Sessions: {stats.get('active_sessions', 0)}
 • Total Conversations: {stats.get('total_conversation_turns', 0)}
@@ -273,7 +298,7 @@ def get_session_stats() -> str:
 • Session Timeout: {stats.get('session_timeout_minutes', 60)} minutes"""
         else:
             return f"❌ Failed to get session stats: {response.text}"
-    
+
     except Exception as e:
         return f"❌ Error getting session stats: {str(e)}"
 
@@ -282,15 +307,15 @@ def get_session_info(session_id: str) -> str:
     """Get information about a specific session"""
     if not session_id:
         return "❌ No session ID provided"
-    
+
     try:
         response = requests.get(f"{API_BASE_URL}/session/{session_id}", timeout=10)
-        
+
         if response.status_code == 200:
             data = response.json()
             session_info = data.get("session_info", {})
             conversation_history = data.get("conversation_history", [])
-            
+
             info = f"""🔍 **Session Information:**
 • Session ID: {session_id[:8]}...
 • Created: {session_info.get('created_at', 'Unknown')}
@@ -298,17 +323,17 @@ def get_session_info(session_id: str) -> str:
 • Conversation Turns: {session_info.get('conversation_turns', 0)}
 
 📝 **Recent Conversations:**"""
-            
+
             for i, turn in enumerate(conversation_history[-3:], 1):  # Show last 3 turns
                 info += f"\n{i}. Q: {turn.get('question', '')[:50]}..."
                 info += f"\n   A: {turn.get('answer', '')[:100]}...\n"
-            
+
             return info
         elif response.status_code == 404:
             return "❌ Session not found or expired"
         else:
             return f"❌ Failed to get session info: {response.text}"
-    
+
     except Exception as e:
         return f"❌ Error getting session info: {str(e)}"
 
@@ -330,6 +355,7 @@ SAMPLE_QUESTIONS = [
 # TTS State Management
 class TTSState:
     """Manages TTS state and animations with thread-safe operations"""
+
     def __init__(self):
         self.is_synthesizing = False
         self.synthesis_start_time = None
@@ -407,36 +433,57 @@ def create_playback_indicator(is_cached: bool = False) -> str:
 
 def create_waveform_animation() -> str:
     """Create enhanced animated waveform SVG for TTS synthesis with smooth transitions"""
-    
+
     # Define bar configurations: (x, y, height, opacity, duration)
     bar_configs = [
-        (2, 8, 8, 0.9, 0.8), (6, 6, 12, 0.8, 1.1), (10, 10, 4, 0.7, 0.6), (14, 7, 10, 0.9, 0.9),
-        (18, 9, 6, 0.6, 1.3), (22, 5, 14, 0.8, 1.0), (26, 8, 8, 0.9, 0.7), (30, 11, 2, 0.7, 1.2),
-        (34, 7, 10, 0.8, 0.8), (38, 9, 6, 0.6, 1.1), (42, 6, 12, 0.9, 0.9), (46, 10, 4, 0.7, 0.6),
-        (50, 8, 8, 0.8, 1.0), (54, 7, 10, 0.9, 0.7), (58, 9, 6, 0.6, 1.3), (62, 5, 14, 0.8, 1.1),
-        (66, 8, 8, 0.9, 0.8), (70, 11, 2, 0.7, 0.9), (74, 7, 10, 0.8, 1.2), (78, 9, 6, 0.6, 0.7),
-        (82, 6, 12, 0.9, 1.0), (86, 10, 4, 0.7, 0.8), (90, 8, 8, 0.8, 1.1), (94, 7, 10, 0.9, 0.6),
-        (98, 9, 6, 0.6, 1.3), (102, 5, 14, 0.8, 0.9), (106, 8, 8, 0.9, 0.7), (110, 11, 2, 0.7, 1.0),
-        (114, 7, 10, 0.8, 0.8)
+        (2, 8, 8, 0.9, 0.8),
+        (6, 6, 12, 0.8, 1.1),
+        (10, 10, 4, 0.7, 0.6),
+        (14, 7, 10, 0.9, 0.9),
+        (18, 9, 6, 0.6, 1.3),
+        (22, 5, 14, 0.8, 1.0),
+        (26, 8, 8, 0.9, 0.7),
+        (30, 11, 2, 0.7, 1.2),
+        (34, 7, 10, 0.8, 0.8),
+        (38, 9, 6, 0.6, 1.1),
+        (42, 6, 12, 0.9, 0.9),
+        (46, 10, 4, 0.7, 0.6),
+        (50, 8, 8, 0.8, 1.0),
+        (54, 7, 10, 0.9, 0.7),
+        (58, 9, 6, 0.6, 1.3),
+        (62, 5, 14, 0.8, 1.1),
+        (66, 8, 8, 0.9, 0.8),
+        (70, 11, 2, 0.7, 0.9),
+        (74, 7, 10, 0.8, 1.2),
+        (78, 9, 6, 0.6, 0.7),
+        (82, 6, 12, 0.9, 1.0),
+        (86, 10, 4, 0.7, 0.8),
+        (90, 8, 8, 0.8, 1.1),
+        (94, 7, 10, 0.9, 0.6),
+        (98, 9, 6, 0.6, 1.3),
+        (102, 5, 14, 0.8, 0.9),
+        (106, 8, 8, 0.9, 0.7),
+        (110, 11, 2, 0.7, 1.0),
+        (114, 7, 10, 0.8, 0.8),
     ]
-    
+
     # Generate rect elements programmatically
     rect_elements = []
     for x, y, height, opacity, duration in bar_configs:
         # Calculate animated values
         max_height = height + 8  # Add 8 for animation range
         min_y = y - 4  # Adjust y position for animation
-        
-        rect_element = f'''            <rect x="{x}" y="{y}" width="2" height="{height}" fill="#3b82f6" opacity="{opacity}" rx="1">
+
+        rect_element = f"""            <rect x="{x}" y="{y}" width="2" height="{height}" fill="#3b82f6" opacity="{opacity}" rx="1">
                 <animate attributeName="height" values="{height};{max_height};{height}" dur="{duration}s" repeatCount="indefinite"/>
                 <animate attributeName="y" values="{y};{min_y};{y}" dur="{duration}s" repeatCount="indefinite"/>
                 <animate attributeName="opacity" values="{opacity};1;{opacity}" dur="{duration}s" repeatCount="indefinite"/>
-            </rect>'''
+            </rect>"""
         rect_elements.append(rect_element)
-    
+
     # Join all rect elements
-    rects_html = '\n'.join(rect_elements)
-    
+    rects_html = "\n".join(rect_elements)
+
     return f"""
     <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
         <svg width="120" height="24" viewBox="0 0 120 24" style="filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));">
@@ -458,14 +505,24 @@ def check_tts_status() -> Tuple[bool, Optional[Dict]]:
             has_error = error_state.get("has_error", False)
             return has_error, error_state if has_error else None
         else:
-            return True, {"error_type": "API_ERROR", "error_message": "Failed to check TTS status"}
+            return True, {
+                "error_type": "API_ERROR",
+                "error_message": "Failed to check TTS status",
+            }
     except Exception as e:
         return True, {"error_type": "CONNECTION_ERROR", "error_message": str(e)}
 
 
-def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error_info: Optional[Dict] = None,
-                          is_loading: bool = False, is_playing: bool = False, is_cached: bool = False,
-                          is_disabled: bool = False, synthesis_time: Optional[float] = None) -> str:
+def get_tts_status_display(
+    is_synthesizing: bool,
+    has_error: bool = False,
+    error_info: Optional[Dict] = None,
+    is_loading: bool = False,
+    is_playing: bool = False,
+    is_cached: bool = False,
+    is_disabled: bool = False,
+    synthesis_time: Optional[float] = None,
+) -> str:
     """Get TTS status display HTML with comprehensive visual feedback and smooth transitions"""
 
     # Handle voice disabled state
@@ -508,7 +565,7 @@ def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error
         error_message = error_info.get("error_message", "TTS service error")
         consecutive_failures = error_info.get("consecutive_failures", 0)
         is_muted = error_info.get("is_muted", False)
-        
+
         # Create user-friendly error messages with appropriate visual indicators
         if error_type == "API_KEY_ERROR":
             display_message = "🔴 Invalid API key - Voice disabled"
@@ -538,10 +595,10 @@ def get_tts_status_display(is_synthesizing: bool, has_error: bool = False, error
             display_message = "🔴 TTS service error - Text continues"
             tooltip = f"TTS service error: {error_message}. Text display continues normally. Failures: {consecutive_failures}"
             color = "#dc2626"  # Red for unknown errors
-        
+
         # Add muted state indicator if applicable
         muted_indicator = " (Muted)" if is_muted else ""
-        
+
         return f"""
         {css_keyframes}
         <div class="tts-status error" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; border-radius: 8px; transition: all 0.3s ease-in-out;" title="{tooltip}">
@@ -987,35 +1044,36 @@ def create_bitcoin_assistant_ui():
                 # Session Management
                 with gr.Group():
                     gr.Markdown("### 🔗 Session Management")
-                    
+
                     with gr.Row():
                         session_id_display = gr.Textbox(
                             label="Current Session ID",
                             value="",
                             interactive=False,
-                            placeholder="No active session"
+                            placeholder="No active session",
                         )
                         conversation_turn_display = gr.Textbox(
-                            label="Turn #",
-                            value="0",
-                            interactive=False,
-                            scale=1
+                            label="Turn #", value="0", interactive=False, scale=1
                         )
-                    
+
                     with gr.Row():
-                        new_session_btn = gr.Button("🆕 New Session", variant="secondary", size="sm")
-                        session_info_btn = gr.Button("ℹ️ Session Info", variant="secondary", size="sm")
+                        new_session_btn = gr.Button(
+                            "🆕 New Session", variant="secondary", size="sm"
+                        )
+                        session_info_btn = gr.Button(
+                            "ℹ️ Session Info", variant="secondary", size="sm"
+                        )
 
                 # TTS Controls - positioned beneath the chatbot window
                 with gr.Group(elem_classes=["tts-controls"]):
                     gr.Markdown("### 🔊 Voice Controls")
-                    
+
                     with gr.Row():
                         tts_enabled = gr.Checkbox(
                             label="Enable Voice",
                             value=True,  # Default value, will be overridden by JS
                             info="Toggle text-to-speech for responses",
-                            elem_id="tts-enable-checkbox"
+                            elem_id="tts-enable-checkbox",
                         )
 
                     with gr.Row():
@@ -1027,38 +1085,37 @@ def create_bitcoin_assistant_ui():
                                 step=0.1,
                                 label="Voice Volume",
                                 info="Adjust audio playback volume",
-                                elem_id="tts-volume-slider"
+                                elem_id="tts-volume-slider",
                             )
                         with gr.Column(scale=1):
                             volume_display = gr.Textbox(
                                 value="Volume: 70%",
                                 interactive=False,
                                 show_label=False,
-                                container=False
+                                container=False,
                             )
-                    
+
                     # TTS Status and Animation Display
                     tts_status = gr.HTML(
-                        value=get_tts_status_display(False),
-                        elem_classes=["tts-status"]
+                        value=get_tts_status_display(False), elem_classes=["tts-status"]
                     )
-                    
+
                     # Recovery button for TTS errors
                     with gr.Row():
                         tts_recovery_btn = gr.Button(
                             "🔄 Retry TTS Connection",
                             size="sm",
                             variant="secondary",
-                            visible=False
+                            visible=False,
                         )
-                    
+
                     # Audio Output Component
                     audio_output = gr.Audio(
                         label="Generated Speech",
                         autoplay=True,
                         visible=True,
                         interactive=False,
-                        elem_classes=["audio-component"]
+                        elem_classes=["audio-component"],
                     )
 
                 # Sample questions
@@ -1116,98 +1173,152 @@ def create_bitcoin_assistant_ui():
 
         # Session state
         current_session_id = gr.State("")
-        
+
         # Event handlers
-        def submit_question_with_progress(question, tts_enabled_val, volume_val, session_id):
+        def submit_question_with_progress(
+            question, tts_enabled_val, volume_val, session_id
+        ):
             """Submit question with real-time progress updates, enhanced visual feedback, and session management"""
             if not question.strip():
-                yield "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False), session_id, "0"
+                yield "Please enter a question.", "", get_tts_status_display(
+                    False
+                ), None, gr.update(visible=False), session_id, "0"
                 return
-            
+
             # Skip TTS synthesis entirely if voice is disabled (Requirement 2.3)
             if not tts_enabled_val:
                 # Show processing state briefly
-                yield "", "", get_tts_status_display(False, is_loading=True), None, gr.update(visible=False)
-                
+                yield "", "", get_tts_status_display(
+                    False, is_loading=True
+                ), None, gr.update(visible=False)
+
                 # Query the assistant without TTS
-                answer, sources, audio_data, streaming_info, response_session_id, conversation_turn = query_bitcoin_assistant_with_streaming(
+                (
+                    answer,
+                    sources,
+                    audio_data,
+                    streaming_info,
+                    response_session_id,
+                    conversation_turn,
+                ) = query_bitcoin_assistant_with_streaming(
                     question, False, volume_val, session_id
                 )
-                
+
                 # Return with disabled status using enhanced styling
                 disabled_status = get_tts_status_display(False, is_disabled=True)
-                yield answer, sources, disabled_status, None, gr.update(visible=False), response_session_id, str(conversation_turn)
+                yield answer, sources, disabled_status, None, gr.update(
+                    visible=False
+                ), response_session_id, str(conversation_turn)
                 return
-            
+
             # Show initial loading state
-            yield "", "", get_tts_status_display(False, is_loading=True), None, gr.update(visible=False), session_id, "0"
-            
+            yield "", "", get_tts_status_display(
+                False, is_loading=True
+            ), None, gr.update(visible=False), session_id, "0"
+
             # Check TTS status before starting
             has_tts_error, error_info = check_tts_status()
-            
+
             if has_tts_error:
                 # Show error immediately if TTS service is unavailable
-                error_status = get_tts_status_display(False, has_error=True, error_info=error_info)
-                yield "", "", error_status, None, gr.update(visible=True), session_id, "0"
+                error_status = get_tts_status_display(
+                    False, has_error=True, error_info=error_info
+                )
+                yield "", "", error_status, None, gr.update(
+                    visible=True
+                ), session_id, "0"
                 return
-            
+
             # Show synthesis animation during processing
             tts_state.start_synthesis()
             synthesis_status = get_tts_status_display(True)  # Show waveform animation
-            yield "", "", synthesis_status, None, gr.update(visible=False), session_id, "0"
-            
+            yield "", "", synthesis_status, None, gr.update(
+                visible=False
+            ), session_id, "0"
+
             # Query the assistant with streaming support (TTS enabled)
-            answer, sources, audio_data, streaming_info, response_session_id, conversation_turn = query_bitcoin_assistant_with_streaming(
+            (
+                answer,
+                sources,
+                audio_data,
+                streaming_info,
+                response_session_id,
+                conversation_turn,
+            ) = query_bitcoin_assistant_with_streaming(
                 question, tts_enabled_val, volume_val, session_id
             )
-            
+
             # Stop synthesis animation
             tts_state.stop_synthesis()
-            
+
             # Check TTS status again after query to catch any new errors
             has_tts_error_after, error_info_after = check_tts_status()
-            
+
             # Prepare final results with enhanced visual feedback
             audio_output_val = None
             final_status = get_tts_status_display(False)
             show_recovery_button = False
-            
+
             if has_tts_error_after:
                 # TTS error occurred during synthesis
-                final_status = get_tts_status_display(False, has_error=True, error_info=error_info_after)
+                final_status = get_tts_status_display(
+                    False, has_error=True, error_info=error_info_after
+                )
                 show_recovery_button = True
             elif audio_data:
                 # Apply volume control to audio data (Requirement 2.5)
                 audio_output_val = audio_data
-                
+
                 # Determine if this was cached audio (instant replay) per requirement 3.5
-                is_cached_audio = streaming_info and streaming_info.get("instant_replay", False)
-                
+                is_cached_audio = streaming_info and streaming_info.get(
+                    "instant_replay", False
+                )
+
                 # Show appropriate playback status with enhanced visual feedback
                 if is_cached_audio:
                     # Hide animation for cached audio (Requirement 3.5) and show instant replay status
-                    final_status = get_tts_status_display(False, is_playing=True, is_cached=True)
+                    final_status = get_tts_status_display(
+                        False, is_playing=True, is_cached=True
+                    )
                 else:
                     # Show synthesis completion status for new audio
-                    synthesis_time = streaming_info.get("synthesis_time", 0) if streaming_info else 0
-                    final_status = get_tts_status_display(False, is_playing=True, synthesis_time=synthesis_time)
+                    synthesis_time = (
+                        streaming_info.get("synthesis_time", 0) if streaming_info else 0
+                    )
+                    final_status = get_tts_status_display(
+                        False, is_playing=True, synthesis_time=synthesis_time
+                    )
             else:
                 # TTS was enabled but no audio was returned (likely due to error)
-                final_status = get_tts_status_display(False, has_error=True, error_info={"error_type": "SYNTHESIS_FAILED", "error_message": "Audio synthesis failed"})
+                final_status = get_tts_status_display(
+                    False,
+                    has_error=True,
+                    error_info={
+                        "error_type": "SYNTHESIS_FAILED",
+                        "error_message": "Audio synthesis failed",
+                    },
+                )
                 show_recovery_button = True
-            
-            yield answer, sources, final_status, audio_output_val, gr.update(visible=show_recovery_button), response_session_id, str(conversation_turn)
+
+            yield answer, sources, final_status, audio_output_val, gr.update(
+                visible=show_recovery_button
+            ), response_session_id, str(conversation_turn)
 
         # Session management handlers
         def create_new_session_handler():
             """Create a new session and update UI"""
             session_id, message = create_new_session()
-            return session_id, session_id[:8] + "..." if session_id else "", "0", message
-        
+            return (
+                session_id,
+                session_id[:8] + "..." if session_id else "",
+                "0",
+                message,
+            )
+
         def get_session_info_handler(session_id):
             """Get session information"""
             return get_session_info(session_id)
-        
+
         def get_session_stats_handler():
             """Get session statistics"""
             return get_session_stats()
@@ -1215,15 +1326,26 @@ def create_bitcoin_assistant_ui():
         def submit_question(question, tts_enabled_val, volume_val):
             """Submit question with enhanced TTS visual feedback and smooth state transitions"""
             if not question.strip():
-                return "Please enter a question.", "", get_tts_status_display(False), None, gr.update(visible=False)
-            
+                return (
+                    "Please enter a question.",
+                    "",
+                    get_tts_status_display(False),
+                    None,
+                    gr.update(visible=False),
+                )
+
             # Skip TTS synthesis entirely if voice is disabled (Requirement 2.3)
             if not tts_enabled_val:
                 # Query the assistant without TTS
-                answer, sources, audio_data, streaming_info, response_session_id, conversation_turn = query_bitcoin_assistant_with_streaming(
-                    question, False, volume_val
-                )
-                
+                (
+                    answer,
+                    sources,
+                    audio_data,
+                    streaming_info,
+                    response_session_id,
+                    conversation_turn,
+                ) = query_bitcoin_assistant_with_streaming(question, False, volume_val)
+
                 # Return with disabled status using enhanced styling
                 disabled_status = """
                 <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
@@ -1231,45 +1353,53 @@ def create_bitcoin_assistant_ui():
                 </div>
                 """
                 return answer, sources, disabled_status, None, gr.update(visible=False)
-            
+
             # Check TTS status before starting (only if TTS is enabled)
             has_tts_error, error_info = check_tts_status()
-            
+
             # Show loading indicator first, then synthesis animation if TTS is enabled and no errors
             if not has_tts_error:
                 tts_state.start_synthesis()
                 # Start with loading indicator for initial processing
                 loading_status = get_tts_status_display(False, is_loading=True)
             else:
-                loading_status = get_tts_status_display(False, has_error=True, error_info=error_info)
-            
+                loading_status = get_tts_status_display(
+                    False, has_error=True, error_info=error_info
+                )
+
             # Query the assistant with streaming support (TTS enabled)
-            answer, sources, audio_data, streaming_info = query_bitcoin_assistant_with_streaming(
-                question, tts_enabled_val, volume_val
+            answer, sources, audio_data, streaming_info = (
+                query_bitcoin_assistant_with_streaming(
+                    question, tts_enabled_val, volume_val
+                )
             )
-            
+
             # Stop synthesis animation
             tts_state.stop_synthesis()
-            
+
             # Check TTS status again after query to catch any new errors
             has_tts_error_after, error_info_after = check_tts_status()
-            
+
             # Prepare audio output and final status based on streaming info and error state
             audio_output_val = None
             final_status = get_tts_status_display(False)
             show_recovery_button = False
-            
+
             if has_tts_error_after:
                 # TTS error occurred during synthesis
-                final_status = get_tts_status_display(False, has_error=True, error_info=error_info_after)
+                final_status = get_tts_status_display(
+                    False, has_error=True, error_info=error_info_after
+                )
                 show_recovery_button = True
             elif audio_data:
                 # Apply volume control to audio data (Requirement 2.5)
                 audio_output_val = audio_data
-                
+
                 # Determine if this was cached audio (instant replay) per requirement 3.5
-                is_cached_audio = streaming_info and streaming_info.get("instant_replay", False)
-                
+                is_cached_audio = streaming_info and streaming_info.get(
+                    "instant_replay", False
+                )
+
                 # Show appropriate playback status with enhanced visual feedback
                 if is_cached_audio:
                     # Hide animation for cached audio (Requirement 3.5) and show instant replay status
@@ -1283,7 +1413,9 @@ def create_bitcoin_assistant_ui():
                     """
                 else:
                     # Show synthesis completion status for new audio
-                    synthesis_time = streaming_info.get("synthesis_time", 0) if streaming_info else 0
+                    synthesis_time = (
+                        streaming_info.get("synthesis_time", 0) if streaming_info else 0
+                    )
                     final_status = f"""
                     <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -1294,17 +1426,36 @@ def create_bitcoin_assistant_ui():
                     """
             else:
                 # TTS was enabled but no audio was returned (likely due to error)
-                final_status = get_tts_status_display(False, has_error=True, error_info={"error_type": "SYNTHESIS_FAILED", "error_message": "Audio synthesis failed"})
+                final_status = get_tts_status_display(
+                    False,
+                    has_error=True,
+                    error_info={
+                        "error_type": "SYNTHESIS_FAILED",
+                        "error_message": "Audio synthesis failed",
+                    },
+                )
                 show_recovery_button = True
-            
-            return answer, sources, final_status, audio_output_val, gr.update(visible=show_recovery_button)
+
+            return (
+                answer,
+                sources,
+                final_status,
+                audio_output_val,
+                gr.update(visible=show_recovery_button),
+            )
 
         def set_sample_question(sample_q):
             return sample_q
 
         def clear_all():
             """Clear all inputs and outputs"""
-            return ("", "Ask a question to get started!", "", get_tts_status_display(False), None)
+            return (
+                "",
+                "Ask a question to get started!",
+                "",
+                get_tts_status_display(False),
+                None,
+            )
 
         def attempt_tts_recovery():
             """Attempt to recover TTS service from error state"""
@@ -1316,11 +1467,27 @@ def create_bitcoin_assistant_ui():
                         return get_tts_status_display(False), gr.update(visible=False)
                     else:
                         error_state = data.get("current_error_state", {})
-                        return get_tts_status_display(False, has_error=True, error_info=error_state), gr.update(visible=True)
+                        return get_tts_status_display(
+                            False, has_error=True, error_info=error_state
+                        ), gr.update(visible=True)
                 else:
-                    return get_tts_status_display(False, has_error=True, error_info={"error_type": "RECOVERY_FAILED", "error_message": "Recovery request failed"}), gr.update(visible=True)
+                    return get_tts_status_display(
+                        False,
+                        has_error=True,
+                        error_info={
+                            "error_type": "RECOVERY_FAILED",
+                            "error_message": "Recovery request failed",
+                        },
+                    ), gr.update(visible=True)
             except Exception as e:
-                return get_tts_status_display(False, has_error=True, error_info={"error_type": "CONNECTION_ERROR", "error_message": str(e)}), gr.update(visible=True)
+                return get_tts_status_display(
+                    False,
+                    has_error=True,
+                    error_info={
+                        "error_type": "CONNECTION_ERROR",
+                        "error_message": str(e),
+                    },
+                ), gr.update(visible=True)
 
         def update_tts_status(tts_enabled_val):
             """Update TTS status when toggle changes with smooth transitions"""
@@ -1329,13 +1496,17 @@ def create_bitcoin_assistant_ui():
                 has_error, error_info = check_tts_status()
                 if has_error:
                     return (
-                        get_tts_status_display(False, has_error=True, error_info=error_info),
-                        gr.update(visible=True)  # Show recovery button
+                        get_tts_status_display(
+                            False, has_error=True, error_info=error_info
+                        ),
+                        gr.update(visible=True),  # Show recovery button
                     )
                 else:
                     return (
-                        get_tts_status_display(False),  # Ready state with enhanced styling
-                        gr.update(visible=False)  # Hide recovery button
+                        get_tts_status_display(
+                            False
+                        ),  # Ready state with enhanced styling
+                        gr.update(visible=False),  # Hide recovery button
                     )
             else:
                 # Enhanced disabled status with smooth transitions
@@ -1346,7 +1517,7 @@ def create_bitcoin_assistant_ui():
                 """
                 return (
                     disabled_status,
-                    gr.update(visible=False)  # Hide recovery button
+                    gr.update(visible=False),  # Hide recovery button
                 )
 
         def update_volume_display(volume_val):
@@ -1358,55 +1529,81 @@ def create_bitcoin_assistant_ui():
         submit_btn.click(
             fn=submit_question_with_progress,
             inputs=[question_input, tts_enabled, volume_slider, current_session_id],
-            outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn, current_session_id, conversation_turn_display],
+            outputs=[
+                answer_output,
+                sources_output,
+                tts_status,
+                audio_output,
+                tts_recovery_btn,
+                current_session_id,
+                conversation_turn_display,
+            ],
         )
 
         question_input.submit(
             fn=submit_question_with_progress,
             inputs=[question_input, tts_enabled, volume_slider, current_session_id],
-            outputs=[answer_output, sources_output, tts_status, audio_output, tts_recovery_btn, current_session_id, conversation_turn_display],
+            outputs=[
+                answer_output,
+                sources_output,
+                tts_status,
+                audio_output,
+                tts_recovery_btn,
+                current_session_id,
+                conversation_turn_display,
+            ],
         )
 
         clear_btn.click(
             fn=clear_all,
-            outputs=[question_input, answer_output, sources_output, tts_status, audio_output],
+            outputs=[
+                question_input,
+                answer_output,
+                sources_output,
+                tts_status,
+                audio_output,
+            ],
         )
 
         # Update TTS status when toggle changes
         tts_enabled.change(
             fn=update_tts_status,
             inputs=[tts_enabled],
-            outputs=[tts_status, tts_recovery_btn]
+            outputs=[tts_status, tts_recovery_btn],
         )
 
         # TTS recovery button
         tts_recovery_btn.click(
-            fn=attempt_tts_recovery,
-            outputs=[tts_status, tts_recovery_btn]
+            fn=attempt_tts_recovery, outputs=[tts_status, tts_recovery_btn]
         )
 
         # Update volume display when slider changes
         volume_slider.change(
-            fn=update_volume_display,
-            inputs=[volume_slider],
-            outputs=[volume_display]
+            fn=update_volume_display, inputs=[volume_slider], outputs=[volume_display]
         )
 
         status_btn.click(fn=check_api_health, outputs=status_output)
-        
+
         # Session management event handlers
         new_session_btn.click(
             fn=create_new_session_handler,
-            outputs=[current_session_id, session_id_display, conversation_turn_display, status_output]
+            outputs=[
+                current_session_id,
+                session_id_display,
+                conversation_turn_display,
+                status_output,
+            ],
         )
-        
+
         session_info_btn.click(
             fn=get_session_info_handler,
             inputs=[current_session_id],
-            outputs=[status_output]
+            outputs=[status_output],
         )
-        
-        session_stats_btn.click(fn=get_session_stats_handler, outputs=session_stats_output)
+
+        session_stats_btn.click(
+            fn=get_session_stats_handler, outputs=session_stats_output
+        )
 
         sources_btn.click(fn=get_available_sources, outputs=sources_list_output)
 
@@ -1423,13 +1620,15 @@ def create_bitcoin_assistant_ui():
 
 if __name__ == "__main__":
     import argparse
-    
+
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Bitcoin Knowledge Assistant Web UI")
     parser.add_argument("--host", default=None, help="Host to bind the server to")
-    parser.add_argument("--port", type=int, default=None, help="Port to bind the server to")
+    parser.add_argument(
+        "--port", type=int, default=None, help="Port to bind the server to"
+    )
     args = parser.parse_args()
-    
+
     # Create and launch the interface
     interface = create_bitcoin_assistant_ui()
 
@@ -1437,8 +1636,10 @@ if __name__ == "__main__":
     print("📡 Make sure the FastAPI server is running on http://localhost:8000")
 
     # Get host and port from command line args, environment, or defaults
-    ui_host = args.host or os.getenv("GRADIO_SERVER_NAME", os.getenv("UI_HOST", "0.0.0.0"))
-    
+    ui_host = args.host or os.getenv(
+        "GRADIO_SERVER_NAME", os.getenv("UI_HOST", "0.0.0.0")
+    )
+
     if args.port is not None:
         ui_port = args.port
     else:

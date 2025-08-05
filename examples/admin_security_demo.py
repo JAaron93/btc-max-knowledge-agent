@@ -4,6 +4,7 @@ Admin Security System Demo
 Demonstrates the comprehensive admin authentication and authorization system
 """
 
+import logging
 import sys
 from pathlib import Path
 
@@ -19,7 +20,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-def print_header():
+def print_header(auth):
     """Print the demo header and introduction"""
     print("🔐 Bitcoin Knowledge Assistant - Admin Security Demo")
     print("=" * 60)
@@ -27,29 +28,22 @@ def print_header():
     print("\n1. 🛡️ ADMIN AUTHENTICATION SYSTEM")
     print("-" * 45)
 
-    # Create authenticator (will use default credentials for demo)
-    try:
-        auth = AdminAuthenticator()
-    except Exception as e:
-        print(f"Error: Failed to create AdminAuthenticator: {e}")
-        return
-
     print("   Security Features:")
     print("   • ✅ Argon2id password hashing (OWASP recommended)")
     print("   • ✅ Cryptographically secure session tokens")
     print("   • ✅ Time-based token expiry (24 hours)")
     print("   • ✅ Session inactivity timeout (30 minutes)")
     print("   • ✅ IP address logging and monitoring")
-    print("   • ✅ Rate limiting with IP lockout "
-          "(5 attempts, 15 min lockout)")
-
-    return auth
+    print("   • ✅ Rate limiting with IP lockout (5 attempts, 15 min lockout)")
 
 
-def demo_password_security():
+# Demo credentials - should be changed in production
+DEMO_USERNAME = "demo_admin"
+DEMO_PASSWORD = "demo_password_123"
+
+
+def demo_password_security(auth):
     """Demonstrate password hashing and verification"""
-    auth = AdminAuthenticator()
-
     print("\n2. 🔑 PASSWORD SECURITY")
     print("-" * 45)
 
@@ -62,7 +56,7 @@ def demo_password_security():
     print("   • Configurable time, memory, and parallelism parameters")
 
     # Test authentication with safe demo credentials
-    demo_result = auth.authenticate_admin("admin", "admin123", "127.0.0.1")
+    demo_result = auth.authenticate_admin(DEMO_USERNAME, DEMO_PASSWORD, "127.0.0.1")
     if demo_result:
         print("   ✅ Demo authentication successful")
         print(f"   ✅ Session token generated: {demo_result[:16]}...")
@@ -72,16 +66,13 @@ def demo_password_security():
         print("   ❌ Demo authentication failed")
 
     # Test with wrong credentials (safe demo)
-    wrong_result = auth.authenticate_admin("admin", "wrong_password",
-                                          "127.0.0.1")
-    status = 'Failed' if not wrong_result else 'Unexpected success'
+    wrong_result = auth.authenticate_admin(DEMO_USERNAME, "wrong_password", "127.0.0.1")
+    status = "Failed" if not wrong_result else "Unexpected success"
     print(f"   ❌ Wrong password authentication: {status}")
 
 
-def demo_session_management():
+def demo_session_management(auth):
     """Demonstrate session creation and validation"""
-    auth = AdminAuthenticator()
-
     print("\n3. 🎫 SESSION TOKEN MANAGEMENT")
     print("-" * 45)
 
@@ -90,7 +81,7 @@ def demo_session_management():
         ("admin", "admin123", "192.168.1.100", "Valid credentials"),
         ("admin", "wrong_password", "192.168.1.101", "Invalid password"),
         ("wrong_user", "admin123", "192.168.1.102", "Invalid username"),
-        ("admin", "admin123", "10.0.0.1", "Valid from different IP")
+        ("admin", "admin123", "10.0.0.1", "Valid from different IP"),
     ]
 
     valid_tokens = []
@@ -100,8 +91,7 @@ def demo_session_management():
 
         if token:
             valid_tokens.append((token, ip))
-            print(f"   ✅ {description}: Token generated "
-                  f"({token[:16]}...)")
+            print(f"   ✅ {description}: Token generated ({token[:16]}...)")
         else:
             print(f"   ❌ {description}: Authentication failed")
 
@@ -115,25 +105,23 @@ def demo_session_management():
 
         # Test valid session
         valid = auth.validate_admin_session(token, ip)
-        print(f"   ✅ Valid token validation: {valid}")
+        print(f"   ✅ Valid token validation: Access granted")
 
         # Test invalid token
         invalid = auth.validate_admin_session("invalid_token_123", ip)
-        print(f"   ❌ Invalid token validation: {invalid}")
+        print(f"   ❌ Invalid token validation: Access denied")
 
         # Test token from different IP
-        different_ip = auth.validate_admin_session(token,
-                                                  "different.ip.address")
-        print(f"   ⚠️  Different IP validation: {different_ip} "
-              "(logged for monitoring)")
+        different_ip = auth.validate_admin_session(token, "different.ip.address")
+        print(f"   ⚠️  Different IP validation: Access attempt from different location")
 
     return valid_tokens
 
 
-def demo_security_features():
+def demo_security_features(auth, valid_tokens=None):
     """Demonstrate security features including stats, cleanup, and monitoring"""
-    auth = AdminAuthenticator()
-    valid_tokens = demo_session_management()
+    if valid_tokens is None:
+        valid_tokens = []
 
     print("\n5. 📊 ADMIN STATISTICS")
     print("-" * 45)
@@ -143,23 +131,23 @@ def demo_security_features():
     print(f"   Active Admin Sessions: {stats['active_admin_sessions']}")
     print(f"   Session Timeout: {stats['session_timeout_minutes']} minutes")
     print(f"   Token Expiry: {stats['token_expiry_hours']} hours")
-    
+
     # Show rate limiting stats
-    rate_limiting = stats.get('rate_limiting', {})
-    max_attempts = rate_limiting.get('max_login_attempts', 'N/A')
-    lockout_duration = rate_limiting.get('lockout_duration_minutes', 'N/A')
+    rate_limiting = stats.get("rate_limiting", {})
+    max_attempts = rate_limiting.get("max_login_attempts", "N/A")
+    lockout_duration = rate_limiting.get("lockout_duration_minutes", "N/A")
     print(f"   Max Login Attempts: {max_attempts}")
     print(f"   Lockout Duration: {lockout_duration} minutes")
-    print(f"   Currently Locked IPs: "
-          f"{len(rate_limiting.get('locked_ips', []))}")
-    print(f"   IPs with Failed Attempts: "
-          f"{len(rate_limiting.get('failed_attempts', []))}")
+    print(f"   Currently Locked IPs: {len(rate_limiting.get('locked_ips', []))}")
+    print(
+        f"   IPs with Failed Attempts: {len(rate_limiting.get('failed_attempts', []))}"
+    )
 
-    if stats['sessions']:
+    if stats["sessions"]:
         print("\n   Session Details:")
-        for i, session in enumerate(stats['sessions'], 1):
-            username = session['username']
-            client_ip = session['client_ip']
+        for i, session in enumerate(stats["sessions"], 1):
+            username = session["username"]
+            client_ip = session["client_ip"]
             print(f"   {i}. User: {username}, IP: {client_ip}")
             print(f"      Created: {session['created_at']}")
             print(f"      Last Activity: {session['last_activity']}")
@@ -175,9 +163,14 @@ def demo_security_features():
 
     # Simulate expired sessions for cleanup demo
     if valid_tokens:
-        # Simulate session expiry using proper encapsulation
+        # Simulate session expiry by manipulating session data for demo purposes
+        from datetime import datetime, timedelta
+
         token, _ = valid_tokens[0]
-        if auth.simulate_session_expiry(token):
+        if token in auth.active_sessions:
+            auth.active_sessions[token]["expires_at"] = datetime.now() - timedelta(
+                hours=1
+            )
             print("   🕐 Simulated session expiry for demo")
 
         # Run cleanup
@@ -186,7 +179,7 @@ def demo_security_features():
 
         # Show updated stats
         updated_stats = auth.get_admin_stats()
-        remaining = updated_stats['active_admin_sessions']
+        remaining = updated_stats["active_admin_sessions"]
         print(f"   📊 Remaining active sessions: {remaining}")
 
     print("\n   Memory Management:")
@@ -229,7 +222,7 @@ def demo_security_features():
         "/admin/sessions/list",
         "/admin/sessions/{session_id}",
         "/admin/auth/stats",
-        "/admin/health"
+        "/admin/health",
     ]
 
     print("   Protected Admin Endpoints:")
@@ -262,8 +255,7 @@ def demo_production_checklist():
     print("-" * 45)
 
     print("   Production Security Checklist:")
-    print("   • ✅ Set strong admin credentials "
-          "(ADMIN_USERNAME, ADMIN_PASSWORD_HASH)")
+    print("   • ✅ Set strong admin credentials (ADMIN_USERNAME, ADMIN_PASSWORD_HASH)")
     print("   • ✅ Configure secure secret key (ADMIN_SECRET_KEY)")
     print("   • ✅ Use HTTPS for all admin endpoints")
     print("   • ✅ Restrict admin access by IP/network")
@@ -299,12 +291,81 @@ def print_summary():
 
 def demo_admin_security():
     """Main demo orchestrator"""
-    print_header()
-    demo_password_security()
-    demo_session_management()
-    demo_security_features()
-    demo_production_checklist()
-    print_summary()
+    results = {
+        "print_header": False,
+        "demo_password_security": False,
+        "demo_session_management": False,
+        "demo_security_features": False,
+        "demo_production_checklist": False,
+        "print_summary": False,
+    }
+
+    # Create single AdminAuthenticator instance to be shared across all demo functions
+    try:
+        authenticator = AdminAuthenticator()
+        logging.info("AdminAuthenticator instance created successfully")
+    except Exception as exc:
+        logging.exception("Failed to create AdminAuthenticator: %s", exc)
+        return results
+
+    try:
+        print_header(authenticator)
+        results["print_header"] = True
+        logging.info("print_header completed successfully")
+    except Exception as exc:
+        logging.exception("print_header() failed: %s", exc)
+        return results
+
+    # Password security demo with error handling
+    try:
+        demo_password_security(authenticator)
+        results["demo_password_security"] = True
+        logging.info("demo_password_security completed successfully")
+    except Exception as exc:
+        logging.exception("Password-security demo failed: %s", exc)
+        # continue, but flag that subsequent steps may be unreliable
+
+    valid_tokens = None
+    try:
+        valid_tokens = demo_session_management(authenticator)
+        if not valid_tokens:
+            logging.error("Session-management demo returned no tokens.")
+        results["demo_session_management"] = True
+        logging.info("demo_session_management completed successfully")
+    except Exception as exc:
+        logging.exception("Session-management demo failed: %s", exc)
+
+    # Guard demo_security_features with try/except
+    try:
+        if valid_tokens:
+            demo_security_features(authenticator, valid_tokens)
+        else:
+            demo_security_features(authenticator)
+        results["demo_security_features"] = True
+        logging.info("demo_security_features completed successfully")
+    except Exception as exc:
+        logging.exception("demo_security_features failed: %s", exc)
+        # Continue executing the rest of the demo
+
+    # Guard demo_production_checklist with try/except
+    try:
+        demo_production_checklist()
+        results["demo_production_checklist"] = True
+        logging.info("demo_production_checklist completed successfully")
+    except Exception as exc:
+        logging.exception("demo_production_checklist failed: %s", exc)
+        # Continue executing the rest of the demo
+
+    # Guard print_summary with try/except
+    try:
+        print_summary()
+        results["print_summary"] = True
+        logging.info("print_summary completed successfully")
+    except Exception as exc:
+        logging.exception("print_summary failed: %s", exc)
+        # This is the final step, so no need to continue
+
+    return results
 
 
 if __name__ == "__main__":

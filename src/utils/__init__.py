@@ -55,6 +55,7 @@ _FWD_SUBMODULES = (
     "config",
     "result_formatter",
     "audio_cache",
+    "exponential_backoff",
 )
 
 

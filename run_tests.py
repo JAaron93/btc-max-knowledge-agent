@@ -103,7 +103,6 @@ Examples:
         help="Just collect and show tests, don't run them",
     )
 
-
     args = parser.parse_args()
 
     print("🧪 BTC Max Knowledge Agent Test Runner")

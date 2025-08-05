@@ -10,10 +10,8 @@ import os
 
 from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 
-from .conftest import (
-    pytest_parametrize_config_variants,
-    pytest_parametrize_truncation_lengths,
-)
+from .conftest import (pytest_parametrize_config_variants,
+                       pytest_parametrize_truncation_lengths)
 
 
 class TestQueryTruncationConfig:
@@ -77,7 +75,8 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == default_query_config.query_truncation_length
+            logger.config["query_truncation_length"]
+            == default_query_config.query_truncation_length
         ), f"Default truncation length should be {default_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_custom_truncation_config(self, custom_query_config, temp_config_dir):
@@ -92,7 +91,8 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == custom_query_config.query_truncation_length
+            logger.config["query_truncation_length"]
+            == custom_query_config.query_truncation_length
         ), f"Custom truncation length should be {custom_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_short_truncation_config(self, short_query_config, temp_config_dir):
@@ -107,7 +107,8 @@ class TestQueryTruncationConfig:
         )
 
         assert (
-            logger.config["query_truncation_length"] == short_query_config.query_truncation_length
+            logger.config["query_truncation_length"]
+            == short_query_config.query_truncation_length
         ), f"Short truncation length should be {short_query_config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
     def test_query_truncation_with_sample_data(
@@ -359,6 +360,7 @@ class TestQueryTruncationConfig:
 def test_backwards_compatibility():
     """Test that existing code without the parameter still works."""
     import tempfile
+
     with tempfile.TemporaryDirectory() as temp_dir:
         # This should work without specifying query_truncation_length
         logger = URLMetadataLogger(log_dir=temp_dir)

@@ -133,12 +133,14 @@ def main():
 
             if "PINECONE_ASSISTANT_HOST" in content:
                 updated_content = re.sub(
-                    r'PINECONE_ASSISTANT_HOST\s*=.*',
+                    r"PINECONE_ASSISTANT_HOST\s*=.*",
                     f'PINECONE_ASSISTANT_HOST="{host}"',
                     content,
                 )
             else:
-                updated_content = content.rstrip() + f'\nPINECONE_ASSISTANT_HOST="{host}"\n'
+                updated_content = (
+                    content.rstrip() + f'\nPINECONE_ASSISTANT_HOST="{host}"\n'
+                )
 
             with open(".env", "w") as f:
                 f.write(updated_content)
@@ -148,10 +150,12 @@ def main():
         except Exception as e:
             print(f"❌ Error updating .env file: {e}")
 
-    print("""\n📋 Next Steps:
+    print(
+        """\n📋 Next Steps:
 1. If you found your Assistant host, the .env file has been updated
 2. If Assistants aren't available, consider using regular Pinecone indexes
-3. You can also proceed with the standard RAG approach using our existing code""")
+3. You can also proceed with the standard RAG approach using our existing code"""
+    )
 
 
 if __name__ == "__main__":

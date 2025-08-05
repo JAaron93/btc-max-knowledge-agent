@@ -9,14 +9,14 @@ functions can be called.
 
 from importlib import import_module
 from types import SimpleNamespace
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Type
 
 try:
     _legacy = import_module("monitoring.url_metadata_monitor")
 
     # Re-export the real implementation.
-    URLMetadataMonitor = _legacy.URLMetadataMonitor  # type: ignore[attr-defined]
-    AlertThreshold = _legacy.AlertThreshold  # type: ignore[attr-defined]
+    URLMetadataMonitor: Type[Any] = _legacy.URLMetadataMonitor  # type: ignore[attr-defined]
+    AlertThreshold: Type[Any] = _legacy.AlertThreshold  # type: ignore[attr-defined]
     record_validation = _legacy.record_validation  # type: ignore[attr-defined]
     record_upload = _legacy.record_upload  # type: ignore[attr-defined]
     record_retrieval = _legacy.record_retrieval  # type: ignore[attr-defined]
@@ -31,7 +31,7 @@ except Exception:  # pragma: no cover – fall back to stubs
 
     class URLMetadataMonitor:  # noqa: D101 – stub
         def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
-            self._records = []
+            self._records: List[Tuple[str, Tuple[Any, ...], dict[str, Any]]] = []
 
         # Minimal API expected by tests
         def record_validation(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
@@ -65,7 +65,7 @@ except Exception:  # pragma: no cover – fall back to stubs
     ) -> Tuple[bool, Optional[str]]:  # noqa: D401,E501
         return url_metadata_monitor.check_url_accessibility(*args, **kwargs)
 
-    _legacy = SimpleNamespace(
+    _legacy: Any = SimpleNamespace(
         URLMetadataMonitor=URLMetadataMonitor,
         AlertThreshold=AlertThreshold,
         record_validation=record_validation,

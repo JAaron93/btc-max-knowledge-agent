@@ -7,9 +7,10 @@ Provides secure access control for administrative endpoints
 import asyncio
 import logging
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -64,6 +65,22 @@ class AdminAuthenticator:
         # Background cleanup task
         self._cleanup_task: Optional[asyncio.Task] = None
         self._cleanup_interval_minutes = 5  # Run cleanup every 5 minutes
+
+        # Monitoring state attributes that survive event-loop restarts
+        self._cleanup_restart_attempts: int = 0
+        self._cleanup_last_start: Optional[datetime] = None
+        self._cleanup_backoff: float = (
+            1.0  # Exponential backoff multiplier for restart delays
+        )
+        self._cleanup_max_backoff: float = (
+            300.0  # Maximum backoff delay in seconds (5 minutes)
+        )
+        self._cleanup_restart_window: timedelta = timedelta(
+            hours=1
+        )  # Reset counter after this window
+        self._cleanup_max_restarts_per_window: int = (
+            10  # Max restarts allowed per window
+        )
 
         logger.info("AdminAuthenticator initialized")
 
@@ -192,8 +209,6 @@ class AdminAuthenticator:
         Returns:
             True if session is valid, False otherwise
         """
-        # Clean up expired sessions before validation
-        self.cleanup_expired_sessions()
 
         if not token or token not in self.active_sessions:
             logger.warning(f"Invalid admin session token from IP {client_ip}")
@@ -336,6 +351,23 @@ class AdminAuthenticator:
                     }
                 )
 
+        # Include cleanup monitoring stats
+        cleanup_stats = {
+            "cleanup_task_running": self._cleanup_task is not None
+            and not self._cleanup_task.done(),
+            "cleanup_restart_attempts": self._cleanup_restart_attempts,
+            "cleanup_last_start": (
+                self._cleanup_last_start.isoformat()
+                if self._cleanup_last_start
+                else None
+            ),
+            "cleanup_backoff_seconds": self._cleanup_backoff,
+            "cleanup_max_backoff_seconds": self._cleanup_max_backoff,
+            "cleanup_max_restarts_per_window": self._cleanup_max_restarts_per_window,
+            "cleanup_restart_window_hours": self._cleanup_restart_window.total_seconds()
+            / 3600,
+        }
+
         return {
             "active_admin_sessions": active_sessions,
             "session_timeout_minutes": ADMIN_SESSION_TIMEOUT_MINUTES,
@@ -347,25 +379,8 @@ class AdminAuthenticator:
                 "locked_ips": locked_ips,
                 "failed_attempts": failed_attempts_info,
             },
+            "cleanup_monitoring": cleanup_stats,
         }
-
-    def simulate_session_expiry(self, token: str) -> bool:
-        """
-        Simulate session expiry for demo purposes
-
-        Args:
-            token: Session token to expire
-
-        Returns:
-            True if session was found and expired, False otherwise
-        """
-        if token in self.active_sessions:
-            # Set expiry time to 1 hour ago
-            expired_time = datetime.now() - timedelta(hours=1)
-            self.active_sessions[token]["expires_at"] = expired_time
-            logger.info(f"Simulated session expiry for demo purposes: {token[:16]}...")
-            return True
-        return False
 
     def unlock_ip(self, client_ip: str) -> bool:
         """
@@ -382,6 +397,74 @@ class AdminAuthenticator:
             logger.info(f"Manually unlocked IP address: {client_ip}")
             return True
         return False
+
+    def _should_allow_cleanup_restart(self) -> bool:
+        """Check if cleanup task restart should be allowed based on monitoring state"""
+        now = datetime.now()
+
+        # Reset restart count if outside the restart window
+        if (
+            self._cleanup_last_start
+            and now - self._cleanup_last_start > self._cleanup_restart_window
+        ):
+            self._cleanup_restart_attempts = 0
+            self._cleanup_backoff = 1.0
+            logger.debug("Reset cleanup restart attempts counter after window expiry")
+
+        # Check if we've exceeded max restarts for this window
+        if self._cleanup_restart_attempts >= self._cleanup_max_restarts_per_window:
+            logger.warning(
+                f"Cleanup task restart limit reached ({self._cleanup_restart_attempts}/ "
+                f"{self._cleanup_max_restarts_per_window} in {self._cleanup_restart_window}). "
+                "Blocking further restarts."
+            )
+            return False
+
+        return True
+
+    def _record_cleanup_restart(self) -> None:
+        """Record a cleanup task restart and update monitoring state"""
+        now = datetime.now()
+        self._cleanup_restart_attempts += 1
+        self._cleanup_last_start = now
+
+        # Apply exponential backoff with jitter
+        import random
+
+        jitter = random.uniform(0.8, 1.2)  # Add 20% jitter
+        self._cleanup_backoff = min(
+            self._cleanup_backoff * 2 * jitter, self._cleanup_max_backoff
+        )
+
+        logger.info(
+            f"Cleanup task restart #{self._cleanup_restart_attempts} recorded. "
+            f"Next backoff: {self._cleanup_backoff:.1f}s"
+        )
+
+    def _reset_cleanup_monitoring_state(self) -> None:
+        """Reset cleanup monitoring state (useful for manual intervention)"""
+        self._cleanup_restart_attempts = 0
+        self._cleanup_last_start = None
+        self._cleanup_backoff = 1.0
+        logger.info("Cleanup monitoring state reset")
+
+    def get_cleanup_monitoring_state(self) -> Dict[str, Any]:
+        """Get current cleanup monitoring state for debugging/admin purposes"""
+        return {
+            "restart_attempts": self._cleanup_restart_attempts,
+            "last_start": (
+                self._cleanup_last_start.isoformat()
+                if self._cleanup_last_start
+                else None
+            ),
+            "current_backoff_seconds": self._cleanup_backoff,
+            "max_backoff_seconds": self._cleanup_max_backoff,
+            "restart_window_hours": self._cleanup_restart_window.total_seconds() / 3600,
+            "max_restarts_per_window": self._cleanup_max_restarts_per_window,
+            "task_running": self._cleanup_task is not None
+            and not self._cleanup_task.done(),
+            "can_restart": self._should_allow_cleanup_restart(),
+        }
 
     async def _background_cleanup_task(self):
         """Background task to periodically clean up expired sessions"""
@@ -404,14 +487,71 @@ class AdminAuthenticator:
                 logger.error(f"Error in admin session background cleanup: {e}")
                 # Continue running despite errors
 
+    def _on_cleanup_done(self, task: asyncio.Task) -> None:
+        """Callback invoked when cleanup task completes"""
+        try:
+            # Inspect task result/exception
+            if task.cancelled():
+                logger.info("Cleanup task was cancelled")
+            elif task.exception():
+                exc = task.exception()
+                logger.error(f"Cleanup task finished with exception: {exc}")
+                # Schedule restart if it finished unexpectedly (due to exception)
+                if self._should_allow_cleanup_restart():
+                    logger.info(
+                        "Scheduling cleanup task restart due to unexpected completion"
+                    )
+                    asyncio.create_task(self._restart_cleanup())
+                else:
+                    logger.warning(
+                        "Cleanup task restart blocked due to monitoring limits"
+                    )
+            else:
+                # Task completed normally (should not happen for infinite loop)
+                result = task.result()
+                logger.warning(
+                    f"Cleanup task completed unexpectedly with result: {result}"
+                )
+                # Schedule restart if it finished unexpectedly
+                if self._should_allow_cleanup_restart():
+                    logger.info(
+                        "Scheduling cleanup task restart due to unexpected completion"
+                    )
+                    asyncio.create_task(self._restart_cleanup())
+                else:
+                    logger.warning(
+                        "Cleanup task restart blocked due to monitoring limits"
+                    )
+        except Exception as e:
+            logger.error(f"Error in cleanup task completion callback: {e}")
+
+    async def _restart_cleanup(self) -> None:
+        """Restart the cleanup task with backoff delay"""
+        try:
+            # Apply backoff delay before restarting
+            logger.info(
+                f"Waiting {self._cleanup_backoff:.1f}s before restarting cleanup task"
+            )
+            await asyncio.sleep(self._cleanup_backoff)
+
+            # Start background cleanup again
+            self.start_background_cleanup()
+        except Exception as e:
+            logger.error(f"Error restarting cleanup task: {e}")
+
     def start_background_cleanup(self):
         """Start the background cleanup task"""
-        if self._cleanup_task is None or self._cleanup_task.done():
+        if (
+            self._cleanup_task is None or self._cleanup_task.done()
+        ) and self._should_allow_cleanup_restart():
             try:
                 loop = asyncio.get_event_loop()
                 self._cleanup_task = loop.create_task(self._background_cleanup_task())
+                # Add task completion callback
+                self._cleanup_task.add_done_callback(self._on_cleanup_done)
+                self._record_cleanup_restart()
                 logger.info(
-                    f"Started admin session background cleanup task (interval: {self._cleanup_interval_minutes} minutes)"
+                    f"Started admin session background cleanup task with completion callback (interval: {self._cleanup_interval_minutes} minutes)"
                 )
             except RuntimeError:
                 # No event loop running, this is expected in some contexts

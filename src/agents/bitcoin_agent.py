@@ -29,12 +29,11 @@ class BitcoinKnowledgeAgent:
                     "response": "No relevant information found in the Bitcoin knowledge base.",
                     "sources": [],
                     "summary": "",
-        ,
+                },
                 "message": "No relevant information found in the Bitcoin knowledge base.",
             }
 
         # Format results with URL metadata support
-        try:
         try:
             # Normalise to a uniform envelope so downstream access is consistent
             _out = QueryResultFormatter.format_structured_response(
@@ -74,7 +73,6 @@ class BitcoinKnowledgeAgent:
             "sources": formatted_response.get("sources", []),
             "summary": formatted_response.get("summary", ""),
             "message": f"Found {len(relevant_docs)} relevant documents",
-        }
         }
 
     def get_knowledge_stats(self) -> Dict[str, Any]:

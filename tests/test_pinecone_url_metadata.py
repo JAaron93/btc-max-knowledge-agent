@@ -8,40 +8,45 @@ import sys
 import unittest
 from unittest.mock import Mock, patch
 
-# Add the project root to sys.path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from src.retrieval.pinecone_client import PineconeClient
+
+# Path setup is handled by conftest.py fixture automatically
 
 
 class TestPineconeURLMetadata(unittest.TestCase):
-
     def setUp(self):
         """Set up test fixtures"""
 
-        
         # Mock environment variables for Config
         test_env_vars = {
             "PINECONE_API_KEY": "test-key",
-            "PINECONE_INDEX_NAME": "test-index", 
+            "PINECONE_INDEX_NAME": "test-index",
             "EMBEDDING_DIMENSION": "768",
             "ALLOW_LOCALHOST_URLS": "True",  # Enable localhost URLs for dev/test
         }
-        
+
         # Mock the external dependencies
-        with patch("src.retrieval.pinecone_client.Pinecone"), \
-             patch.dict(os.environ, test_env_vars, clear=False):
+        with (
+            patch("src.retrieval.pinecone_client.Pinecone"),
+            patch.dict(os.environ, test_env_vars, clear=False),
+        ):
             self.client = PineconeClient()
 
     def test_validate_and_sanitize_url_valid_urls(self):
         """Test URL validation with valid URLs"""
         # Test valid URLs with expected normalized output
         valid_url_test_cases = [
-            ("https://example.com", "https://example.com/"),  # Normalization adds trailing slash
+            (
+                "https://example.com",
+                "https://example.com/",
+            ),  # Normalization adds trailing slash
             ("http://example.com", "http://example.com/"),
             ("https://subdomain.example.com", "https://subdomain.example.com/"),
             ("https://example.com/path", "https://example.com/path"),
-            ("https://example.com/path?query=value", "https://example.com/path?query=value"),
+            (
+                "https://example.com/path?query=value",
+                "https://example.com/path?query=value",
+            ),
         ]
 
         for input_url, expected_url in valid_url_test_cases:
@@ -82,22 +87,32 @@ class TestPineconeURLMetadata(unittest.TestCase):
 
         for url in invalid_urls:
             result = self.client.validate_and_sanitize_url(url)
-            assert result is None or result.startswith("https://"), f"Invalid URL {url} should return None or be prefixed with https://, got {result}"
+            assert result is None or result.startswith(
+                "https://"
+            ), f"Invalid URL {url} should return None or be prefixed with https://, got {result}"
 
     def test_validate_and_sanitize_url_localhost_allowed(self):
         """Test URL validation with localhost URLs when ALLOW_LOCALHOST_URLS=True"""
         localhost_test_cases = [
-            ("http://localhost", "http://localhost/"),  # URL normalization adds trailing slash
-            ("https://localhost", "https://localhost/"), 
+            (
+                "http://localhost",
+                "http://localhost/",
+            ),  # URL normalization adds trailing slash
+            ("https://localhost", "https://localhost/"),
             ("http://localhost:8080", "http://localhost:8080/"),
             ("https://localhost:3000", "https://localhost:3000/"),
             ("http://localhost/path", "http://localhost/path"),
-            ("https://localhost/path?query=value", "https://localhost/path?query=value"),
+            (
+                "https://localhost/path?query=value",
+                "https://localhost/path?query=value",
+            ),
         ]
 
         for input_url, expected_url in localhost_test_cases:
             result = self.client.validate_and_sanitize_url(input_url)
-            assert result == expected_url, f"Localhost URL {input_url} should be normalized to {expected_url} when ALLOW_LOCALHOST_URLS=True, got {result}"
+            assert (
+                result == expected_url
+            ), f"Localhost URL {input_url} should be normalized to {expected_url} when ALLOW_LOCALHOST_URLS=True, got {result}"
 
     def test_upsert_documents_with_url_metadata(self):
         """Test document upsert with URL metadata"""
@@ -114,7 +129,7 @@ class TestPineconeURLMetadata(unittest.TestCase):
                 "source": "Test Source 1",
                 "category": "test",
                 "url": "https://example.com/doc1",
-                'embedding': [0.1] * 768,
+                "embedding": [0.1] * 768,
             },
             {
                 "id": "doc2",
@@ -400,7 +415,7 @@ class TestPineconeURLMetadata(unittest.TestCase):
                     client.get_index = Mock(return_value=mock_index)
 
                     document = {
-                        "id": f'test_dim_{test_case["dimension"]}',
+                        "id": f"test_dim_{test_case['dimension']}",
                         "title": "Test Document",
                         "content": "Test content",
                         "url": "https://example.com",

@@ -40,7 +40,7 @@ def kill_processes_on_port(port):
         try:
             proc.terminate()
             killed_count += 1
-            
+
             # Wait for process to terminate gracefully (up to 5 seconds)
             try:
                 proc.wait(timeout=5)
@@ -54,7 +54,7 @@ def kill_processes_on_port(port):
                     print(f"🔨 Process {proc.pid} force killed")
                 except psutil.TimeoutExpired:
                     print(f"❌ Failed to kill process {proc.pid}")
-                    
+
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             # Process already gone or access denied
             pass
@@ -97,18 +97,18 @@ def start_api_server():
         "--port",
         str(api_port),
     ]
-    
+
     # Only add --reload in development environments
     env = os.getenv("ENV", "").lower()
     debug = os.getenv("DEBUG", "").lower()
     environment = os.getenv("ENVIRONMENT", "").lower()
-    
+
     is_development = (
-        env in ("development", "dev") or
-        debug in ("true", "1", "yes") or
-        environment in ("development", "dev")
+        env in ("development", "dev")
+        or debug in ("true", "1", "yes")
+        or environment in ("development", "dev")
     )
-    
+
     if is_development:
         cmd.append("--reload")
         print("🔄 Development mode: auto-reload enabled")
@@ -233,14 +233,14 @@ def main():
             print("⚠️  Force killing processes...")
             api_process.kill()
             ui_process.kill()
-            
+
             # Wait for processes to be fully reaped after kill()
             try:
                 api_process.wait(timeout=3)
             except (subprocess.TimeoutExpired, OSError):
                 # Ignore exceptions during cleanup
                 pass
-                
+
             try:
                 ui_process.wait(timeout=3)
             except (subprocess.TimeoutExpired, OSError):

@@ -13,12 +13,13 @@ import secrets
 import string
 import sys
 
+from argon2 import PasswordHasher
+
 
 def hash_password(password: str) -> str:
-    """Hash password using PBKDF2 with salt"""
-    salt = secrets.token_bytes(32)
-    pwdhash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200000)
-    return salt.hex() + ":" + pwdhash.hex()
+    """Hash password using Argon2id (OWASP recommended)"""
+    hasher = PasswordHasher()
+    return hasher.hash(password)
 
 
 def get_common_passwords() -> set:
@@ -263,7 +264,7 @@ def main():
 
     print("\n🔒 Security Notes:")
     print("• Keep these credentials secure and never commit them to version control")
-    print("• The password hash uses PBKDF2 with 200,000 iterations")
+    print("• The password hash uses Argon2id (OWASP recommended, superior to PBKDF2)")
     print("• The secret key is 64 characters of cryptographically secure random data")
     print("• Admin tokens expire after 24 hours by default")
     print("• Sessions timeout after 30 minutes of inactivity")

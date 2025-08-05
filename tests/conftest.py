@@ -14,36 +14,37 @@ from typing import Any, Dict
 
 import pytest
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_environment():
-    """
-    Session-scoped fixture that automatically sets up the test environment.
-    
-    This fixture ensures that the src directory is properly added to sys.path
-    before any tests run, eliminating the need for individual test files to
-    call setup_src_path().
-    
-    The fixture is marked as autouse=True, so it runs automatically for all tests.
-    """
-    from test_utils import setup_src_path
-    setup_src_path()
-    yield
-    # Cleanup code can go here if needed
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """
     Session-scoped fixture that automatically sets up the test environment.
-    
+
     This fixture ensures that the src directory is properly added to sys.path
     before any tests run, eliminating the need for individual test files to
-    call setup_src_path().
-    
+    manipulate sys.path directly.
+
     The fixture is marked as autouse=True, so it runs automatically for all tests.
     """
-    # Path setup is already done above, but we can add additional setup here if needed
+    import sys
+    from pathlib import Path
+
+    # Get the project root and src directory
+    project_root = Path(__file__).parent.parent
+    src_dir = project_root / "src"
+    src_str = str(src_dir.resolve())
+
+    # Store original sys.path to restore later
+    original_path = sys.path.copy()
+
+    # Add src directory to path if not already present
+    if src_str not in sys.path:
+        sys.path.insert(0, src_str)
+
     yield
-    # Cleanup code can go here if needed
+
+    # Cleanup: restore original sys.path
+    sys.path[:] = original_path
 
 
 @dataclass
@@ -246,58 +247,61 @@ def mock_url_metadata_logger():
 def mock_pinecone_client():
     """
     Provides a properly mocked PineconeClient for testing.
-    
+
     This fixture handles all the necessary patching and configuration
     to create a working PineconeClient instance for tests.
-    
+
     Returns:
         PineconeClient: Fully mocked client instance
     """
     import os
     from unittest.mock import Mock, patch
-    
+
     try:
         from src.retrieval.pinecone_client import PineconeClient
     except ImportError:
         pytest.skip("PineconeClient not available")
-    
+
     # Get the dynamic embedding dimension from the current environment or use default
     import os
+
     embedding_dimension = os.getenv("EMBEDDING_DIMENSION", "768")
-    
+
     # Mock environment variables for Config instead of patching Config class
     test_env_vars = {
         "PINECONE_API_KEY": "test-api-key",
         "PINECONE_INDEX_NAME": "test-index",
         "EMBEDDING_DIMENSION": embedding_dimension,
     }
-    
+
     # Mock external dependencies
-    with patch("src.retrieval.pinecone_client.Pinecone") as mock_pinecone, \
-         patch.dict(os.environ, test_env_vars, clear=False):
-        
+    with (
+        patch("src.retrieval.pinecone_client.Pinecone") as mock_pinecone,
+        patch.dict(os.environ, test_env_vars, clear=False),
+    ):
         # Configure the Pinecone mock
         mock_pc_instance = Mock()
         mock_pinecone.return_value = mock_pc_instance
-        
+
         # Create mock index
         mock_index = Mock()
         mock_pc_instance.Index.return_value = mock_index
         mock_pc_instance.list_indexes.return_value.names.return_value = []
-        
+
         # Initialize the client
         client = PineconeClient()
-        
+
         # Override the get_index method to return our mock instead of calling Pinecone API
         def mock_get_index():
             return mock_index
+
         client.get_index = mock_get_index
-        
+
         # Attach mocks for easy access in tests
         client._mock_index = mock_index
         client._mock_pc = mock_pc_instance
         client._test_env = test_env_vars
-        
+
         yield client
 
 
@@ -305,7 +309,7 @@ def mock_pinecone_client():
 def mock_query_results():
     """
     Provides sample query results for testing.
-    
+
     Returns:
         Dict: Mock query results with matches
     """
@@ -329,7 +333,7 @@ def mock_query_results():
                 "metadata": {
                     "title": "Bitcoin Mining Guide",
                     "source": "developer.bitcoin.org",
-                    "category": "tutorial", 
+                    "category": "tutorial",
                     "content": "Understanding Bitcoin mining and proof of work",
                     "url": "https://developer.bitcoin.org/devguide/mining.html",
                     "published": "2021-03-15",
@@ -355,14 +359,15 @@ def mock_query_results():
 def sample_documents():
     """
     Provides sample documents for upsert testing.
-    
+
     Returns:
         List[Dict]: Sample documents with embeddings
     """
     # Get the dynamic embedding dimension from the config
     import os
+
     embedding_dimension = int(os.getenv("EMBEDDING_DIMENSION", "768"))
-    
+
     return [
         {
             "id": "test_doc_1",
@@ -459,7 +464,9 @@ def sample_test_data():
                 "A" * 150: "A" * 100,
                 "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
                     "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics"
-                )[:100],
+                )[
+                    :100
+                ],
             },
             200: {
                 "A" * 150: "A" * 150,  # Shorter than limit
@@ -498,15 +505,16 @@ def session_temp_dir():
 def mock_pinecone_index():
     """
     Provides a mock Pinecone index with comprehensive test data.
-    
+
     Returns:
         Mock: Configured mock index with legacy and modern vectors
     """
     from unittest.mock import Mock
+
     import numpy as np
-    
+
     mock_index = Mock()
-    
+
     # Legacy vectors (no URL metadata)
     legacy_vectors = [
         {
@@ -540,7 +548,7 @@ def mock_pinecone_index():
             "score": 0.92,
         },
     ]
-    
+
     # Modern vectors (with URL metadata)
     modern_vectors = [
         {
@@ -582,12 +590,12 @@ def mock_pinecone_index():
             "score": 0.94,
         },
     ]
-    
+
     # Store different vector sets for testing
     mock_index._legacy_vectors = legacy_vectors
     mock_index._modern_vectors = modern_vectors
     mock_index._all_vectors = legacy_vectors + modern_vectors
-    
+
     # Configure default return behavior
     mock_index.query.return_value = {"matches": mock_index._all_vectors}
     mock_index.upsert.return_value = None
@@ -599,23 +607,23 @@ def mock_pinecone_index():
         "namespaces": {},
         "total_vector_count": 4,
     }
-    
+
     return mock_index
 
 
-@pytest.fixture 
+@pytest.fixture
 def mock_assistant_agent():
     """
     Provides a mock PineconeAssistantAgent for testing.
-    
+
     Returns:
         Mock: Configured mock assistant agent
     """
     from unittest.mock import Mock, patch
-    
+
     # Mock the assistant agent class
     mock_agent = Mock()
-    
+
     # Configure common return values
     mock_agent.query_assistant.return_value = {
         "answer": "Test response from assistant",
@@ -631,18 +639,18 @@ def mock_assistant_agent():
             "total_results": 1,
         },
     }
-    
+
     mock_agent.upload_documents.return_value = {
         "success": True,
         "uploaded_count": 5,
         "failed_count": 0,
     }
-    
+
     mock_agent.create_assistant.return_value = {
         "id": "test-assistant-id",
         "name": "Test Assistant",
     }
-    
+
     return mock_agent
 
 
@@ -650,7 +658,7 @@ def mock_assistant_agent():
 def mock_performance_metrics():
     """
     Provides mock performance metrics for testing.
-    
+
     Returns:
         Dict: Mock performance metrics data
     """
@@ -683,14 +691,14 @@ def mock_performance_metrics():
 def mock_migration_client():
     """
     Provides a mock migration client for testing data migrations.
-    
+
     Returns:
         Mock: Configured mock migration client
     """
     from unittest.mock import Mock
-    
+
     mock_client = Mock()
-    
+
     # Mock migration operations
     mock_client.migrate_vectors.return_value = {
         "success": True,
@@ -698,20 +706,20 @@ def mock_migration_client():
         "failed_count": 0,
         "duration": 5.2,
     }
-    
+
     mock_client.rollback_migration.return_value = {
         "success": True,
         "rolled_back_count": 50,
         "duration": 2.1,
     }
-    
+
     mock_client.get_migration_status.return_value = {
         "status": "completed",
         "progress": 100,
         "total_vectors": 1000,
         "migrated_vectors": 1000,
     }
-    
+
     return mock_client
 
 
@@ -719,7 +727,7 @@ def mock_migration_client():
 def legacy_vectors():
     """
     Provides sample legacy vectors without URL metadata.
-    
+
     Returns:
         List[Dict]: Legacy vector data
     """
@@ -749,7 +757,7 @@ def legacy_vectors():
 def modern_vectors():
     """
     Provides sample modern vectors with full URL metadata.
-    
+
     Returns:
         List[Dict]: Modern vector data
     """
@@ -789,7 +797,7 @@ def modern_vectors():
 def mixed_vectors(legacy_vectors, modern_vectors):
     """
     Provides a mix of legacy and modern vectors.
-    
+
     Returns:
         List[Dict]: Combined legacy and modern vector data
     """
@@ -800,23 +808,23 @@ def mixed_vectors(legacy_vectors, modern_vectors):
 def mock_embedding_service():
     """
     Provides a mock embedding service for testing.
-    
+
     Returns:
         Mock: Configured mock embedding service
     """
     from unittest.mock import Mock
-    
+
     mock_service = Mock()
-    
+
     # Mock embedding generation
     mock_service.generate_embedding.return_value = [0.1] * 1536
     mock_service.generate_embeddings.return_value = [[0.1] * 1536, [0.2] * 1536]
-    
+
     # Mock service info
     mock_service.model_name = "text-embedding-ada-002"
     mock_service.dimension = 1536
     mock_service.max_tokens = 8191
-    
+
     return mock_service
 
 
@@ -824,25 +832,25 @@ def mock_embedding_service():
 def mock_url_validator():
     """
     Provides a mock URL validator for testing.
-    
+
     Returns:
         Mock: Configured mock URL validator
     """
     from unittest.mock import Mock
-    
+
     mock_validator = Mock()
-    
+
     # Mock validation methods
     mock_validator.validate_url.return_value = True
     mock_validator.validate_urls.return_value = {
         "valid": ["https://example.com", "https://test.org"],
         "invalid": ["not-a-url", "http://"],
     }
-    
+
     mock_validator.sanitize_url.side_effect = lambda url: (
         f"https://{url}" if not url.startswith(("http://", "https://")) else url
     )
-    
+
     return mock_validator
 
 
@@ -850,20 +858,20 @@ def mock_url_validator():
 def mock_cache():
     """
     Provides a mock cache implementation for testing.
-    
+
     Returns:
         Mock: Configured mock cache
     """
     from unittest.mock import Mock
-    
+
     mock_cache = Mock()
-    
+
     # Mock cache operations
     mock_cache.get.return_value = None  # Default cache miss
     mock_cache.set.return_value = True
     mock_cache.delete.return_value = True
     mock_cache.clear.return_value = True
-    
+
     # Mock cache stats
     mock_cache.get_stats.return_value = {
         "hits": 150,
@@ -871,7 +879,7 @@ def mock_cache():
         "hit_rate": 0.75,
         "size": 200,
     }
-    
+
     return mock_cache
 
 
@@ -879,7 +887,7 @@ def mock_cache():
 def error_scenarios():
     """
     Provides common error scenarios for testing.
-    
+
     Returns:
         Dict: Error scenarios with expected behaviors
     """
@@ -911,21 +919,21 @@ def error_scenarios():
 def mock_logger():
     """
     Provides a mock logger for testing logging functionality.
-    
+
     Returns:
         Mock: Configured mock logger
     """
     from unittest.mock import Mock
-    
+
     mock_logger = Mock()
-    
+
     # Mock all logging levels
     mock_logger.debug.return_value = None
     mock_logger.info.return_value = None
     mock_logger.warning.return_value = None
     mock_logger.error.return_value = None
     mock_logger.critical.return_value = None
-    
+
     # Track call counts
     mock_logger.call_count = {
         "debug": 0,
@@ -934,18 +942,19 @@ def mock_logger():
         "error": 0,
         "critical": 0,
     }
-    
+
     def track_calls(level):
         def wrapper(*args, **kwargs):
             mock_logger.call_count[level] += 1
+
         return wrapper
-    
+
     mock_logger.debug.side_effect = track_calls("debug")
     mock_logger.info.side_effect = track_calls("info")
     mock_logger.warning.side_effect = track_calls("warning")
     mock_logger.error.side_effect = track_calls("error")
     mock_logger.critical.side_effect = track_calls("critical")
-    
+
     return mock_logger
 
 
@@ -969,5 +978,6 @@ pytest_parametrize_vector_types = pytest.mark.parametrize(
 )
 
 pytest_parametrize_error_scenarios = pytest.mark.parametrize(
-    "error_type", ["network_timeout", "invalid_api_key", "index_not_found", "rate_limit"]
+    "error_type",
+    ["network_timeout", "invalid_api_key", "index_not_found", "rate_limit"],
 )

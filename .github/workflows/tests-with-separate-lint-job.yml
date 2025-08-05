@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Python with dependencies
+      - name: Setup Python with dependencies (with pip caching)
         uses: ./.github/actions/setup-python-deps
         with:
           python-version: "3.8"
@@ -22,7 +22,7 @@ jobs:
         run: black --check src/ tests/
       
       - name: Run static analysis with Pylint
-        run: pylint src/
+        run: pylint src/ tests/
       
       - name: Check import sorting with isort
         run: isort --check-only src/ tests/
@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Python with dependencies
+      - name: Setup Python with dependencies (with pip caching)
         uses: ./.github/actions/setup-python-deps
         with:
           python-version: ${{ matrix.python-version }}

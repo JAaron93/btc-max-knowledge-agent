@@ -14,12 +14,10 @@ import pytest
 import requests.exceptions
 
 try:
-    from src.utils.url_error_handler import (
-        FallbackURLStrategy,
-        GracefulDegradation,
-        URLValidationError,
-        exponential_backoff_retry,
-    )
+    from src.utils.url_error_handler import (FallbackURLStrategy,
+                                             GracefulDegradation,
+                                             URLValidationError,
+                                             exponential_backoff_retry)
 except ImportError:
     # Skip tests if these modules aren't available
     pytest.skip("URL error handler modules not available", allow_module_level=True)
@@ -64,7 +62,9 @@ def test_fallback_url_strategies():
     placeholder = FallbackURLStrategy.placeholder_url(doc_id)
     assert doc_id in placeholder
     assert doc_id in placeholder
-    assert placeholder.startswith("https://placeholder")  # Or whatever the expected format is
+    assert placeholder.startswith(
+        "https://placeholder"
+    )  # Or whatever the expected format is
 
     # Test empty URL
     empty = FallbackURLStrategy.empty_url()
@@ -138,19 +138,23 @@ def test_exponential_backoff_retry_failure():
 
 @pytest.fixture
 def mock_pinecone_agent():
-    with patch("src.agents.pinecone_assistant_agent.requests") as mock_requests, \
-         patch("src.utils.config.Config") as mock_config:
+    with patch("src.agents.pinecone_assistant_agent.requests") as mock_requests, patch(
+        "src.utils.config.Config"
+    ) as mock_config:
         pytest.skip("PineconeAssistantAgent not available")
 
-    with patch("src.agents.pinecone_assistant_agent.requests") as mock_requests, \
-         patch("btc_max_knowledge_agent.utils.config.Config") as mock_config:
+    with patch("src.agents.pinecone_assistant_agent.requests") as mock_requests, patch(
+        "btc_max_knowledge_agent.utils.config.Config"
+    ) as mock_config:
 
         # Mock config to avoid configuration errors
         mock_config.PINECONE_API_KEY = "test-key"
         mock_config.validate.return_value = None
-        
+
         # Mock environment variable
-        with patch.dict('os.environ', {'PINECONE_ASSISTANT_HOST': 'https://test-host.pinecone.io'}):
+        with patch.dict(
+            "os.environ", {"PINECONE_ASSISTANT_HOST": "https://test-host.pinecone.io"}
+        ):
             # Configure mock responses
             mock_requests.post.return_value.status_code = 200
             mock_requests.post.return_value.json.return_value = {
@@ -169,7 +173,7 @@ def mock_pinecone_agent():
 def test_initialization_with_invalid_config():
     """Test agent initialization with invalid configuration."""
     # Test with missing PINECONE_ASSISTANT_HOST environment variable
-    with patch.dict('os.environ', {}, clear=True):  # Clear environment
+    with patch.dict("os.environ", {}, clear=True):  # Clear environment
         with pytest.raises(ValueError) as exc_info:
             PineconeAssistantAgent()
         assert "PINECONE_ASSISTANT_HOST not configured" in str(exc_info.value)
@@ -186,7 +190,9 @@ def test_query_with_invalid_assistant_id(mock_pinecone_agent):
 
         result = mock_pinecone_agent.query_assistant("invalid-id", "test query")
         assert "answer" in result
-        assert "error" in result["answer"].lower() or "sorry" in result["answer"].lower()
+        assert (
+            "error" in result["answer"].lower() or "sorry" in result["answer"].lower()
+        )
 
 
 @pytest.mark.skipif(
@@ -237,7 +243,9 @@ def test_invalid_url_handling_in_documents(mock_pinecone_agent):
     ]
 
     # Mock the internal upload method to avoid actual HTTP calls
-    with patch.object(mock_pinecone_agent, "_upload_documents_with_retry") as mock_upload:
+    with patch.object(
+        mock_pinecone_agent, "_upload_documents_with_retry"
+    ) as mock_upload:
         mock_upload.return_value = True
 
         # Should process without raising exceptions
@@ -250,11 +258,12 @@ def test_invalid_url_handling_in_documents(mock_pinecone_agent):
 def test_pinecone_client_url_validation():
     """Test URL validation in PineconeClient with proper assertions."""
     try:
-    try:
         client = PineconeClient()
     except Exception:
         # If client initialization fails due to missing config, create a stub for testing
         pytest.skip("PineconeClient initialization failed - missing configuration")
+
+    test_cases = [
         ("https://valid.example.com", "https://valid.example.com"),
         ("example.com", "https://example.com"),  # Should add https:// prefix
         ("invalid url with spaces", None),  # Should return None for invalid URLs
@@ -265,7 +274,9 @@ def test_pinecone_client_url_validation():
 
     for input_url, expected_output in test_cases:
         result = client.safe_validate_url(input_url)
-        assert result == expected_output, f"URL validation failed for '{input_url}': expected '{expected_output}', got '{result}'"
+        assert (
+            result == expected_output
+        ), f"URL validation failed for '{input_url}': expected '{expected_output}', got '{result}'"
 
 
 @pytest.mark.skipif(PineconeClient is None, reason="PineconeClient not available")
@@ -306,41 +317,55 @@ def test_pinecone_client_document_preparation():
     ]
 
     processed_documents = []
-    
+
     for doc in test_documents:
         # Test URL validation first
         url = doc.get("url", "")
         if url:
             validated_url = client.safe_validate_url(url)
             if url == "https://valid.example.com":
-                assert validated_url == "https://valid.example.com", f"Valid URL should pass validation"
+                assert (
+                    validated_url == "https://valid.example.com"
+                ), f"Valid URL should pass validation"
             elif url == "invalid-url-format":
                 assert validated_url is None, f"Invalid URL should fail validation"
         else:
             validated_url = ""
-        
+
         # Test document preparation with graceful degradation
         safe_doc = GracefulDegradation.null_safe_metadata(doc)
-        
+
         # Assert that null values are converted to empty strings
-        assert safe_doc.get("url") == "" or isinstance(safe_doc.get("url"), str), "URL should be string or empty"
-        assert safe_doc.get("title") == "" or isinstance(safe_doc.get("title"), str), "Title should be string or empty"
-        assert safe_doc.get("source") == "" or isinstance(safe_doc.get("source"), str), "Source should be string or empty"
-        
+        assert safe_doc.get("url") == "" or isinstance(
+            safe_doc.get("url"), str
+        ), "URL should be string or empty"
+        assert safe_doc.get("title") == "" or isinstance(
+            safe_doc.get("title"), str
+        ), "Title should be string or empty"
+        assert safe_doc.get("source") == "" or isinstance(
+            safe_doc.get("source"), str
+        ), "Source should be string or empty"
+
         # Assert that non-null values are preserved
         assert safe_doc["id"] == doc["id"], "Document ID should be preserved"
-        assert safe_doc["content"] == doc["content"], "Document content should be preserved"
-        
+        assert (
+            safe_doc["content"] == doc["content"]
+        ), "Document content should be preserved"
+
         processed_documents.append(safe_doc)
 
     # Assert that all documents were processed
-    assert len(processed_documents) == len(test_documents), "All documents should be processed"
-    
+    assert len(processed_documents) == len(
+        test_documents
+    ), "All documents should be processed"
+
     # Assert specific test cases
     valid_doc = next(d for d in processed_documents if d["id"] == "doc1")
-    assert valid_doc["url"] == "", "URL should be empty string after null-safe processing"
-    valid_doc = next(d for d in processed_documents if d["id"] == "doc1")
-    assert valid_doc["url"] == "https://valid.example.com", "Valid URL should be preserved after null-safe processing"
+    assert (
+        valid_doc["url"] == "https://valid.example.com"
+    ), "Valid URL should be preserved after null-safe processing"
+
+    null_doc = next(d for d in processed_documents if d["id"] == "doc4")
     assert null_doc["title"] == "", "Null title should become empty string"
     assert null_doc["source"] == "", "Null source should become empty string"
 
@@ -362,39 +387,44 @@ def test_pinecone_client_upsert_with_errors():
     }
 
     # Test successful upsert operation
-    if hasattr(client, 'upsert_documents'):
-        with patch.object(client, 'upsert_documents', return_value=None) as mock_upsert:
+    if hasattr(client, "upsert_documents"):
+        with patch.object(client, "upsert_documents", return_value=None) as mock_upsert:
             try:
                 result = client.upsert_documents([test_document])
                 assert mock_upsert.called, "upsert_documents should be called"
                 assert result is None, "upsert_documents should return None on success"
             except Exception as e:
                 pytest.fail(f"upsert_documents should not raise exception: {e}")
-    
+
     # Test error handling in upsert operation
-    if hasattr(client, 'upsert_documents'):
-        with patch.object(client, 'upsert_documents', side_effect=ConnectionError("Network error")) as mock_upsert:
+    if hasattr(client, "upsert_documents"):
+        with patch.object(
+            client, "upsert_documents", side_effect=ConnectionError("Network error")
+        ) as mock_upsert:
             with pytest.raises(ConnectionError):
                 client.upsert_documents([test_document])
-                assert mock_upsert.called, "upsert_documents should be called even when failing"
+                assert (
+                    mock_upsert.called
+                ), "upsert_documents should be called even when failing"
 
     # Test with get_index method and index.upsert (lower level)
-    if hasattr(client, 'get_index'):
-        with patch.object(client, 'get_index') as mock_get_index:
-            mock_index = patch('unittest.mock.Mock')()
+    if hasattr(client, "get_index"):
+        with patch.object(client, "get_index") as mock_get_index:
+            mock_index = patch("unittest.mock.Mock")()
             mock_get_index.return_value = mock_index
             from unittest.mock import Mock
+
             mock_index = Mock()
             mock_get_index.return_value = mock_index
             mock_index.upsert.return_value = {"upserted_count": 1}
-            
+
             try:
                 client.upsert_documents([test_document])
                 assert mock_get_index.called, "get_index should be called"
                 assert mock_index.upsert.called, "index.upsert should be called"
             except Exception as e:
                 pytest.fail(f"Successful upsert should not raise exception: {e}")
-            
+
             # Test index upsert with error
             mock_index.upsert.side_effect = Exception("Index error")
             with pytest.raises(Exception, match="Index error"):
@@ -403,13 +433,13 @@ def test_pinecone_client_upsert_with_errors():
     # Test validation of document structure
     invalid_documents = [
         None,  # None document
-        {},    # Empty document
+        {},  # Empty document
         {"content": "Missing ID"},  # Missing required fields
     ]
-    
+
     for invalid_doc in invalid_documents:
-        if hasattr(client, 'upsert_documents'):
-            with patch.object(client, 'get_index'):
+        if hasattr(client, "upsert_documents"):
+            with patch.object(client, "get_index"):
                 try:
                     if invalid_doc is None:
                         with pytest.raises((ValueError, TypeError, AttributeError)):
@@ -445,7 +475,9 @@ def test_integration_scenarios():
 
     # Scenario 2: Simulating network failures with retry
     print("\n2. Testing network failure simulation:")
-    print("   Testing retry mechanism: max_retries=2 allows 3 total attempts (initial + 2 retries)")
+    print(
+        "   Testing retry mechanism: max_retries=2 allows 3 total attempts (initial + 2 retries)"
+    )
 
     attempt_count = 0
 
@@ -460,30 +492,34 @@ def test_integration_scenarios():
         nonlocal attempt_count
         attempt_count += 1
         print(f"   Attempt {attempt_count}: ", end="")
-        
+
         # Fail on first 2 attempts, succeed on 3rd attempt
         if attempt_count < 3:
             print(f"FAILED (ConnectionError)")
             raise ConnectionError(f"Network error on attempt {attempt_count}")
-        
+
         print(f"SUCCESS")
         return {"status": "success", "data": ["item1", "item2"]}
 
     result = unreliable_api_call()
-    
+
     # Verify the retry behavior worked as expected
     expected_attempts = 3  # Initial call + 2 retries
-    assert attempt_count == expected_attempts, f"Expected {expected_attempts} attempts, got {attempt_count}"
+    assert (
+        attempt_count == expected_attempts
+    ), f"Expected {expected_attempts} attempts, got {attempt_count}"
     assert result["status"] == "success", f"Expected success result, got {result}"
-    
-    print(f"✅ API call succeeded after {attempt_count} attempts (2 failures + 1 success)")
+
+    print(
+        f"✅ API call succeeded after {attempt_count} attempts (2 failures + 1 success)"
+    )
     print(f"   Final result: {result}")
 
 
 def test_url_error_handler():
     """Test URL error handling components"""
     print("\n=== Testing URL Error Handler Components ===\n")
-    
+
     try:
         test_url_validation_error()
         test_fallback_url_strategies()
@@ -499,11 +535,11 @@ def test_url_error_handler():
 def test_pinecone_assistant_agent():
     """Test Pinecone Assistant Agent error handling"""
     print("\n=== Testing Pinecone Assistant Agent Error Handling ===\n")
-    
+
     if PineconeAssistantAgent is None:
         print("⚠️  PineconeAssistantAgent not available, skipping tests")
         return
-    
+
     try:
         # These tests would be run with pytest, but we can summarize them here
         print("✅ Agent initialization tests (run with pytest)")

@@ -7,12 +7,8 @@ Prerequisites:
     pip install -e .
 """
 
-from src.agents.pinecone_assistant_agent import (
-    PineconeAssistantAgent,
-)
-from src.knowledge.data_collector import (
-    BitcoinDataCollector,
-)
+from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
+from src.knowledge.data_collector import BitcoinDataCollector
 
 
 def demo_url_metadata_functionality():

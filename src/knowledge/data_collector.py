@@ -1,35 +1,23 @@
 import json
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import feedparser
 import requests
 from newspaper import Article
 
-# Add src to path to ensure imports work
-
-
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
-    URLMetadataMonitor,
-)
-from utils.url_error_handler import (
-    FallbackURLStrategy,
-    GracefulDegradation,
-    URLValidationError,
-    exponential_backoff_retry,
-)
-from utils.url_metadata_logger import (
-    URLMetadataLogger,
-    correlation_context,
-)
-
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import \
+    URLMetadataMonitor
+from utils.url_error_handler import (FallbackURLStrategy, GracefulDegradation,
+                                     URLValidationError,
+                                     exponential_backoff_retry)
+from utils.url_metadata_logger import URLMetadataLogger, correlation_context
 # Import enhanced URL utilities and error handling
-from utils.url_utils import (
-    extract_domain,
-    sanitize_url_for_storage,
-    validate_url_batch,
-)
+from utils.url_utils import (extract_domain, sanitize_url_for_storage,
+                             validate_url_batch)
+
+# Add src to path to ensure imports work
 
 
 class BitcoinDataCollector:
@@ -95,7 +83,7 @@ class BitcoinDataCollector:
     )
     def collect_from_rss(self, max_articles: int = 20) -> List[Dict[str, Any]]:
         """Collect articles from RSS feeds with retry logic"""
-        articles = []
+        articles: List[Dict[str, Any]] = []
 
         with correlation_context() as correlation_id:
             self.validation_logger.info(
@@ -778,7 +766,7 @@ class BitcoinDataCollector:
 
             # Collect all unique URLs for batch validation
             all_urls = set()
-            url_to_docs = {}  # Map URLs to documents that contain them
+            url_to_docs: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {}  # Map URLs to documents that contain them
 
             for doc in documents:
                 # Primary URL

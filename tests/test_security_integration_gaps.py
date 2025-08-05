@@ -12,9 +12,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Path setup is handled by conftest.py fixture automatically
 
 
 class TestSecurityIntegrationGaps:
@@ -78,6 +76,17 @@ class TestErrorHandlingGaps:
         - Security event logging failures
         """
         pytest.skip("TODO: Implement database security failure tests")
+
+    def test_database_transaction_security_failures(self):
+        """
+        MISSING: Database transaction security failure scenarios
+
+        Should test:
+        - Security context preservation during transaction rollbacks
+        - Audit log consistency after database failures
+        - Session state corruption during database errors
+        """
+        pytest.skip("TODO: Implement database transaction security failure tests")
 
     def test_memory_exhaustion_security(self):
         """
@@ -203,4 +212,11 @@ class TestPerformanceSecurityGaps:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    import os
+
+    if os.getenv("RUN_COVERAGE_GAPS", "false").lower() == "true":
+        pytest.main([__file__])
+    else:
+        print(
+            "Coverage gap documentation loaded. Set RUN_COVERAGE_GAPS=true to run placeholder tests."
+        )

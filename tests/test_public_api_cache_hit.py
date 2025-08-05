@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 import pytest
 
-from btc_max_knowledge_agent.utils.url_utils import validate_url_batch, validate_url_format
+from btc_max_knowledge_agent.utils.url_utils import (validate_url_batch,
+                                                     validate_url_format)
 
 
 @pytest.fixture

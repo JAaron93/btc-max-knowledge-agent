@@ -257,6 +257,7 @@ class URLMetadataMonitor:
             return None
 
         import math
+
         durations = [
             m.duration_ms
             for m in all_metrics
@@ -273,6 +274,7 @@ class URLMetadataMonitor:
             ),
         )
         return durations[k]
+
     def _calculate_broken_links_rate(self, cutoff_time: datetime) -> Optional[float]:
         """Calculate rate of broken links."""
         with self._lock:
@@ -442,49 +444,46 @@ class URLMetadataMonitor:
 
     def _calculate_operation_stats(self, metrics: List[URLMetric]) -> Dict[str, Any]:
         """Calculate statistics for a set of metrics."""
+        import math
+        import statistics
+
         total = len(metrics)
         successes = sum(1 for m in metrics if m.success)
         failures = total - successes
-# at the top of the file
-import statistics, math
-...
 
-            # only keep finite numbers
-            valid_durations = [
-                d for d in durations
-                if isinstance(d, (int, float)) and math.isfinite(d)
-            ]
+        stats = {
+            "total": total,
+            "successes": successes,
+            "failures": failures,
+            "success_rate": successes / total if total > 0 else 0.0,
+        }
 
-            if valid_durations:
-                # Safe percentile helper avoids StatisticsError on small samples
-                def _pct(seq, p):
-                    if not seq:
-                        return 0.0
-                    seq = sorted(seq)
-                    idx = int(round(p / 100 * (len(seq) - 1)))
-                    return seq[idx]
+        # Safely get durations, filtering out non-numeric values
+        durations = [m.duration_ms for m in metrics if m.success]
+        # only keep finite numbers
+        valid_durations = [
+            d for d in durations if isinstance(d, (int, float)) and math.isfinite(d)
+        ]
 
-                stats.update(
-                    {
-                        "avg_duration_ms": statistics.mean(valid_durations),
-                        "min_duration_ms": min(valid_durations),
-                        "max_duration_ms": max(valid_durations),
-                        "p50_duration_ms": statistics.median(valid_durations),
-                        "p95_duration_ms": _pct(valid_durations, 95),
-                        "p99_duration_ms": _pct(valid_durations, 99),
-                    }
-                )
-                            statistics.quantiles(valid_durations, n=20)[18]
-                            if len(valid_durations) > 1
-                            else valid_durations[0]
-                        ),
-                        "p99_duration_ms": (
-                            statistics.quantiles(valid_durations, n=100)[98]
-                            if len(valid_durations) > 1
-                            else valid_durations[0]
-                        ),
-                    }
-                )
+        if valid_durations:
+            # Safe percentile helper avoids StatisticsError on small samples
+            def _pct(seq, p):
+                if not seq:
+                    return 0.0
+                seq = sorted(seq)
+                idx = int(round(p / 100 * (len(seq) - 1)))
+                return seq[idx]
+
+            stats.update(
+                {
+                    "avg_duration_ms": statistics.mean(valid_durations),
+                    "min_duration_ms": min(valid_durations),
+                    "max_duration_ms": max(valid_durations),
+                    "p50_duration_ms": statistics.median(valid_durations),
+                    "p95_duration_ms": _pct(valid_durations, 95),
+                    "p99_duration_ms": _pct(valid_durations, 99),
+                }
+            )
 
         return stats
 
@@ -497,7 +496,18 @@ import statistics, math
         with self._lock:
             for metrics in self.metrics_store.values():
                 for m in metrics:
-                    if m.timestamp >= cutoff_time and isinstance(m.duration_ms, (int, float)) and not (isinstance(m.duration_ms, float) and (m.duration_ms != m.duration_ms or m.duration_ms == float('inf') or m.duration_ms == float('-inf'))):
+                    if (
+                        m.timestamp >= cutoff_time
+                        and isinstance(m.duration_ms, (int, float))
+                        and not (
+                            isinstance(m.duration_ms, float)
+                            and (
+                                m.duration_ms != m.duration_ms
+                                or m.duration_ms == float("inf")
+                                or m.duration_ms == float("-inf")
+                            )
+                        )
+                    ):
                         for name, (min_ms, max_ms) in self.performance_buckets.items():
                             if min_ms <= m.duration_ms < max_ms:
                                 distribution[name] += 1

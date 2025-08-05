@@ -26,8 +26,4 @@ if TYPE_CHECKING:  # pragma: no cover
     # Provide a static type for linters / IDEs.
     from knowledge.data_collector import BitcoinDataCollector  # noqa: F401
 
-__all__ = [
-    "BitcoinDataCollector",
-]
-
 __all__ = ["BitcoinDataCollector"]

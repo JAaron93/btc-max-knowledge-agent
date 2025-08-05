@@ -6,24 +6,17 @@ from urllib.parse import urlparse
 
 import requests
 
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import record_upload
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import \
+    record_upload
 from btc_max_knowledge_agent.utils.config import Config
-from btc_max_knowledge_agent.utils.result_formatter import AssistantResponseFormatter
+from btc_max_knowledge_agent.utils.result_formatter import \
+    AssistantResponseFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy,
-    GracefulDegradation,
-    URLMetadataUploadError,
-    URLValidationError,
-    exponential_backoff_retry,
-    retry_url_upload,
-)
-
+    FallbackURLStrategy, GracefulDegradation, URLMetadataUploadError,
+    URLValidationError, exponential_backoff_retry, retry_url_upload)
 # Import our logging infrastructure
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    correlation_context,
-    generate_correlation_id,
-    log_upload,
-)
+    correlation_context, generate_correlation_id, log_upload)
 
 logger = logging.getLogger(__name__)
 
@@ -118,34 +111,34 @@ class PineconeAssistantAgent:
 
         Returns:
             Dict[str, Any]: Formatted document payload ready for Pinecone upload
-            
+
         Raises:
             ValueError: If doc is None or missing required fields
             Exception: Re-raises any unexpected errors during payload construction
         """
         if doc is None:
             raise ValueError("Document cannot be None")
-        
+
         if not isinstance(doc, dict):
             raise ValueError("Document must be a dictionary")
-        
+
         # Check for required fields
         required_fields = ["id", "content"]
         for field in required_fields:
             if field not in doc:
                 raise ValueError(f"Document missing required field '{field}'")
-        
+
         try:
             # Safely validate URL without blocking document upload
             url = self._safe_validate_url(doc.get("url", ""))
-            
+
             if not url and doc.get("url"):
                 # URL was provided but validation failed - log warning but continue
                 logger.warning(
                     f"URL validation failed for doc {doc.get('id')}, using empty string"
                 )
                 url = ""
-            
+
             # Ensure metadata is null-safe by converting None values to empty strings
             raw_metadata = {
                 "title": doc.get("title", ""),
@@ -154,28 +147,26 @@ class PineconeAssistantAgent:
                 "url": url or "",
                 "published": doc.get("published", ""),
             }
-            
+
             # Convert None values to empty strings for all fields
             for key, value in raw_metadata.items():
                 if value is None:
                     raw_metadata[key] = ""
-            
+
             # Apply null-safe metadata processing (handles URL-related fields)
             metadata = GracefulDegradation.null_safe_metadata(raw_metadata)
-            
+
             # Build the formatted document payload
             formatted_doc = {
                 "id": doc.get("id", ""),
                 "text": doc.get("content", ""),
                 "metadata": metadata,
             }
-            
+
             return formatted_doc
-            
+
         except Exception as e:
-            logger.error(
-                f"Error formatting document {doc.get('id', 'unknown')}: {e}"
-            )
+            logger.error(f"Error formatting document {doc.get('id', 'unknown')}: {e}")
             # Re-raise to maintain existing error handling semantics
             raise
 
@@ -304,27 +295,29 @@ class PineconeAssistantAgent:
         self, assistant_id: str, documents: List[Dict[str, Any]]
     ) -> bool:
         """Upload documents with null-safe operations and graceful URL handling"""
-        
+
         # Validate input parameters
         if documents is None:
             raise ValueError("Documents parameter cannot be None")
-        
+
         if not isinstance(documents, list):
             raise ValueError("Documents must be a list")
-        
+
         if not documents:
             raise ValueError("Documents list cannot be empty")
-        
+
         # Validate document format
         for i, doc in enumerate(documents):
             if not isinstance(doc, dict):
                 raise ValueError(f"Document at index {i} must be a dictionary")
-            
+
             # Check for required fields
             required_fields = ["id", "content"]
             for field in required_fields:
                 if field not in doc:
-                    raise ValueError(f"Document at index {i} missing required field '{field}'")
+                    raise ValueError(
+                        f"Document at index {i} missing required field '{field}'"
+                    )
 
         # Track successful and failed operations
         successful_docs = []
@@ -334,7 +327,7 @@ class PineconeAssistantAgent:
         for doc in documents:
             try:
                 payload = self.build_upload_payload(doc)
-                
+
                 # Track URL validation failures for reporting
                 if not payload["metadata"].get("url") and doc.get("url"):
                     failed_urls.append(
@@ -343,7 +336,7 @@ class PineconeAssistantAgent:
                             "original_url": doc.get("url", ""),
                         }
                     )
-                
+
                 successful_docs.append(payload)
 
             except Exception as e:

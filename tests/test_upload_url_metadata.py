@@ -5,7 +5,7 @@ Test script to verify URL metadata functionality in upload script
 Prerequisites:
     Install the package in development mode first:
     pip install -e .
-    
+
     Run tests from the project root directory.
 """
 
@@ -135,23 +135,23 @@ def test_file_metadata_validation(test_setup):
 def test_file_reading_error_handling(mock_getsize, mock_listdir):
     """Test error handling when file operations fail in upload script."""
     from upload_to_pinecone_assistant import create_upload_files
-    
+
     # Configure mocks to raise IOError to simulate file system issues
     mock_listdir.side_effect = IOError("Permission denied")
     mock_getsize.side_effect = IOError("File not accessible")
-    
+
     # Mock the BitcoinDataCollector to avoid external dependencies
-    with patch('upload_to_pinecone_assistant.BitcoinDataCollector') as mock_collector:
+    with patch("upload_to_pinecone_assistant.BitcoinDataCollector") as mock_collector:
         mock_collector.return_value.collect_all_documents.return_value = [
             {
-                'title': 'Test Document',
-                'content': 'Test content',
-                'source': 'test',
-                'category': 'test',
-                'url': 'https://example.com'
+                "title": "Test Document",
+                "content": "Test content",
+                "source": "test",
+                "category": "test",
+                "url": "https://example.com",
             }
         ]
-        
+
         # Test that IOError is raised when file system operations fail
         with pytest.raises(IOError, match="Permission denied"):
             create_upload_files()

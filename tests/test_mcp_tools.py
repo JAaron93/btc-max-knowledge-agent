@@ -18,7 +18,7 @@ def extract_response_data(response):
     """Extract data from response, handling both single events and multiple events"""
     if not response:
         return None
-    
+
     # Handle multiple events case
     if isinstance(response, dict) and "events" in response:
         print(f"📡 Received {response['event_count']} SSE events")
@@ -28,7 +28,7 @@ def extract_response_data(response):
         if events:
             return events[-1]  # Return the last event
         return None
-    
+
     # Handle single event case (backward compatibility)
     return response
 
@@ -36,8 +36,10 @@ def extract_response_data(response):
 def stream_sse_events(endpoint, headers, payload):
     """Alternative function to yield SSE events one by one (generator approach)"""
     try:
-        response = requests.post(endpoint, headers=headers, json=payload, timeout=30, stream=True)
-        
+        response = requests.post(
+            endpoint, headers=headers, json=payload, timeout=30, stream=True
+        )
+
         if response.status_code == 200:
             if "text/event-stream" in response.headers.get("content-type", ""):
                 for line in response.iter_lines(decode_unicode=True):
@@ -52,7 +54,7 @@ def stream_sse_events(endpoint, headers, payload):
         else:
             print(f"❌ Error: {response.status_code} - {response.text}")
             return
-            
+
     except Exception as e:
         print(f"❌ Error streaming SSE events: {e}")
         return
@@ -80,14 +82,14 @@ def call_mcp_tool(method, params=None):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    
+
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
         "method": method,
         "params": params or {},
     }
-    
+
     try:
         response = requests.post(endpoint, headers=headers, json=payload, timeout=10)
 
@@ -110,7 +112,10 @@ def call_mcp_tool(method, params=None):
                 if len(events) == 1:
                     return events[0]  # Single event - maintain backward compatibility
                 elif len(events) > 1:
-                    return {"events": events, "event_count": len(events)}  # Multiple events
+                    return {
+                        "events": events,
+                        "event_count": len(events),
+                    }  # Multiple events
                 else:
                     return None  # No valid events found
             else:
@@ -122,11 +127,10 @@ def call_mcp_tool(method, params=None):
             print(f"❌ HTTP Error: {response.status_code}")
             return None
 
-
-
     except Exception as e:
         print(f"❌ Error calling MCP tool: {e}")
         return None
+
 
 def test_mcp_tools():
     """Test available MCP tools"""

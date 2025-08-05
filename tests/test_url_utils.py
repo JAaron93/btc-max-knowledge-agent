@@ -17,39 +17,30 @@ import pytest
 
 # Import the functions to test
 from btc_max_knowledge_agent.utils.url_utils import (
-    MAX_URL_LENGTH,
-    check_url_accessibility,
-    check_urls_accessibility_parallel,
-    extract_domain,
-    format_url_for_display,
-    is_secure_url,
-    normalize_url_rfc3986,
-    sanitize_url,
-    sanitize_url_for_storage,
-    validate_and_sanitize_url,
-    validate_url_batch,
-    validate_url_format,
-)
+    MAX_URL_LENGTH, check_url_accessibility, check_urls_accessibility_parallel,
+    extract_domain, format_url_for_display, is_secure_url,
+    normalize_url_rfc3986, sanitize_url, sanitize_url_for_storage,
+    validate_and_sanitize_url, validate_url_batch, validate_url_format)
 
 
 def reload_config_modules():
     """
     Helper function to reload configuration and URL utility modules.
-    
+
     This is needed in tests that modify environment variables to ensure
     the modules pick up the new configuration values.
     """
     import importlib
     import sys
-    
+
     # Define modules that need to be reloaded when config changes
     modules_to_reload = [
-        'src.utils.config',
-        'btc_max_knowledge_agent.utils.config',
-        'src.utils.url_utils',
-        'btc_max_knowledge_agent.utils.url_utils'
+        "src.utils.config",
+        "btc_max_knowledge_agent.utils.config",
+        "src.utils.url_utils",
+        "btc_max_knowledge_agent.utils.url_utils",
     ]
-    
+
     # Reload each module if it's present in sys.modules
     for module_name in modules_to_reload:
         if module_name in sys.modules:
@@ -85,7 +76,7 @@ class TestIsSecureUrl:
         """Test blocking of private IP addresses."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         private_ip_urls = [
             "http://10.0.0.1",
             "https://172.16.0.1",
@@ -327,7 +318,7 @@ class TestSanitizeUrlForStorage:
         """Test that security validation is applied."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         insecure_urls = [
             "javascript:alert(1)",
             "https://***********",
@@ -1050,7 +1041,7 @@ class TestLocalhostUrlConfig:
         """Test that localhost URLs are allowed when ALLOW_LOCALHOST_URLS=True."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         localhost_urls = [
             "http://localhost",
             "https://localhost",
@@ -1063,18 +1054,22 @@ class TestLocalhostUrlConfig:
         ]
 
         for url in localhost_urls:
-            assert is_secure_url(url), f"Localhost URL {url} should be allowed when ALLOW_LOCALHOST_URLS=True"
-            
+            assert is_secure_url(
+                url
+            ), f"Localhost URL {url} should be allowed when ALLOW_LOCALHOST_URLS=True"
+
             # Also test sanitization pipeline
             result = sanitize_url_for_storage(url)
-            assert result is not None, f"Localhost URL {url} should be sanitized successfully when allowed"
+            assert (
+                result is not None
+            ), f"Localhost URL {url} should be sanitized successfully when allowed"
 
     @patch.dict(os.environ, {"ALLOW_LOCALHOST_URLS": "False"}, clear=True)
     def test_localhost_rejected_when_disabled(self):
         """Test that localhost URLs are rejected when ALLOW_LOCALHOST_URLS=False."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         localhost_urls = [
             "http://localhost",
             "https://localhost",
@@ -1088,18 +1083,22 @@ class TestLocalhostUrlConfig:
         ]
 
         for url in localhost_urls:
-            assert not is_secure_url(url), f"Localhost URL {url} should be rejected when ALLOW_LOCALHOST_URLS=False"
-            
+            assert not is_secure_url(
+                url
+            ), f"Localhost URL {url} should be rejected when ALLOW_LOCALHOST_URLS=False"
+
             # Also test sanitization pipeline
             result = sanitize_url_for_storage(url)
-            assert result is None, f"Localhost URL {url} should be rejected during sanitization when disabled"
+            assert (
+                result is None
+            ), f"Localhost URL {url} should be rejected during sanitization when disabled"
 
     @patch.dict(os.environ, {"ALLOW_LOCALHOST_URLS": "False"}, clear=True)
     def test_production_mode_localhost_variations(self):
         """Test various localhost domain variations are all rejected in production mode."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         localhost_variations = [
             "http://localhost",
             "https://localhost",
@@ -1114,14 +1113,16 @@ class TestLocalhostUrlConfig:
         ]
 
         for url in localhost_variations:
-            assert not is_secure_url(url), f"Localhost variation {url} should be rejected in production mode"
+            assert not is_secure_url(
+                url
+            ), f"Localhost variation {url} should be rejected in production mode"
 
     @patch.dict(os.environ, {"ALLOW_LOCALHOST_URLS": "False"}, clear=False)
     def test_production_mode_still_allows_valid_urls(self):
         """Test that normal URLs still work in production mode."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         valid_urls = [
             "https://example.com",
             "http://example.com",
@@ -1133,18 +1134,22 @@ class TestLocalhostUrlConfig:
         ]
 
         for url in valid_urls:
-            assert is_secure_url(url), f"Valid URL {url} should still work in production mode"
-            
+            assert is_secure_url(
+                url
+            ), f"Valid URL {url} should still work in production mode"
+
             # Also test sanitization pipeline
             result = sanitize_url_for_storage(url)
-            assert result is not None, f"Valid URL {url} should be sanitized successfully in production mode"
+            assert (
+                result is not None
+            ), f"Valid URL {url} should be sanitized successfully in production mode"
 
     @patch.dict(os.environ, {"ALLOW_LOCALHOST_URLS": "True"}, clear=False)
     def test_batch_validation_with_localhost_allowed(self):
         """Test batch URL validation when localhost URLs are allowed."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         urls = [
             "https://example.com",  # Valid
             "http://localhost:8080",  # Should be valid when allowed
@@ -1157,13 +1162,13 @@ class TestLocalhostUrlConfig:
         # Check results
         assert results["https://example.com"]["valid"] is True
         assert results["https://example.com"]["secure"] is True
-        
+
         assert results["http://localhost:8080"]["valid"] is True
         assert results["http://localhost:8080"]["secure"] is True
-        
+
         assert results["https://localhost/api"]["valid"] is True
         assert results["https://localhost/api"]["secure"] is True
-        
+
         assert results["javascript:alert(1)"]["valid"] is False
         assert results["javascript:alert(1)"]["secure"] is False
 
@@ -1172,7 +1177,7 @@ class TestLocalhostUrlConfig:
         """Test batch URL validation when localhost URLs are rejected."""
         # Force reload of config to pick up environment variable
         reload_config_modules()
-        
+
         urls = [
             "https://example.com",  # Valid
             "http://localhost:8080",  # Should be rejected when disabled
@@ -1185,13 +1190,13 @@ class TestLocalhostUrlConfig:
         # Check results
         assert results["https://example.com"]["valid"] is True
         assert results["https://example.com"]["secure"] is True
-        
+
         assert results["http://localhost:8080"]["valid"] is False
         assert results["http://localhost:8080"]["secure"] is False
-        
+
         assert results["https://localhost/api"]["valid"] is False
         assert results["https://localhost/api"]["secure"] is False
-        
+
         assert results["javascript:alert(1)"]["valid"] is False
         assert results["javascript:alert(1)"]["secure"] is False
 

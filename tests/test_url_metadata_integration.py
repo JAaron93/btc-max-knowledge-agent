@@ -18,21 +18,11 @@ import requests
 
 from btc_max_knowledge_agent.knowledge.data_collector import DataCollector
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
-from utils.url_error_handler import (
-    GracefulDegradation,
-    URLValidationError,
-    exponential_backoff_retry,
-)
-from utils.url_metadata_logger import (
-    get_correlation_id,
-    set_correlation_id,
-)
-from utils.url_utils import (
-    check_urls_accessibility_parallel,
-    is_secure_url,
-    sanitize_url_for_storage,
-    validate_url_batch,
-)
+from utils.url_error_handler import (GracefulDegradation, URLValidationError,
+                                     exponential_backoff_retry)
+from utils.url_metadata_logger import get_correlation_id, set_correlation_id
+from utils.url_utils import (check_urls_accessibility_parallel, is_secure_url,
+                             sanitize_url_for_storage, validate_url_batch)
 
 
 class TestEndToEndURLMetadataFlow:
@@ -63,7 +53,7 @@ class TestEndToEndURLMetadataFlow:
         mock_index = MagicMock()
         mock_pinecone.Index.return_value = mock_index
         mock_pinecone_class.return_value = mock_pinecone
-        
+
         # Mock successful upsert operation
         mock_index.upsert.return_value = {"upserted_count": 5}
 
@@ -77,10 +67,10 @@ class TestEndToEndURLMetadataFlow:
 
         # Call DataCollector's method to process URLs and collect metadata
         documents = data_collector.collect_bitcoin_basics()
-        
+
         # Verify documents were collected with URL metadata
         assert len(documents) > 0, "DataCollector should return documents"
-        
+
         # Verify each document has proper URL metadata structure
         for doc in documents:
             assert "id" in doc, "Document should have ID"
@@ -88,7 +78,7 @@ class TestEndToEndURLMetadataFlow:
             assert "content" in doc, "Document should have content"
             assert "url" in doc, "Document should have URL field"
             assert "category" in doc, "Document should have category"
-            
+
             # URL should be non-empty for test documents
             if doc["url"]:
                 # Verify URL was processed through sanitization
@@ -107,39 +97,41 @@ class TestEndToEndURLMetadataFlow:
                     "source": doc.get("source", ""),
                     "category": doc["category"],
                     "url": doc["url"],
-                }
+                },
             }
             vectors.append(vector)
 
         # Call PineconeClient to store the processed data
         result = pinecone_client.upsert_vectors(vectors)
-        
+
         # Verify PineconeClient storage methods were called
         mock_index.upsert.assert_called_once()
-        
+
         # Get the actual call arguments to verify the data structure
         call_args = mock_index.upsert.call_args
         assert call_args is not None, "upsert should have been called"
-        
+
         # Verify the vectors parameter structure
-        if 'vectors' in call_args.kwargs:
-            stored_vectors = call_args.kwargs['vectors']
+        if "vectors" in call_args.kwargs:
+            stored_vectors = call_args.kwargs["vectors"]
         else:
             stored_vectors = call_args.args[0] if call_args.args else []
-            
+
         assert len(stored_vectors) > 0, "Should store vectors with metadata"
-        
+
         # Verify stored data has expected URL metadata structure
         for stored_vector in stored_vectors:
             assert "id" in stored_vector, "Stored vector should have ID"
-            assert "values" in stored_vector, "Stored vector should have embedding values"
+            assert (
+                "values" in stored_vector
+            ), "Stored vector should have embedding values"
             assert "metadata" in stored_vector, "Stored vector should have metadata"
-            
+
             metadata = stored_vector["metadata"]
             assert "url" in metadata, "Stored metadata should include URL"
             assert "title" in metadata, "Stored metadata should include title"
             assert "category" in metadata, "Stored metadata should include category"
-            
+
             # Verify URL was properly processed and matches expected format
             if metadata["url"]:
                 assert metadata["url"] == "https://bitcoin.org/bitcoin.pdf"
@@ -149,15 +141,15 @@ class TestEndToEndURLMetadataFlow:
 
         # Verify URL processing methods were called during collection
         assert mock_sanitize.called, "URL sanitization should be called"
-        
+
         # Verify correlation ID was maintained throughout the flow
-        assert get_correlation_id() == correlation_id, "Correlation ID should be preserved"
+        assert (
+            get_correlation_id() == correlation_id
+        ), "Correlation ID should be preserved"
 
     @patch("btc_max_knowledge_agent.retrieval.pinecone_client.Pinecone")
     @patch("utils.url_utils.validate_url")
-    @patch(
-        "utils.url_error_handler.GracefulDegradation.safe_url_operation"
-    )
+    @patch("utils.url_error_handler.GracefulDegradation.safe_url_operation")
     def test_url_validation_failure_with_graceful_degradation(
         self,
         mock_safe_operation,
@@ -181,7 +173,7 @@ class TestEndToEndURLMetadataFlow:
 
         # Test graceful degradation functionality with URL validation failures
         test_url = "not-a-valid-url"
-        
+
         # Test URL validation batch functionality with invalid URL
         try:
             batch_results = validate_url_batch([test_url])
@@ -197,9 +189,7 @@ class TestEndToEndURLMetadataFlow:
             assert mock_safe_operation.called
 
     @patch("btc_max_knowledge_agent.retrieval.pinecone_client.Pinecone")
-    @patch(
-        "utils.url_metadata_logger.url_metadata_logger.upload_logger"
-    )
+    @patch("utils.url_metadata_logger.url_metadata_logger.upload_logger")
     def test_correlation_id_tracking_across_operations(
         self, mock_logger, mock_pinecone_class
     ):
@@ -218,9 +208,7 @@ class TestEndToEndURLMetadataFlow:
         pinecone_client = PineconeClient()
 
         # Perform operations
-        with patch(
-            "utils.url_utils.validate_url"
-        ) as mock_validate:
+        with patch("utils.url_utils.validate_url") as mock_validate:
             mock_validate.return_value = True
 
             # Operation 1: Validate URL
@@ -327,7 +315,7 @@ class TestBackwardCompatibility:
 
         # The stub PineconeClient returns matches directly, not wrapped in dict
         matches = results if isinstance(results, list) else results.get("matches", [])
-        
+
         # Verify results contain both old and new vectors
         assert len(matches) == 2
 
@@ -341,9 +329,7 @@ class TestBackwardCompatibility:
         assert new_vector["metadata"]["url"] == "https://example.com/new"
 
     @patch("btc_max_knowledge_agent.retrieval.pinecone_client.Pinecone")
-    @patch(
-        "utils.url_error_handler.GracefulDegradation.null_safe_metadata"
-    )
+    @patch("utils.url_error_handler.GracefulDegradation.null_safe_metadata")
     def test_mixed_metadata_handling(self, mock_null_safe, mock_pinecone_class):
         """Test handling of mixed metadata with and without URLs."""
 
@@ -469,14 +455,11 @@ class TestRetryMechanisms:
         # Verify retries occurred
         assert mock_index.upsert.call_count == 3
 
-    @patch(
-        "monitoring.url_metadata_monitor.url_metadata_monitor"
-    )
+    @patch("monitoring.url_metadata_monitor.url_metadata_monitor")
     def test_monitoring_during_retry_scenarios(self, mock_monitor):
         """Test monitoring integration during retry scenarios."""
         # Create a function that fails twice then succeeds
         attempt_count = 0
-
 
         @exponential_backoff_retry(max_retries=2, initial_delay=0.01)
         def monitored_operation():
@@ -527,7 +510,7 @@ class TestURLValidationIntegration:
 
         # Validate batch - using real validation logic for integration testing
         results = validate_url_batch(test_urls)
-        
+
         # Check results - validate_url_batch now returns detailed dictionaries
         assert results["https://valid.example.com"]["valid"] is True
         assert results["javascript:alert('XSS')"]["valid"] is False
@@ -589,7 +572,9 @@ class TestURLValidationIntegration:
 
         # Verify expected results based on mocked logic - checking 'valid' field
         assert results["https://valid.example.com"]["valid"] is True
-        assert results["javascript:alert('XSS')"]["valid"] is False  # Fails security check
+        assert (
+            results["javascript:alert('XSS')"]["valid"] is False
+        )  # Fails security check
         assert results["https://192.168.1.1/private"]["valid"] is False  # Private IP
         assert results["https://another-valid.com/page"]["valid"] is True
         assert results["not-a-url"]["valid"] is False  # Fails format validation
@@ -615,9 +600,7 @@ class TestURLValidationIntegration:
 class TestLoggingCorrelation:
     """Test logging correlation across operations."""
 
-    @patch(
-        "utils.url_metadata_logger.url_metadata_logger.upload_logger"
-    )
+    @patch("utils.url_metadata_logger.url_metadata_logger.upload_logger")
     def test_correlation_id_propagation(self, mock_logger):
         """Test correlation ID propagation through operations."""
         # Set correlation ID

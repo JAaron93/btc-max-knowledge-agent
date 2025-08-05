@@ -16,3 +16,4 @@ bleach>=6.1.0
 markupsafe>=2.1.0
 libinjection-python>=3.10.0
 pymodsecurity>=1.0.4
+argon2-cffi>=25.0.0,<26.0.0

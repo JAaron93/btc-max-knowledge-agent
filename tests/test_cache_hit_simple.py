@@ -8,7 +8,8 @@ the cache works without touching private helpers.
 
 from unittest.mock import patch
 
-from btc_max_knowledge_agent.utils.url_utils import validate_url_batch, validate_url_format
+from btc_max_knowledge_agent.utils.url_utils import (validate_url_batch,
+                                                     validate_url_format)
 
 
 def test_cache_hit_basic():
@@ -41,7 +42,8 @@ def test_cache_hit_basic():
 
     # Patch validate_url_format
     with patch(
-        "btc_max_knowledge_agent.utils.url_utils.validate_url_format", side_effect=mock_validate_url_format
+        "btc_max_knowledge_agent.utils.url_utils.validate_url_format",
+        side_effect=mock_validate_url_format,
     ):
 
         # First call to validate_url_batch

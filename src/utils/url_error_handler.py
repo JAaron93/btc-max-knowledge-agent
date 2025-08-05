@@ -10,7 +10,7 @@ import functools
 import logging
 import random
 import time
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar, Union, List
 from urllib.parse import urlparse
 
 # Import our structured logging infrastructure
@@ -138,12 +138,14 @@ def exponential_backoff_retry(
                                 logger.warning(
                                     f"Returning fallback result: {fallback_result}"
                                 )
-                                return fallback_result
+                                return fallback_result  # type: ignore[return-value]
 
                     # Calculate delay with exponential backoff
-                    delay_base = initial_delay * (exponential_base ** attempt)
+                    delay_base = initial_delay * (exponential_base**attempt)
                     if jitter:
-                        delay_base *= 0.9 + random.random() * 0.2  # ±10 % jitter _before_ capping
+                        delay_base *= (
+                            0.9 + random.random() * 0.2
+                        )  # ±10 % jitter _before_ capping
                     delay = min(delay_base, max_delay)
                     # Log the retry attempt
                     log_retry(
@@ -219,7 +221,7 @@ class GracefulDegradation:
     @staticmethod
     def safe_url_operation(
         operation: Callable[..., T],
-        fallback_strategies: list[Callable[..., Any]] = None,
+        fallback_strategies: Optional[List[Callable[..., Any]]] = None,
         operation_name: str = "URL operation",
     ) -> Callable[..., Optional[T]]:
         """
@@ -309,7 +311,7 @@ class GracefulDegradation:
         }
 
         if error_details:
-            result["errors"]["details"] = error_details
+            result["errors"]["details"] = error_details  # type: ignore[index]
 
         return result
 

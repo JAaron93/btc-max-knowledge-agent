@@ -7,7 +7,7 @@ The Bitcoin Knowledge Assistant now includes a comprehensive admin authenticatio
 ## 🛡️ Security Features Implemented
 
 ### 1. Authentication System
-- **PBKDF2 Password Hashing**: ≥ 310,000 iterations with cryptographically secure salt
+- **Argon2id Password Hashing**: OWASP recommended algorithm with memory-hard properties (superior to PBKDF2)
 - **Bearer Token Authentication**: Industry-standard OAuth2-style token authentication
 - **Secure Token Generation**: 256-bit entropy tokens using `secrets.token_urlsafe(32)`
 - **Time-Based Expiry**: Configurable token lifetime (default: 24 hours)

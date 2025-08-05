@@ -63,16 +63,17 @@ class TestBackwardCompatibilitySimple:
     def pinecone_client(self, mock_index):
         """Create PineconeClient with mocked dependencies."""
         import os
-        
+
         # Mock environment variables for Config
         test_env_vars = {
             "PINECONE_API_KEY": "test-key",
             "PINECONE_INDEX_NAME": "test-index",
             "EMBEDDING_DIMENSION": "1536",
         }
-        
-        with patch("src.retrieval.pinecone_client.Pinecone"), \
-             patch.dict(os.environ, test_env_vars, clear=False):
+
+        with patch("src.retrieval.pinecone_client.Pinecone"), patch.dict(
+            os.environ, test_env_vars, clear=False
+        ):
 
             client = PineconeClient()
 
@@ -87,16 +88,16 @@ class TestBackwardCompatibilitySimple:
         mock_index.query.return_value = {"matches": mock_index._legacy}
 
         # Perform query
-        results = pinecone_client.query_similar(
-            query_embedding=[0.1] * 1536, top_k=1
-        )
+        results = pinecone_client.query_similar(query_embedding=[0.1] * 1536, top_k=1)
 
         # Validate results
         assert len(results) == 1
         result = results[0]
         assert result["id"] == "legacy_1"
         assert result["url"] == ""  # Legacy vector has empty URL
-        assert "source_url" not in result  # Legacy vectors should not have source_url field
+        assert (
+            "source_url" not in result
+        )  # Legacy vectors should not have source_url field
 
     def test_query_modern_vectors(self, pinecone_client, mock_index):
         """Test querying modern vectors with URL metadata."""
@@ -104,9 +105,7 @@ class TestBackwardCompatibilitySimple:
         mock_index.query.return_value = {"matches": mock_index._modern}
 
         # Perform query
-        results = pinecone_client.query_similar(
-            query_embedding=[0.2] * 1536, top_k=1
-        )
+        results = pinecone_client.query_similar(query_embedding=[0.2] * 1536, top_k=1)
 
         # Validate results
         assert len(results) == 1
@@ -122,9 +121,7 @@ class TestBackwardCompatibilitySimple:
         mock_index.query.return_value = {"matches": mock_index._all}
 
         # Perform query
-        results = pinecone_client.query_similar(
-            query_embedding=[0.3] * 1536, top_k=2
-        )
+        results = pinecone_client.query_similar(query_embedding=[0.3] * 1536, top_k=2)
 
         # Validate results
         assert len(results) == 2

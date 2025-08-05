@@ -16,7 +16,7 @@ class Config:
     # Chunk settings
     CHUNK_SIZE = 1000
     CHUNK_OVERLAP = 200
-    
+
     # URL validation settings
     ALLOW_LOCALHOST_URLS = os.getenv("ALLOW_LOCALHOST_URLS", "True").lower() == "true"
 
