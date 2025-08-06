@@ -461,7 +461,9 @@ def sample_test_data():
         "expected_truncations": {
             50: {
                 "A" * 150: "A" * 50,
-                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": "Bitcoin halving mechanism and economic impact on cry",
+                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
+                    "Bitcoin halving mechanism and economic impact on cry"
+                ),
             },
             100: {
                 "A" * 150: "A" * 100,
@@ -473,7 +475,9 @@ def sample_test_data():
             },
             200: {
                 "A" * 150: "A" * 150,  # Shorter than limit
-                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics",
+                "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
+                    "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics"
+                ),
             },
         },
     }

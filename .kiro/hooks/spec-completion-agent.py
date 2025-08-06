@@ -13,8 +13,7 @@ import os
 import re
 import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 def parse_tasks_file(tasks_file_path: str) -> Tuple[int, int, List[str]]:

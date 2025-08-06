@@ -21,11 +21,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List
 
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import \
-    URLMetadataMonitor
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import URLMetadataMonitor
 from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy, GracefulDegradation)
+    FallbackURLStrategy,
+    GracefulDegradation,
+)
 from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 from btc_max_knowledge_agent.utils.url_utils import URLValidator
 
@@ -203,10 +204,10 @@ class URLMetadataDemo:
                 "url_path": url_metadata["path"],
                 "url_protocol": url_metadata["protocol"],
                 "url_validated": url_fully_validated,
-                "url_validation_timestamp": (datetime.utcnow().isoformat() + "Z"),
+                "url_validation_timestamp": datetime.utcnow().isoformat() + "Z",
                 "url_security_score": validation_result.get("security_score", 0.0),
                 "metadata_version": "2.0",
-                "collection_timestamp": (datetime.utcnow().isoformat() + "Z"),
+                "collection_timestamp": datetime.utcnow().isoformat() + "Z",
                 "correlation_id": self.correlation_id,
             },
             "embedding": self._generate_mock_embedding(),  # Using random module
@@ -339,7 +340,7 @@ class URLMetadataDemo:
                 "id": "result_1",
                 "score": 0.95,
                 "metadata": {
-                    "text": ("The Lightning Network is a second-layer " "solution..."),
+                    "text": "The Lightning Network is a second-layer " "solution...",
                     "source_url": "https://lightning.network/docs",
                     "url_title": "Lightning Network Documentation",
                     "url_domain": "lightning.network",
@@ -351,7 +352,7 @@ class URLMetadataDemo:
                 "id": "result_2",
                 "score": 0.89,
                 "metadata": {
-                    "text": ("Lightning enables instant Bitcoin " "transactions..."),
+                    "text": "Lightning enables instant Bitcoin " "transactions...",
                     "source_url": "https://bitcoin.org/lightning",
                     "url_title": "Bitcoin Lightning Guide",
                     "url_domain": "bitcoin.org",
@@ -363,7 +364,7 @@ class URLMetadataDemo:
                 "id": "legacy_result",
                 "score": 0.85,
                 "metadata": {
-                    "text": ("Payment channels allow off-chain " "transactions..."),
+                    "text": "Payment channels allow off-chain " "transactions...",
                     "timestamp": "2023-01-01T00:00:00Z",
                     # No URL metadata (legacy format)
                 },

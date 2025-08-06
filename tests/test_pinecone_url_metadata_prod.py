@@ -67,7 +67,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
             "PINECONE_API_KEY": "test-key",
             "PINECONE_INDEX_NAME": "test-index",
             "EMBEDDING_DIMENSION": "768",
-            "ALLOW_LOCALHOST_URLS": "False",  # Production setting - reject localhost URLs
+            "ALLOW_LOCALHOST_URLS": (
+                "False"
+            ),  # Production setting - reject localhost URLs
         }
 
         # Set up environment patching

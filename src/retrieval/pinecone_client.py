@@ -284,7 +284,9 @@ class PineconeClient:
                         {
                             "id": match.get("id", ""),
                             "score": match.get("score", 0.0),
-                            "title": f'[Metadata Error - ID: {match.get("id", "unknown")}]',
+                            "title": (
+                                f'[Metadata Error - ID: {match.get("id", "unknown")}]'
+                            ),
                             "source": "Unknown",
                             "category": "",
                             "content": "",

@@ -3,9 +3,7 @@
 Test script for TTS user control functionality (Task 8)
 """
 
-import json
 import os
-import time
 
 import requests
 

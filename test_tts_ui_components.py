@@ -18,8 +18,11 @@ while project_root != project_root.parent:
     project_root = project_root.parent
 sys.path.insert(0, str(project_root))
 
-from src.web.bitcoin_assistant_ui import (TTSState, create_waveform_animation,
-                                          get_tts_status_display)
+from src.web.bitcoin_assistant_ui import (
+    TTSState,
+    create_waveform_animation,
+    get_tts_status_display,
+)
 
 
 def test_waveform_animation():
@@ -235,7 +238,7 @@ if __name__ == "__main__":
             # Continue with next test instead of stopping
 
     # Print summary
-    print(f"\n📊 Test Summary:")
+    print("\n📊 Test Summary:")
     print(f"   Tests run: {tests_run}")
     print(f"   Passed: {tests_passed}")
     print(f"   Failed: {tests_failed}")

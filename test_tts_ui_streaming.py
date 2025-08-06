@@ -24,8 +24,10 @@ def test_ui_streaming_functions():
     try:
         # Import UI functions
         from web.bitcoin_assistant_ui import (
-            create_waveform_animation, get_tts_status_display,
-            query_bitcoin_assistant_with_streaming)
+            create_waveform_animation,
+            get_tts_status_display,
+            query_bitcoin_assistant_with_streaming,
+        )
 
         # Test status display functions
         ready_status = get_tts_status_display(False)
@@ -62,8 +64,7 @@ def test_streaming_query_function():
     print("\n🧪 Testing streaming query function...")
 
     try:
-        from web.bitcoin_assistant_ui import \
-            query_bitcoin_assistant_with_streaming
+        from web.bitcoin_assistant_ui import query_bitcoin_assistant_with_streaming
 
         # Test with empty question
         answer, sources, audio, streaming_info = query_bitcoin_assistant_with_streaming(

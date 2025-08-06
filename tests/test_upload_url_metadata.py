@@ -29,24 +29,30 @@ def test_setup():
 
     # Sample test files with metadata
     test_files = {
-        "bitcoin_fundamentals.txt": """# Bitcoin Fundamentals
+        "bitcoin_fundamentals.txt": (
+            """# Bitcoin Fundamentals
 
 This is a test file about Bitcoin fundamentals.
 
 ### Document Metadata
 **Source URL:** https://example.com/bitcoin-fundamentals
 **Original Article:** [View on Example.com](https://example.com/bitcoin-fundamentals)
-**Direct Link:** [Download PDF](https://example.com/bitcoin-fundamentals.pdf)""",
-        "bitcoin_news.txt": """# Bitcoin News
+**Direct Link:** [Download PDF](https://example.com/bitcoin-fundamentals.pdf)"""
+        ),
+        "bitcoin_news.txt": (
+            """# Bitcoin News
 
 Latest Bitcoin news and updates.
 
 ### Document Metadata
 **Source URL:** https://news.example.com/bitcoin
-**Original Article:** [View on News Example](https://news.example.com/bitcoin)""",
-        "bitcoin_overview.txt": """# Bitcoin Overview
+**Original Article:** [View on News Example](https://news.example.com/bitcoin)"""
+        ),
+        "bitcoin_overview.txt": (
+            """# Bitcoin Overview
 
-A comprehensive overview of Bitcoin.""",
+A comprehensive overview of Bitcoin."""
+        ),
     }
 
     # Create test files in the temporary directory

@@ -121,7 +121,9 @@ def format_query_results_for_mcp(results, query=""):
                 "content": [
                     {
                         "type": "text",
-                        "text": "No relevant information found in the Bitcoin knowledge base.",
+                        "text": (
+                            "No relevant information found in the Bitcoin knowledge base."
+                        ),
                     }
                 ]
             }

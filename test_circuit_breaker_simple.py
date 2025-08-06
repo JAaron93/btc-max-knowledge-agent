@@ -5,13 +5,11 @@ Simple test script for circuit breaker implementation.
 
 import asyncio
 import logging
-import os
-import sys
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional
 
 # Configure logging
 logging.basicConfig(

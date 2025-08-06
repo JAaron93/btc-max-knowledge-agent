@@ -29,7 +29,9 @@ class TestArgon2Integration:
             {
                 "ADMIN_USERNAME": "test_admin",
                 "ADMIN_PASSWORD_HASH": test_password_hash,
-                "ADMIN_SECRET_KEY": "test_secret_key_64_hex_chars_representing_32_bytes_total",
+                "ADMIN_SECRET_KEY": (
+                    "test_secret_key_64_hex_chars_representing_32_bytes_total"
+                ),
             },
             clear=False,
         )

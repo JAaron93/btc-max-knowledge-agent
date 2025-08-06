@@ -820,6 +820,8 @@ class PromptInjectionDetector(IPromptInjectionDetector):
             "max_context_tokens": self.MAX_CONTEXT_TOKENS,
             "parameter_constraints": {
                 "top_k_range": f"{self.MIN_TOP_K}-{self.MAX_TOP_K}",
-                "similarity_threshold_range": f"{self.MIN_SIMILARITY_THRESHOLD}-{self.MAX_SIMILARITY_THRESHOLD}",
+                "similarity_threshold_range": (
+                    f"{self.MIN_SIMILARITY_THRESHOLD}-{self.MAX_SIMILARITY_THRESHOLD}"
+                ),
             },
         }

@@ -24,7 +24,7 @@ try:
     from security.config import SecurityConfigurationManager
 except ImportError as e:
     print("⚠️  IMPORT ERROR: Failed to import SecurityConfigurationManager")
-    print(f"   Module: security.config")
+    print("   Module: security.config")
     print(f"   Error: {e}")
     print("   This module contains the configuration management logic.")
     MODULES_AVAILABLE = False
@@ -33,7 +33,7 @@ try:
     from security.models import SecurityConfiguration
 except ImportError as e:
     print("⚠️  IMPORT ERROR: Failed to import SecurityConfiguration")
-    print(f"   Module: security.models")
+    print("   Module: security.models")
     print(f"   Error: {e}")
     print("   This module contains the security configuration data models.")
     MODULES_AVAILABLE = False

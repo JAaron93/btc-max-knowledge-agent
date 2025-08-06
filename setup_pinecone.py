@@ -13,8 +13,7 @@ import sys
 from requests.exceptions import ConnectionError, RequestException, Timeout
 from urllib3.exceptions import HTTPError
 
-from btc_max_knowledge_agent.knowledge.data_collector import \
-    BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
 
 # Configure logging

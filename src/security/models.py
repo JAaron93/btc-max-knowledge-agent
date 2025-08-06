@@ -107,19 +107,37 @@ def get_default_severity_for_event_type(
     # Default severity mapping - baseline severity for each event type.
     # Many events can have higher severity in specific contexts.
     severity_mapping = {
-        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,  # CRITICAL if repeated
+        SecurityEventType.AUTHENTICATION_FAILURE: (
+            SecuritySeverity.ERROR
+        ),  # CRITICAL if repeated
         SecurityEventType.AUTHENTICATION_SUCCESS: SecuritySeverity.INFO,
-        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,  # ERROR for severe rate limiting
-        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,  # WARNING (minor) or CRITICAL (injection)
+        SecurityEventType.RATE_LIMIT_EXCEEDED: (
+            SecuritySeverity.WARNING
+        ),  # ERROR for severe rate limiting
+        SecurityEventType.INPUT_VALIDATION_FAILURE: (
+            SecuritySeverity.ERROR
+        ),  # WARNING (minor) or CRITICAL (injection)
         SecurityEventType.INPUT_VALIDATION_SUCCESS: SecuritySeverity.INFO,
         SecurityEventType.PROMPT_INJECTION_DETECTED: SecuritySeverity.CRITICAL,
-        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,  # ERROR for clearly malicious patterns
-        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,  # WARNING for legitimate denials
-        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,  # WARNING for security-critical changes
-        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,  # CRITICAL for system-wide failures
+        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: (
+            SecuritySeverity.WARNING
+        ),  # ERROR for clearly malicious patterns
+        SecurityEventType.API_ACCESS_DENIED: (
+            SecuritySeverity.ERROR
+        ),  # WARNING for legitimate denials
+        SecurityEventType.CONFIGURATION_CHANGE: (
+            SecuritySeverity.INFO
+        ),  # WARNING for security-critical changes
+        SecurityEventType.SYSTEM_ERROR: (
+            SecuritySeverity.ERROR
+        ),  # CRITICAL for system-wide failures
         SecurityEventType.DATA_EXFILTRATION_ATTEMPT: SecuritySeverity.CRITICAL,
-        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,  # ERROR for severe exhaustion
-        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,  # CRITICAL for privilege escalation
+        SecurityEventType.RESOURCE_EXHAUSTION: (
+            SecuritySeverity.WARNING
+        ),  # ERROR for severe exhaustion
+        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: (
+            SecuritySeverity.ERROR
+        ),  # CRITICAL for privilege escalation
         SecurityEventType.REQUEST_SUCCESS: SecuritySeverity.INFO,
     }
     return severity_mapping.get(event_type, SecuritySeverity.WARNING)
@@ -647,9 +665,7 @@ class Anomaly:
     anomaly_type: str = "unknown"
     severity: SecuritySeverity = SecuritySeverity.WARNING
     description: str = ""
-    metrics: AnomalyMetrics = field(
-        default_factory=_create_empty_anomaly_metrics
-    )
+    metrics: AnomalyMetrics = field(default_factory=_create_empty_anomaly_metrics)
     threshold_exceeded: Optional[str] = None
     recommended_actions: List[str] = field(default_factory=list)
 

@@ -707,8 +707,10 @@ class AudioStreamingManager:
                 "streaming_ready": True,
                 "optimal_buffer_size": optimal_buffer_size,
                 "connection_type": connection_type,
-                "estimated_chunks": len(audio_bytes) // optimal_buffer_size
-                + (1 if len(audio_bytes) % optimal_buffer_size else 0),
+                "estimated_chunks": (
+                    len(audio_bytes) // optimal_buffer_size
+                    + (1 if len(audio_bytes) % optimal_buffer_size else 0)
+                ),
             }
 
             # Convert to Gradio-compatible format

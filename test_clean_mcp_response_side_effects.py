@@ -16,7 +16,9 @@ def test_no_side_effects():
         "content": [
             {
                 "type": "text",
-                "text": "This is some test content\\nwith escaped newlines and    extra spaces.",
+                "text": (
+                    "This is some test content\\nwith escaped newlines and    extra spaces."
+                ),
             },
             {"type": "text", "text": "Another piece of content\\twith\\ttabs."},
         ],

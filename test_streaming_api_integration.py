@@ -3,10 +3,8 @@
 Integration test for streaming API endpoints.
 """
 
-import json
 import os
 import sys
-from pathlib import Path
 
 import requests
 
@@ -53,7 +51,7 @@ def test_streaming_status_endpoint():
 
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Streaming status retrieved:")
+            print("✅ Streaming status retrieved:")
             print(f"   TTS enabled: {data.get('tts_enabled')}")
 
             streaming_info = data.get("streaming_manager", {})
@@ -88,7 +86,7 @@ def test_streaming_test_endpoint():
 
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Streaming test successful:")
+            print("✅ Streaming test successful:")
             print(f"   Message: {data.get('message')}")
             print(f"   Audio available: {data.get('audio_available')}")
             print(f"   Cached: {data.get('cached')}")
@@ -133,7 +131,7 @@ def test_query_with_streaming():
 
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Query with streaming successful:")
+            print("✅ Query with streaming successful:")
             print(f"   Answer length: {len(data.get('answer', ''))}")
             print(f"   TTS enabled: {data.get('tts_enabled')}")
             print(f"   TTS cached: {data.get('tts_cached')}")
@@ -142,18 +140,18 @@ def test_query_with_streaming():
             # Check for streaming data
             streaming_data = data.get("audio_streaming_data")
             if streaming_data:
-                print(f"   Streaming data available: ✅")
+                print("   Streaming data available: ✅")
                 print(f"   Instant replay: {streaming_data.get('instant_replay')}")
                 print(f"   Duration: {streaming_data.get('duration')}")
             else:
-                print(f"   Streaming data available: ❌")
+                print("   Streaming data available: ❌")
 
             # Check for audio data
             audio_data = data.get("audio_data")
             if audio_data:
                 print(f"   Audio data available: ✅ ({len(audio_data)} chars)")
             else:
-                print(f"   Audio data available: ❌")
+                print("   Audio data available: ❌")
 
             return True
         else:

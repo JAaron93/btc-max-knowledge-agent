@@ -4,9 +4,8 @@ Test script to verify thread-safe volume handling in TTS service
 """
 
 import asyncio
-import threading
 import time
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 
 def test_volume_parameter_passing():

@@ -6,7 +6,6 @@ This script shows how to run tests without path manipulation by making
 the project installable first.
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path

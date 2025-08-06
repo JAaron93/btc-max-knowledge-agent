@@ -6,7 +6,6 @@ Test script for TTS performance optimizations.
 import asyncio
 import os
 import sys
-import time
 from pathlib import Path
 
 
@@ -67,8 +66,7 @@ except RuntimeError as e:
     sys.path.insert(0, str(project_root))
     print(f"Using fallback project root: {project_root}")
 
-from src.utils.audio_utils import (get_audio_streaming_manager,
-                                   get_optimal_buffer_size)
+from src.utils.audio_utils import get_audio_streaming_manager, get_optimal_buffer_size
 from src.utils.tts_service import TTSConfig, TTSService
 
 

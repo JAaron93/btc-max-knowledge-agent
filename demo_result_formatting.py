@@ -11,7 +11,10 @@ import sys
 
 try:
     from btc_max_knowledge_agent.utils.result_formatter import (
-        AssistantResponseFormatter, MCPResponseFormatter, QueryResultFormatter)
+        AssistantResponseFormatter,
+        MCPResponseFormatter,
+        QueryResultFormatter,
+    )
 except ImportError as e:
     print(f"Error importing formatter classes: {e}")
     print("Make sure to install the package first: pip install -e .")

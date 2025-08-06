@@ -329,12 +329,16 @@ async def root():
             "session_management": "Conversation isolation with unique session IDs",
             "conversation_context": "Maintains conversation history within sessions",
             "automatic_cleanup": "Expired sessions cleaned up automatically",
-            "admin_authentication": "Secure admin access with token-based authentication",
+            "admin_authentication": (
+                "Secure admin access with token-based authentication"
+            ),
             "rate_limiting": "Anti-enumeration protection with per-endpoint limits",
             "security_logging": "Comprehensive logging of all access attempts",
             "text_to_speech": "Available with ElevenLabs integration",
             "audio_caching": "In-memory LRU cache for generated audio",
-            "audio_streaming": "Real-time audio streaming with instant replay for cached content",
+            "audio_streaming": (
+                "Real-time audio streaming with instant replay for cached content"
+            ),
             "content_filtering": "Automatic source removal for clean TTS",
             "instant_replay": "Cached audio plays instantly without re-synthesis",
         },

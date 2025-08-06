@@ -10,7 +10,6 @@ import os
 import unittest
 from unittest.mock import patch
 
-
 # Using proper absolute imports with editable package installation (pip install -e ".[dev]")
 # This eliminates the need for sys.path manipulation and provides better IDE support
 from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
@@ -199,7 +198,9 @@ class TestBuildUploadPayload(unittest.TestCase):
         """Test payload construction with special characters in content"""
         doc = {
             "id": "special-chars-doc",
-            "content": "Content with special chars: üñíçödé, emojis 🚀, and symbols @#$%",
+            "content": (
+                "Content with special chars: üñíçödé, emojis 🚀, and symbols @#$%"
+            ),
             "title": "Special Characters Test: éñ español",
             "source": "test-üñíçödé.com",
             "url": "https://example.com/spëcîál-pàth",
@@ -345,7 +346,9 @@ class TestBuildUploadPayloadIntegration(unittest.TestCase):
         doc = {
             "id": "bitcoin_whitepaper",
             "title": "Bitcoin: A Peer-to-Peer Electronic Cash System",
-            "content": "Abstract. A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution.",
+            "content": (
+                "Abstract. A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution."
+            ),
             "source": "bitcoin.org",
             "category": "fundamentals",
             "url": "https://bitcoin.org/bitcoin.pdf",

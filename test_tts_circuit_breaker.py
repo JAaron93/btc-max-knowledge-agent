@@ -6,7 +6,7 @@ Test script for TTS service with circuit breaker integration.
 import asyncio
 import logging
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 # Set up environment
 os.environ["ELEVEN_LABS_API_KEY"] = "test_key"
@@ -24,8 +24,10 @@ async def test_tts_circuit_breaker_integration():
 
     # Import here to avoid the syntax error in audio_utils
     try:
-        from src.utils.tts_error_handler import (CircuitBreakerConfig,
-                                                 TTSCircuitOpenError)
+        from src.utils.tts_error_handler import (
+            CircuitBreakerConfig,
+            TTSCircuitOpenError,
+        )
         from src.utils.tts_service import TTSConfig, TTSService
     except ImportError as e:
         logger.error(f"Import error: {e}")

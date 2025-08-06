@@ -13,8 +13,6 @@ Usage:
 import sys
 from pathlib import Path
 
-import pytest
-
 # Add project root to path - look for project markers
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir
@@ -26,8 +24,11 @@ while project_root != project_root.parent:
     project_root = project_root.parent
 sys.path.insert(0, str(project_root))
 
-from src.web.bitcoin_assistant_ui import (TTSState, create_waveform_animation,
-                                          get_tts_status_display)
+from src.web.bitcoin_assistant_ui import (
+    TTSState,
+    create_waveform_animation,
+    get_tts_status_display,
+)
 
 
 class TestTTSUIComponents:

@@ -199,14 +199,18 @@ def sample_assistant_sources():
         {
             "id": "doc1",
             "title": "Bitcoin Whitepaper",
-            "content": "Bitcoin is a peer-to-peer electronic cash system that allows online payments...",
+            "content": (
+                "Bitcoin is a peer-to-peer electronic cash system that allows online payments..."
+            ),
             "source": "Bitcoin.org",
             "url": "https://bitcoin.org/bitcoin.pdf",
         },
         {
             "id": "doc2",
             "title": "Internal Guide",
-            "content": "This is an internal guide about Bitcoin basics and fundamentals...",
+            "content": (
+                "This is an internal guide about Bitcoin basics and fundamentals..."
+            ),
             "source": "Internal KB",
             "url": "",  # No URL
         },

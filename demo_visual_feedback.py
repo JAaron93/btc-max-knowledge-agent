@@ -5,7 +5,6 @@ Demonstrates the implementation of task 9: Add visual feedback and animations
 """
 
 import sys
-import time
 from pathlib import Path
 
 # Add project root to path

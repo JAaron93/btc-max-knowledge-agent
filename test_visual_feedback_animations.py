@@ -9,7 +9,7 @@ import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, Set
 
 # Add project root to path
 project_root = Path(__file__).parent

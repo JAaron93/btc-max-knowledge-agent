@@ -27,7 +27,9 @@ class BitcoinDataCollector:
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                )
             }
         )
 
@@ -258,7 +260,9 @@ class BitcoinDataCollector:
                 {
                     "id": "bitcoin_whitepaper",
                     "title": "Bitcoin: A Peer-to-Peer Electronic Cash System",
-                    "content": """Bitcoin is a peer-to-peer electronic cash system that allows online payments to be sent directly from one party to another without going through a financial institution. Digital signatures provide part of the solution, but the main benefits are lost if a trusted third party is still required to prevent double-spending. We propose a solution to the double-spending problem using a peer-to-peer network. The network timestamps transactions by hashing them into an ongoing chain of hash-based proof-of-work, forming a record that cannot be changed without redoing the proof-of-work. The longest chain not only serves as proof of the sequence of events witnessed, but proof that it came from the largest pool of CPU power.""",
+                    "content": (
+                        """Bitcoin is a peer-to-peer electronic cash system that allows online payments to be sent directly from one party to another without going through a financial institution. Digital signatures provide part of the solution, but the main benefits are lost if a trusted third party is still required to prevent double-spending. We propose a solution to the double-spending problem using a peer-to-peer network. The network timestamps transactions by hashing them into an ongoing chain of hash-based proof-of-work, forming a record that cannot be changed without redoing the proof-of-work. The longest chain not only serves as proof of the sequence of events witnessed, but proof that it came from the largest pool of CPU power."""
+                    ),
                     "source": "bitcoin.org",
                     "category": "fundamentals",
                     "url": "https://bitcoin.org/bitcoin.pdf",
@@ -270,7 +274,9 @@ class BitcoinDataCollector:
                 {
                     "id": "lightning_network_basics",
                     "title": "Lightning Network Overview",
-                    "content": """The Lightning Network is a "Layer 2" payment protocol layered on top of Bitcoin. It enables fast transactions between participating nodes and has been proposed as a solution to the bitcoin scalability problem. It features a peer-to-peer system for making micropayments of cryptocurrency through a network of bidirectional payment channels without delegating custody of funds. Normal use of the Lightning Network consists of opening a payment channel by committing a funding transaction to the relevant base blockchain, followed by making any number of Lightning Network transactions that update the tentative distribution of the channel's funds without broadcasting those to the blockchain, optionally followed by closing the payment channel by broadcasting the final version of the settlement transaction to distribute the channel's funds.""",
+                    "content": (
+                        """The Lightning Network is a "Layer 2" payment protocol layered on top of Bitcoin. It enables fast transactions between participating nodes and has been proposed as a solution to the bitcoin scalability problem. It features a peer-to-peer system for making micropayments of cryptocurrency through a network of bidirectional payment channels without delegating custody of funds. Normal use of the Lightning Network consists of opening a payment channel by committing a funding transaction to the relevant base blockchain, followed by making any number of Lightning Network transactions that update the tentative distribution of the channel's funds without broadcasting those to the blockchain, optionally followed by closing the payment channel by broadcasting the final version of the settlement transaction to distribute the channel's funds."""
+                    ),
                     "source": "lightning.network",
                     "category": "layer2",
                     "url": "https://lightning.network/lightning-network-paper.pdf",
@@ -283,7 +289,9 @@ class BitcoinDataCollector:
                 {
                     "id": "blockchain_basics",
                     "title": "Understanding Blockchain Technology",
-                    "content": """A blockchain is a distributed ledger with growing lists of records, called blocks, that are linked and secured using cryptography. Each block contains a cryptographic hash of the previous block, a timestamp, and transaction data. By design, a blockchain is resistant to modification of its data. This is because once recorded, the data in any given block cannot be altered retroactively without altering all subsequent blocks. For use as a distributed ledger, a blockchain is typically managed by a peer-to-peer network for use as a publicly distributed ledger, where nodes collectively adhere to a protocol to communicate and validate new blocks.""",
+                    "content": (
+                        """A blockchain is a distributed ledger with growing lists of records, called blocks, that are linked and secured using cryptography. Each block contains a cryptographic hash of the previous block, a timestamp, and transaction data. By design, a blockchain is resistant to modification of its data. This is because once recorded, the data in any given block cannot be altered retroactively without altering all subsequent blocks. For use as a distributed ledger, a blockchain is typically managed by a peer-to-peer network for use as a publicly distributed ledger, where nodes collectively adhere to a protocol to communicate and validate new blocks."""
+                    ),
                     "source": "educational",
                     "category": "fundamentals",
                     "url": "https://en.bitcoin.it/wiki/Block_chain",
@@ -296,7 +304,9 @@ class BitcoinDataCollector:
                 {
                     "id": "bitcoin_security",
                     "title": "Bitcoin Security Best Practices",
-                    "content": """Bitcoin security involves protecting private keys and ensuring safe transactions. Key practices include using hardware wallets for cold storage, implementing multi-signature wallets for shared control, and maintaining proper backup procedures. Users should verify transactions before broadcasting, use strong passwords, and keep software updated. Understanding common attack vectors like phishing, malware, and social engineering is crucial for maintaining security.""",
+                    "content": (
+                        """Bitcoin security involves protecting private keys and ensuring safe transactions. Key practices include using hardware wallets for cold storage, implementing multi-signature wallets for shared control, and maintaining proper backup procedures. Users should verify transactions before broadcasting, use strong passwords, and keep software updated. Understanding common attack vectors like phishing, malware, and social engineering is crucial for maintaining security."""
+                    ),
                     "source": "bitcoin.org",
                     "category": "security",
                     "url": "https://bitcoin.org/en/secure-your-wallet",
@@ -308,7 +318,9 @@ class BitcoinDataCollector:
                 {
                     "id": "bitcoin_mining",
                     "title": "Bitcoin Mining Explained",
-                    "content": """Bitcoin mining is the process of adding transaction records to Bitcoin's public ledger of past transactions. This ledger of past transactions is called the blockchain. Mining involves compiling recent transactions into blocks and trying to solve a computationally difficult puzzle. The participant who first solves the puzzle gets to place the next block on the blockchain and claim the rewards, which include both the transaction fees and newly released bitcoin.""",
+                    "content": (
+                        """Bitcoin mining is the process of adding transaction records to Bitcoin's public ledger of past transactions. This ledger of past transactions is called the blockchain. Mining involves compiling recent transactions into blocks and trying to solve a computationally difficult puzzle. The participant who first solves the puzzle gets to place the next block on the blockchain and claim the rewards, which include both the transaction fees and newly released bitcoin."""
+                    ),
                     "source": "educational",
                     "category": "mining",
                     "url": "https://bitcoin.org/en/how-it-works#mining",
@@ -425,10 +437,14 @@ class BitcoinDataCollector:
                 {
                     "id": "genius_act_overview",
                     "title": "GENIUS Act - Stablecoin Regulation Framework",
-                    "content": """The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) S. 1582 from the 119th Congress focuses on establishing a comprehensive regulatory framework for stablecoins and digital assets in the United States. The legislation aims to provide regulatory clarity for stablecoin issuers, establish consumer protections, and create a framework for the oversight of digital payment systems. It addresses key issues including reserve requirements, redemption rights, and supervisory standards for stablecoin providers while fostering innovation in the digital payments ecosystem.""",
+                    "content": (
+                        """The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) S. 1582 from the 119th Congress focuses on establishing a comprehensive regulatory framework for stablecoins and digital assets in the United States. The legislation aims to provide regulatory clarity for stablecoin issuers, establish consumer protections, and create a framework for the oversight of digital payment systems. It addresses key issues including reserve requirements, redemption rights, and supervisory standards for stablecoin providers while fostering innovation in the digital payments ecosystem."""
+                    ),
                     "source": "legislative",
                     "category": "regulation",
-                    "url": "https://www.congress.gov/bill/119th-congress/senate-bill/1582",
+                    "url": (
+                        "https://www.congress.gov/bill/119th-congress/senate-bill/1582"
+                    ),
                     "government_urls": [
                         "https://www.congress.gov/bill/119th-congress/senate-bill/1582",
                         "https://www.congress.gov/bill/119th-congress/senate-bill/1582/text",
@@ -438,10 +454,14 @@ class BitcoinDataCollector:
                 {
                     "id": "genius_act_text",
                     "title": "GENIUS Act - Full Text (Stablecoin Provisions)",
-                    "content": """The full text of S.1582 - GENIUS Act from the 119th Congress establishes comprehensive stablecoin regulations including mandatory reserve requirements, consumer redemption rights, and regulatory oversight mechanisms. The legislation defines stablecoins as digital assets backed by reserves, requires issuers to maintain full backing of outstanding tokens with high-quality liquid assets, and establishes clear supervisory frameworks under federal banking regulators. The act also addresses interoperability standards, consumer disclosures, and enforcement mechanisms for stablecoin compliance.""",
+                    "content": (
+                        """The full text of S.1582 - GENIUS Act from the 119th Congress establishes comprehensive stablecoin regulations including mandatory reserve requirements, consumer redemption rights, and regulatory oversight mechanisms. The legislation defines stablecoins as digital assets backed by reserves, requires issuers to maintain full backing of outstanding tokens with high-quality liquid assets, and establishes clear supervisory frameworks under federal banking regulators. The act also addresses interoperability standards, consumer disclosures, and enforcement mechanisms for stablecoin compliance."""
+                    ),
                     "source": "congress.gov",
                     "category": "regulation",
-                    "url": "https://www.congress.gov/bill/119th-congress/senate-bill/1582/text",
+                    "url": (
+                        "https://www.congress.gov/bill/119th-congress/senate-bill/1582/text"
+                    ),
                     "government_urls": [
                         "https://www.congress.gov/bill/119th-congress/senate-bill/1582/text",
                         "https://www.govinfo.gov/app/details/BILLS-119s1582is",
@@ -450,7 +470,9 @@ class BitcoinDataCollector:
                 {
                     "id": "blockchain_regulatory_framework",
                     "title": "US Blockchain Regulatory Framework",
-                    "content": """The United States blockchain regulatory framework encompasses various federal agencies including the SEC, CFTC, FinCEN, and IRS. Each agency has specific jurisdiction over different aspects of blockchain and cryptocurrency. The SEC oversees securities laws for digital assets, the CFTC regulates cryptocurrency derivatives, FinCEN enforces anti-money laundering rules, and the IRS provides tax guidance for cryptocurrency transactions.""",
+                    "content": (
+                        """The United States blockchain regulatory framework encompasses various federal agencies including the SEC, CFTC, FinCEN, and IRS. Each agency has specific jurisdiction over different aspects of blockchain and cryptocurrency. The SEC oversees securities laws for digital assets, the CFTC regulates cryptocurrency derivatives, FinCEN enforces anti-money laundering rules, and the IRS provides tax guidance for cryptocurrency transactions."""
+                    ),
                     "source": "regulatory",
                     "category": "regulation",
                     "url": "https://www.congress.gov/search?q=blockchain+regulation",
@@ -574,7 +596,9 @@ class BitcoinDataCollector:
                 {
                     "id": "dapp_basics",
                     "title": "Decentralized Applications (dApps) Overview",
-                    "content": """Decentralized applications (dApps) are digital applications that run on a blockchain or peer-to-peer network of computers instead of a single computer. dApps are outside the purview and control of a single authority. dApps can be developed for a variety of purposes including gaming, finance, and social media. The key characteristics of dApps include: decentralization (no single point of failure), open source code, cryptographic security, and token incentives. Popular dApp categories include DeFi (Decentralized Finance), NFT marketplaces, gaming platforms, and social networks.""",
+                    "content": (
+                        """Decentralized applications (dApps) are digital applications that run on a blockchain or peer-to-peer network of computers instead of a single computer. dApps are outside the purview and control of a single authority. dApps can be developed for a variety of purposes including gaming, finance, and social media. The key characteristics of dApps include: decentralization (no single point of failure), open source code, cryptographic security, and token incentives. Popular dApp categories include DeFi (Decentralized Finance), NFT marketplaces, gaming platforms, and social networks."""
+                    ),
                     "source": "educational",
                     "category": "dapps",
                     "url": "https://ethereum.org/en/dapps/",
@@ -587,7 +611,9 @@ class BitcoinDataCollector:
                 {
                     "id": "dapp_development",
                     "title": "Building Decentralized Applications",
-                    "content": """Developing dApps requires understanding of blockchain technology, smart contracts, and decentralized storage. Common tools include Web3.js for JavaScript integration, Truffle Suite for development framework, Hardhat for Ethereum development, and IPFS for decentralized storage. Developers must consider gas optimization, security audits, and user experience when building dApps.""",
+                    "content": (
+                        """Developing dApps requires understanding of blockchain technology, smart contracts, and decentralized storage. Common tools include Web3.js for JavaScript integration, Truffle Suite for development framework, Hardhat for Ethereum development, and IPFS for decentralized storage. Developers must consider gas optimization, security audits, and user experience when building dApps."""
+                    ),
                     "source": "developer_docs",
                     "category": "dapps",
                     "url": "https://ethereum.org/en/developers/docs/dapps/",
@@ -601,7 +627,9 @@ class BitcoinDataCollector:
                 {
                     "id": "defi_protocols",
                     "title": "DeFi Protocol Architecture",
-                    "content": """Decentralized Finance (DeFi) protocols are smart contract-based applications that recreate traditional financial services without intermediaries. Key components include automated market makers (AMMs), lending protocols, yield aggregators, and decentralized exchanges (DEXs). Popular DeFi protocols include Uniswap, Aave, Compound, and MakerDAO.""",
+                    "content": (
+                        """Decentralized Finance (DeFi) protocols are smart contract-based applications that recreate traditional financial services without intermediaries. Key components include automated market makers (AMMs), lending protocols, yield aggregators, and decentralized exchanges (DEXs). Popular DeFi protocols include Uniswap, Aave, Compound, and MakerDAO."""
+                    ),
                     "source": "technical",
                     "category": "dapps",
                     "url": "https://docs.uniswap.org/",
@@ -615,7 +643,9 @@ class BitcoinDataCollector:
                 {
                     "id": "smart_contract_security",
                     "title": "Smart Contract Security Best Practices",
-                    "content": """Smart contract security is critical for dApp development. Common vulnerabilities include reentrancy attacks, integer overflow/underflow, and access control issues. Best practices include using established libraries like OpenZeppelin, conducting thorough testing with tools like Mythril and Slither, and getting professional audits before mainnet deployment.""",
+                    "content": (
+                        """Smart contract security is critical for dApp development. Common vulnerabilities include reentrancy attacks, integer overflow/underflow, and access control issues. Best practices include using established libraries like OpenZeppelin, conducting thorough testing with tools like Mythril and Slither, and getting professional audits before mainnet deployment."""
+                    ),
                     "source": "security",
                     "category": "dapps",
                     "url": "https://docs.openzeppelin.com/contracts/",
@@ -629,7 +659,9 @@ class BitcoinDataCollector:
                 {
                     "id": "blockchain_apis",
                     "title": "Blockchain API Documentation",
-                    "content": """Blockchain APIs provide programmatic access to blockchain data and functionality. Popular providers include Infura for Ethereum node access, Alchemy for enhanced APIs, The Graph for indexing blockchain data, and Moralis for Web3 development. These APIs enable developers to build dApps without running their own nodes.""",
+                    "content": (
+                        """Blockchain APIs provide programmatic access to blockchain data and functionality. Popular providers include Infura for Ethereum node access, Alchemy for enhanced APIs, The Graph for indexing blockchain data, and Moralis for Web3 development. These APIs enable developers to build dApps without running their own nodes."""
+                    ),
                     "source": "api_docs",
                     "category": "dapps",
                     "url": "https://docs.infura.io/api",

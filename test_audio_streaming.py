@@ -4,7 +4,6 @@ Test script for audio streaming functionality.
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -13,14 +12,16 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "src"))
 
-from utils.audio_utils import (AudioProcessingError, AudioStreamingManager,
-                               create_gradio_streaming_audio,
-                               get_audio_streaming_manager,
-                               prepare_audio_for_streaming)
+from utils.audio_utils import (
+    AudioProcessingError,
+    create_gradio_streaming_audio,
+    get_audio_streaming_manager,
+    prepare_audio_for_streaming,
+)
 
 # Audio validation constants
 MIN_AUDIO_DATA_SIZE = 8  # Minimum bytes required for valid audio data
-from utils.tts_service import TTSConfig, get_tts_service
+from utils.tts_service import get_tts_service
 
 
 def test_streaming_manager():

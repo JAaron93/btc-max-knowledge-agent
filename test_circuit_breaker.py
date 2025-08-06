@@ -5,11 +5,14 @@ Test script for circuit breaker implementation in TTS service.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
 
-from src.utils.tts_error_handler import (CircuitBreaker, CircuitBreakerConfig,
-                                         CircuitState, TTSCircuitOpenError,
-                                         TTSErrorHandler, TTSNetworkError)
+from src.utils.tts_error_handler import (
+    CircuitBreakerConfig,
+    CircuitState,
+    TTSCircuitOpenError,
+    TTSErrorHandler,
+    TTSNetworkError,
+)
 
 # Configure logging
 logging.basicConfig(

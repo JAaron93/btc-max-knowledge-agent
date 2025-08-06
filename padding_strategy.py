@@ -7,7 +7,6 @@ preserving entropy and cryptographic security.
 """
 
 import secrets
-from typing import List
 
 
 class SecurePaddingStrategy:
@@ -162,7 +161,7 @@ if __name__ == "__main__":
     # Show entropy analysis
     total_entropy = charset_info["charset_length"].bit_length() - 1
     padding_entropy = (target_length - len(base_password)) * total_entropy
-    print(f"Entropy Analysis:")
+    print("Entropy Analysis:")
     print(f"  Entropy per padding character: ~{total_entropy} bits")
     print(f"  Total padding entropy: ~{padding_entropy} bits")
-    print(f"  Security: Each padding character is cryptographically random")
+    print("  Security: Each padding character is cryptographically random")

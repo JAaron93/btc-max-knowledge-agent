@@ -11,10 +11,10 @@ import json
 import os
 import sys
 
-from btc_max_knowledge_agent.agents.pinecone_assistant_agent import \
-    PineconeAssistantAgent
-from btc_max_knowledge_agent.knowledge.data_collector import \
-    BitcoinDataCollector
+from btc_max_knowledge_agent.agents.pinecone_assistant_agent import (
+    PineconeAssistantAgent,
+)
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 
 
 def main():

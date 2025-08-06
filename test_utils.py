@@ -52,9 +52,13 @@ def validate_security_imports() -> bool:
         # Test core security imports
         from security.config import SecurityConfigurationManager
         from security.interfaces import ISecurityValidator
-        from security.models import (SecurityAction, SecurityConfiguration,
-                                     SecuritySeverity, SecurityViolation,
-                                     ValidationResult)
+        from security.models import (
+            SecurityAction,
+            SecurityConfiguration,
+            SecuritySeverity,
+            SecurityViolation,
+            ValidationResult,
+        )
         from security.validator import LibraryHealthStatus, SecurityValidator
 
         return True

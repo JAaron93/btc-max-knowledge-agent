@@ -19,6 +19,7 @@ if not validate_security_imports():
     sys.exit(1)
 
 from security.models import SecurityConfiguration
+
 # Now we can safely import the security modules
 from security.validator import SecurityValidator
 

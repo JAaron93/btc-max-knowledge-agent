@@ -7,8 +7,13 @@ import asyncio
 import sys
 
 # Use test utilities for robust import handling
-from test_utils import (TestAssertion, get_test_config, print_test_header,
-                        setup_test_imports, validate_security_imports)
+from test_utils import (
+    TestAssertion,
+    get_test_config,
+    print_test_header,
+    setup_test_imports,
+    validate_security_imports,
+)
 
 # Set up imports robustly
 if not setup_test_imports():
@@ -17,9 +22,8 @@ if not setup_test_imports():
 if not validate_security_imports():
     sys.exit(1)
 
-from security.models import (SecurityAction, SecurityConfiguration,
-                             SecuritySeverity, SecurityViolation,
-                             ValidationResult)
+from security.models import SecurityAction, SecuritySeverity, SecurityViolation
+
 # Now we can safely import the security modules
 from security.validator import LibraryHealthStatus, SecurityValidator
 

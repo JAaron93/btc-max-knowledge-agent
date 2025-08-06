@@ -3,9 +3,7 @@
 Unit tests for SecurityValidator component without complex imports.
 """
 
-import asyncio
 import sys
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -19,9 +17,13 @@ if not setup_test_imports():
 if not validate_security_imports():
     pytest.skip("Security modules not available", allow_module_level=True)
 
-from security.models import (SecurityAction, SecurityConfiguration,
-                             SecuritySeverity, SecurityViolation,
-                             ValidationResult)
+from security.models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecuritySeverity,
+    SecurityViolation,
+)
+
 # Now we can safely import the security modules
 from security.validator import LibraryHealthStatus, SecurityValidator
 

@@ -4,14 +4,14 @@ Upload Bitcoin documents to Pinecone Assistant via web interface
 """
 
 import os
+
 # Remove.  Install the project with:
 #   pip install -e .
 import re
 import sys
 from urllib.parse import urlparse
 
-from btc_max_knowledge_agent.knowledge.data_collector import \
-    BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 
 
 def _is_valid_url(url: str) -> bool:

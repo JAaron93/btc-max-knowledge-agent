@@ -122,10 +122,12 @@ def test_imports():
 
     try:
         # Test audio utils imports and functionality
-        from src.utils.audio_utils import (STREAMING_BUFFER_SIZES,
-                                           AudioFormatConverter,
-                                           AudioStreamProcessor,
-                                           get_optimal_buffer_size)
+        from src.utils.audio_utils import (
+            STREAMING_BUFFER_SIZES,
+            AudioFormatConverter,
+            AudioStreamProcessor,
+            get_optimal_buffer_size,
+        )
 
         print("✅ Audio utils imports successful")
 

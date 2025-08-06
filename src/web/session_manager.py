@@ -105,8 +105,9 @@ class SessionData:
             "estimated_memory_bytes": history_size,
             "estimated_memory_kb": round(history_size / 1024, 2),
             "max_history_turns": self.max_history_turns,
-            "memory_limit_reached": len(self.conversation_history)
-            >= self.max_history_turns,
+            "memory_limit_reached": (
+                len(self.conversation_history) >= self.max_history_turns
+            ),
         }
 
     def _calculate_recursive_size(self, obj, seen=None) -> int:
@@ -446,7 +447,9 @@ class SessionManager:
             "length": self.session_id_length,
             "charset": self.session_id_charset,
             "charset_size": len(self.session_id_charset),
-            "format_description": f"{self.session_id_length}-character string using charset: {self.session_id_charset}",
+            "format_description": (
+                f"{self.session_id_length}-character string using charset: {self.session_id_charset}"
+            ),
             "example_pattern": (
                 f"{''.join([self.session_id_charset[0]] * min(8, self.session_id_length))}..."
                 if self.session_id_length > 8

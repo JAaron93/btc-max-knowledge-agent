@@ -237,7 +237,8 @@ class PineconeAssistantAgent:
 
         assistant_config = {
             "name": name,
-            "instructions": """You are a Bitcoin and blockchain technology expert assistant. 
+            "instructions": (
+                """You are a Bitcoin and blockchain technology expert assistant. 
             Your role is to educate users about:
             - Bitcoin fundamentals and technology
             - Blockchain concepts and mechanics  
@@ -247,7 +248,8 @@ class PineconeAssistantAgent:
             - Bitcoin news and market developments
             
             Always provide accurate, educational responses based on the knowledge base.
-            Cite sources when possible and explain complex concepts clearly.""",
+            Cite sources when possible and explain complex concepts clearly."""
+            ),
             "model": "gpt-4",
             "metadata": {
                 "purpose": "bitcoin-education",

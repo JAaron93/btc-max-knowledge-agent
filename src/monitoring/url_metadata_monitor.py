@@ -536,10 +536,10 @@ class URLMetadataMonitor:
                             {
                                 "hour": hour_end.isoformat(),
                                 "avg_duration_ms": statistics.mean(durations),
-                                "success_rate": sum(
-                                    1 for m in hour_metrics if m.success
-                                )
-                                / len(hour_metrics),
+                                "success_rate": (
+                                    sum(1 for m in hour_metrics if m.success)
+                                    / len(hour_metrics)
+                                ),
                             }
                         )
 

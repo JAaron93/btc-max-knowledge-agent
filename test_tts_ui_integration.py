@@ -35,9 +35,11 @@ def test_ui_creation():
 def test_tts_components_exist():
     """Test that TTS components are properly defined"""
     try:
-        from src.web.bitcoin_assistant_ui import (TTSState,
-                                                  create_waveform_animation,
-                                                  get_tts_status_display)
+        from src.web.bitcoin_assistant_ui import (
+            TTSState,
+            create_waveform_animation,
+            get_tts_status_display,
+        )
 
         # Test waveform animation
         animation = create_waveform_animation()
