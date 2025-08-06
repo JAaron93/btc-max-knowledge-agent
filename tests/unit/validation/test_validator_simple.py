@@ -7,17 +7,18 @@ import asyncio
 import sys
 
 # Use test utilities for robust import handling
-from test_utils import setup_test_imports, validate_security_imports
+from tests.unit.utils.test_utils import (  # type: ignore
+    setup_test_imports,
+    validate_security_imports,
+)
 
 # Set up imports robustly
 if not setup_test_imports():
     print("❌ Failed to set up test imports")
-    sys.exit(1)
-
+# sys.exit(1) disabled to avoid aborting pytest collection
 if not validate_security_imports():
     print("❌ Security modules not available")
-    sys.exit(1)
-
+# sys.exit(1) disabled to avoid aborting pytest collection
 from security.models import SecurityConfiguration
 
 # Now we can safely import the security modules

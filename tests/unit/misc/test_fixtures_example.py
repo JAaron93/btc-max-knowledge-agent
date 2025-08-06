@@ -9,10 +9,11 @@ to write clean, reusable tests for query truncation configuration.
 import json
 
 import pytest
+from tests.conftest import parametrize_truncation_lengths
 
 from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 
-from .conftest import (
+from tests.conftest import (  # type: ignore
     pytest_parametrize_config_variants,
     pytest_parametrize_truncation_lengths,
 )
@@ -104,7 +105,7 @@ class TestFixturesExample:
             sample_test_data["urls"][0], True, "secure_url", duration_ms=50.0
         )
 
-    @pytest_parametrize_truncation_lengths
+    @parametrize_truncation_lengths
     def test_parametrized_truncation_lengths(self, truncation_length, temp_config_dir):
         """Example of using parametrized truncation lengths."""
 
@@ -123,7 +124,7 @@ class TestFixturesExample:
         long_query = "Testing parametrized truncation lengths " * 20
         logger.log_retrieval(long_query, 3, 85.0)
 
-    @pytest_parametrize_config_variants
+    from tests import conftest as tests_conftest  # noqa: F401\n@pytest.mark.parametrize("config_name,config", __import__("tests.conftest", fromlist=["CONFIG_VARIANTS"]).CONFIG_VARIANTS)
     def test_parametrized_config_variants(self, config_name, config, temp_config_dir):
         """Example of using parametrized config variants."""
 

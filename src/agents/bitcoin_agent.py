@@ -52,19 +52,17 @@ class BitcoinKnowledgeAgent:
 
             # Provide fallback formatted response
             summary_text = f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
+            # Build sources list once and reuse in both places
+            sources_list = [
+                doc.get("metadata", {}).get("url", "Unknown source") for doc in relevant_docs
+            ]
             formatted_response = {
                 "formatted_response": {
                     "response": f"Found {len(relevant_docs)} relevant documents, but formatting failed.",
-                    "sources": [
-                        doc.get("metadata", {}).get("url", "Unknown source")
-                        for doc in relevant_docs
-                    ],
+                    "sources": sources_list,
                     "summary": summary_text,
                 },
-                "sources": [
-                    doc.get("metadata", {}).get("url", "Unknown source")
-                    for doc in relevant_docs
-                ],
+                "sources": sources_list,
                 "summary": summary_text,
             }
 

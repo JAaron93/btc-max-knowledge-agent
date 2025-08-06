@@ -23,8 +23,9 @@ spec = importlib.util.spec_from_file_location(
     "generate_admin_hash", scripts_path / "generate_admin_hash.py"
 )
 generate_admin_hash = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
 spec.loader.exec_module(generate_admin_hash)
-hash_password = generate_admin_hash.hash_password
+hash_password = getattr(generate_admin_hash, "hash_password")
 
 
 class TestAdminAuthenticator:

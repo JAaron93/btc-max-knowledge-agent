@@ -9,7 +9,10 @@ This test suite uses pytest fixtures for better test organization and reusabilit
 
 from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 
-from .conftest import (
+import pytest
+from tests import conftest as tests_conftest  # noqa: F401
+from tests.conftest import (  # type: ignore
+    parametrize_truncation_lengths,
     pytest_parametrize_config_variants,
     pytest_parametrize_truncation_lengths,
 )
@@ -44,7 +47,7 @@ class TestQueryTruncationConfig:
                 == config.query_truncation_length
             ), f"Config truncation length should be {config.query_truncation_length}, got {logger.config['query_truncation_length']}"
 
-    @pytest_parametrize_truncation_lengths
+    @parametrize_truncation_lengths
     def test_truncation_length_parameter(self, truncation_length, temp_config_dir):
         """Test various truncation lengths using parametrized fixtures."""
 
@@ -133,7 +136,7 @@ class TestQueryTruncationConfig:
                     len(expected_truncated) == truncation_length
                 ), f"Truncated query length should be {truncation_length}, got {len(expected_truncated)}"
 
-    @pytest_parametrize_config_variants
+    @pytest.mark.parametrize("config_name,config", tests_conftest.CONFIG_VARIANTS)
     def test_config_variants_parametrized(self, config_name, config, temp_config_dir):
         """Test configuration variants using parametrized fixture."""
 

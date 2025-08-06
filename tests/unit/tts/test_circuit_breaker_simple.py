@@ -5,12 +5,14 @@ Simple test script for circuit breaker implementation.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from freezegun import freeze_time
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone  # noqa: F401
+import pytest
+freezegun = pytest.importorskip("freezegun")
+from freezegun import freeze_time  # noqa: E402
+from typing import Any, Dict, Optional  # noqa: F401
 
 # Import CircuitBreaker and related classes from production code
-from src.utils.tts_error_handler import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from src.utils.tts_error_handler import CircuitBreaker, CircuitBreakerConfig, CircuitState  # noqa: E501,F401
 
 # Configure logging
 logging.basicConfig(
@@ -68,6 +70,7 @@ async def test_circuit_breaker_basic():
     # Test transition to HALF_OPEN after cooldown
     logger.info("Waiting for cooldown period...")
     with freeze_time() as frozen_time:
+        # Advance past the 2-second cooldown period
         frozen_time.tick(delta=3)  # Advance time by 3 seconds
         assert circuit_breaker.can_execute()
         state = circuit_breaker.get_state()

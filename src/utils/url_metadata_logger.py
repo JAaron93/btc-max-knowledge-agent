@@ -83,6 +83,16 @@ class URLMetadataLogger:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(exist_ok=True)
 
+        # Validate query_truncation_length to avoid silent misconfiguration
+        if not isinstance(query_truncation_length, int):
+            raise ValueError(
+                "query_truncation_length must be an integer for URLMetadataLogger"
+            )
+        if query_truncation_length <= 0:
+            raise ValueError(
+                "query_truncation_length must be a positive integer (> 0) for URLMetadataLogger"
+            )
+
         # Configure root logger
         self._configure_root_logger()
 

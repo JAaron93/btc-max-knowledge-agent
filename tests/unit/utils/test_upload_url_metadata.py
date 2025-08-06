@@ -46,7 +46,11 @@ Latest Bitcoin news and updates.
 **Original Article:** [View on News Example](https://news.example.com/bitcoin)""",
         "bitcoin_overview.txt": """# Bitcoin Overview
 
-A comprehensive overview of Bitcoin.""",
+A comprehensive overview of Bitcoin.
+
+### Document Metadata
+**Source URL:** https://example.com/bitcoin-overview
+""",
     }
 
     # Create test files in the temporary directory

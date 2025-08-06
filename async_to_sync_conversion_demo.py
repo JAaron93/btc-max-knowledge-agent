@@ -24,7 +24,8 @@ try:
     from security.config import SecurityConfigurationManager
 except ImportError as e:
     print("⚠️  IMPORT ERROR: Failed to import SecurityConfigurationManager")
-    print(f"   Module: {e.name}")
+    module_name = getattr(e, "name", "Unknown")
+    print(f"   Module: {module_name}")
     print(f"   Error: {e}")
     print("   This module contains the configuration management logic.")
     MODULES_AVAILABLE = False

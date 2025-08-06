@@ -8,7 +8,10 @@ import sys
 import pytest
 
 # Use test utilities for robust import handling
-from test_utils import setup_test_imports, validate_security_imports
+from tests.unit.utils.test_utils import (  # type: ignore
+    setup_test_imports,
+    validate_security_imports,
+)
 
 # Set up imports robustly
 if not setup_test_imports():

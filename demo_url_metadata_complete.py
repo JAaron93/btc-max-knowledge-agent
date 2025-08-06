@@ -55,7 +55,7 @@ class URLMetadataDemo:
 
         # Track demo metrics
         self.demo_metrics = {
-            "start_time": datetime.utcnow(),
+            "start_time": datetime.now(timezone.utc),
             "operations": [],
             "errors": [],
             "successes": [],
@@ -64,7 +64,7 @@ class URLMetadataDemo:
     def log_operation(self, operation: str, status: str, details: Dict[str, Any]):
         """Log operation for demo tracking."""
         entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             "operation": operation,
             "status": status,
             "details": details,
@@ -203,11 +203,15 @@ class URLMetadataDemo:
                 "url_path": url_metadata["path"],
                 "url_protocol": url_metadata["protocol"],
                 "url_validated": url_fully_validated,
-                "url_validation_timestamp": (
-                    utc_timestamp := datetime.now(timezone.utc)
-                    .isoformat()
-                    .replace("+00:00", "Z")
-                ),
+        # Generate a single UTC ISO-8601 timestamp and reuse it
+        utc_timestamp = (
+            datetime.now(timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+        data_entry = {
+                "url_validation_timestamp": utc_timestamp,
                 "url_security_score": validation_result.get("security_score", 0.0),
                 "metadata_version": "2.0",
                 "collection_timestamp": utc_timestamp,
@@ -284,7 +288,7 @@ class URLMetadataDemo:
                 "url_validated": False,
                 "fallback_processing": True,
                 "metadata_version": "2.0",
-                "collection_timestamp": datetime.utcnow().isoformat() + "Z",
+                "collection_timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             },
             "embedding": self._generate_mock_embedding(),
         }
@@ -464,7 +468,7 @@ class URLMetadataDemo:
                 print(f"    - {error_type}: {count}")
 
         # Demo-specific metrics
-        duration = (datetime.utcnow() - self.demo_metrics["start_time"]).total_seconds()
+        duration = (datetime.now(timezone.utc) - self.demo_metrics["start_time"]).total_seconds()
         print("\nDemo Execution Metrics:")
         print(f"  • Duration: {duration:.2f} seconds")
         print(f"  • Total Operations: {len(self.demo_metrics['operations'])}")

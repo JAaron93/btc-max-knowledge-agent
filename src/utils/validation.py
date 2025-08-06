@@ -13,8 +13,7 @@ def validate_volume(volume):
     Returns:
         bool: True if volume is valid (None or 0.0-1.0), False otherwise
 
-    Raises:
-        ValueError: If volume is not None and outside valid range (when strict=True)
+
     """
     if volume is None:
         return True
@@ -34,6 +33,6 @@ def validate_volume_strict(volume):
     Returns:
         bool: True if validation passes
     """
-    if volume is not None and not 0.0 <= volume <= 1.0:
+    if not validate_volume(volume):
         raise ValueError(f"Volume must be between 0.0 and 1.0, got {volume}")
     return True

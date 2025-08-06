@@ -18,10 +18,10 @@ from typing import Any, Dict, Optional
 import aiohttp
 import psutil
 
-from btc_max_knowledge_agent.utils.validation import validate_volume_strict
-
-from .validation import validate_volume_strict
-
+try:  # Prefer external util, fall back to local copy when running inside the repo
+    from btc_max_knowledge_agent.utils.validation import validate_volume_strict
+except ImportError:  # pragma: no cover
+    from .validation import validate_volume_strict
 from .multi_tier_audio_cache import CacheConfig, get_audio_cache
 from .tts_error_handler import (
     TTSAPIKeyError,
@@ -655,9 +655,9 @@ class TTSService:
         # Use provided voice_id or default
         voice_id = voice_id or self.config.voice_id
 
-        # Validate volume parameter if provided
-        validate_volume_strict(volume)
-
+        # Validate only when caller supplied an explicit volume
+        if volume is not None:
+            validate_volume_strict(volume)
         try:
             # Use error handler for retry logic, passing volume directly to API method
             audio_data = await self.error_handler.execute_with_retry(

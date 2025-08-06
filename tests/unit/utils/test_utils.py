@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """
+import pytest
+pytestmark = [pytest.mark.unit]
 Test utilities for robust import handling and common test functionality.
 """
 
 import sys
 from pathlib import Path
 from typing import Optional
+import pytest
+pytestmark = [pytest.mark.unit]
+
+# Marker usage example:
+# pytestmark = [pytest.mark.unit]
+# Unit tests for general utility helpers
 
 
 def setup_test_imports() -> bool:
@@ -20,9 +28,16 @@ def setup_test_imports() -> bool:
         bool: True if setup was successful, False otherwise
     """
     try:
-        # Get the project root directory (where this file is located)
-        project_root = Path(__file__).parent.absolute()
-        src_dir = project_root / "src"
+        # Find project root by looking for src directory
+        current_path = Path(__file__).parent.absolute()
+        while current_path != current_path.parent:
+            src_dir = current_path / "src"
+            if src_dir.exists():
+                break
+            current_path = current_path.parent
+        else:
+            print("❌ Could not locate project root with src directory")
+            return False
 
         # Validate that the source directory exists
         if not src_dir.exists():
@@ -72,6 +87,10 @@ def validate_security_imports() -> bool:
         return False
 
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from security.models import SecurityConfiguration
+
 def get_test_config() -> Optional["SecurityConfiguration"]:
     """
     Get a standard test configuration for security tests.
@@ -91,6 +110,9 @@ def get_test_config() -> Optional["SecurityConfiguration"]:
             sanitization_confidence_threshold=0.7,
         )
     except ImportError:
+        return None
+    except Exception:
+        # If the security models are partially present and raise during init, treat as unavailable for unit-only runs.
         return None
 
 

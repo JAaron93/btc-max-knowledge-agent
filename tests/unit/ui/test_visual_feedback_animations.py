@@ -12,8 +12,14 @@ from pathlib import Path
 from typing import Dict, Set
 
 # Add project root to path
-project_root = Path(__file__).parent
+project_root = Path(
+    __file__
+).parent.parent.parent.parent  # Navigate up to actual project root
 sys.path.insert(0, str(project_root))
+
+# Pytest marker: classify this module as unit tests
+import pytest  # noqa: E402
+pytestmark = [pytest.mark.unit]
 
 
 # Utility classes and functions for robust testing
@@ -186,21 +192,6 @@ def create_waveform_animation() -> str:
         </div>
     </div>
     """
-
-
-def create_loading_indicator() -> str:
-    """Create loading indicator for TTS processing state"""
-    return """
-    <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;">
-            </div>
-        </div>
-        <span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;">Processing text...</span>
-    </div>
-    """
-
-
 def create_playback_indicator(is_cached: bool = False) -> str:
     """Create playback indicator with different styles for cached vs new audio"""
     # Define conditional values for cached vs non-cached audio
@@ -214,27 +205,37 @@ def create_playback_indicator(is_cached: bool = False) -> str:
         </div>
         """
 
-
 def create_loading_indicator() -> str:
     """Create loading indicator for TTS processing state"""
-    return r"""
-    <div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;">
-                <style>
-                    @keyframes loading-dot {
-                        0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-                        40% { transform: scale(1); opacity: 1; }
-                    }
-                </style>
-            </div>
-            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></div>
-            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></div>
-        </div>
-        <span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;">Processing text...</span>
-    </div>
-    """
+    return (
+        "<div style=\"display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;\">"
+        "<div style=\"display: flex; align-items: center; gap: 8px;\">"
+        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;\">"
+        "<style>"
+        "@keyframes loading-dot {"
+        "0%, 80%, 100% { transform: scale(0); opacity: 0.5; }"
+        "40% { transform: scale(1); opacity: 1; }"
+        "}"
+        "</style>"
+        "</div>"
+        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.32s;\"></div>"
+        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.16s;\"></div>"
+        "</div>"
+        "<span style=\"margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;\">Processing text...</span>"
+        "</div>"
+    )
 
+
+import pytest
+pytestmark = [pytest.mark.unit]
+
+# Marker usage example:
+# pytestmark = [pytest.mark.unit]
+# This module contains unit tests that validate HTML/CSS snippets and animation states
+
+# Marker usage example:
+# pytestmark = [pytest.mark.unit]
+# This module contains unit tests that validate HTML/CSS snippets and animation states
 
 def get_tts_status_display(
     is_synthesizing: bool,
@@ -244,33 +245,23 @@ def get_tts_status_display(
     is_playing: bool = False,
     is_cached: bool = False,
 ) -> str:
-    """Get TTS status display HTML with comprehensive visual feedback and smooth transitions"""
+    """
+    Get TTS status display HTML with comprehensive visual feedback and smooth transitions.
+    """
 
     # CSS keyframes for animations (included for standalone usage)
-    css_keyframes = r"""
-    <style>
-        @keyframes fade-in {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        @keyframes loading-dot {
-            0%, 80%, 100% {
-                transform: scale(0);
-                opacity: 0.5;
-            }
-            40% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-    </style>
-    """
+    css_keyframes = (
+        "<style>"
+        "@keyframes fade-in {"
+        "from {opacity: 0; transform: translateY(-10px);}"
+        "to {opacity: 1; transform: translateY(0);}"
+        "}"
+        "@keyframes loading-dot {"
+        "0%,80%,100% {transform: scale(0); opacity: 0.5;}"
+        "40% {transform: scale(1); opacity: 1;}"
+        "}"
+        "</style>"
+    )
 
     # Handle error states with enhanced visual feedback
     if has_error:
@@ -294,41 +285,55 @@ def get_tts_status_display(
             display_message = "[ERROR] TTS Error - Text continues normally"
 
         # Consolidated error HTML structure (single source of truth)
-        return f"""
-        {css_keyframes}
-        <div class="tts-status error" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; border-radius: 8px; transition: all 0.3s ease-in-out;">
-            <span style="color: #dc2626; font-size: 13px; cursor: help; font-weight: 500; animation: fade-in 0.3s ease-in-out;">{display_message}</span>
-        </div>
-        """
+        return (
+            f"{css_keyframes}"
+            f"<div class=\"tts-status error\" "
+            f"style=\"display: flex; align-items: center; justify-content: center; padding: 10px; "
+            f"background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; "
+            f"border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            f"<span style=\"color: #dc2626; font-size: 13px; cursor: help; font-weight: 500; "
+            f"animation: fade-in 0.3s ease-in-out;\">{display_message}</span>"
+            f"</div>"
+        )
     elif is_loading:
         # Show loading indicator for initial processing
-        return f"""
-        <div class="tts-status synthesizing" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
-            {create_loading_indicator()}
-        </div>
-        """
+        return (
+            "<div class=\"tts-status synthesizing\" "
+            "style=\"background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; "
+            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            f"{create_loading_indicator()}"
+            "</div>"
+        )
     elif is_synthesizing:
         # Show waveform animation during synthesis
-        return f"""
-        <div class="tts-status synthesizing" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 8px; transition: all 0.3s ease-in-out;">
-            {create_waveform_animation()}
-        </div>
-        """
+        return (
+            "<div class=\"tts-status synthesizing\" "
+            "style=\"background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; "
+            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            f"{create_waveform_animation()}"
+            "</div>"
+        )
     elif is_playing:
         # Show playback indicator
-        return f"""
-        <div class="tts-status playing" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 8px; transition: all 0.3s ease-in-out;">
-            {create_playback_indicator(is_cached)}
-        </div>
-        """
+        return (
+            "<div class=\"tts-status playing\" "
+            "style=\"background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; "
+            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            f"{create_playback_indicator(is_cached)}"
+            "</div>"
+        )
     else:
         # Ready state with smooth transition
-        return f"""
-        {css_keyframes}
-        <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
-            <span style="color: #6b7280; font-size: 13px; font-weight: 500; animation: fade-in 0.3s ease-in-out;">[READY] Ready for voice synthesis</span>
-        </div>
-        """
+        return (
+            f"{css_keyframes}"
+            f"<div class=\"tts-status ready\" "
+            f"style=\"display: flex; align-items: center; justify-content: center; padding: 10px; "
+            f"background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 1px solid #d1d5db; "
+            f"border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            f"<span style=\"color: #6b7280; font-size: 13px; font-weight: 500; "
+            f"animation: fade-in 0.3s ease-in-out;\">[READY] Ready for voice synthesis</span>"
+            f"</div>"
+        )
 
 
 class TTSState:
@@ -359,32 +364,32 @@ def test_waveform_animation():
 
     # Validate HTML structure
     html_analysis = validate_html_structure(animation_html)
-    assert html_analysis[
-        "is_valid"
-    ], f"HTML should be valid. Errors: {html_analysis['errors']}"
+    assert html_analysis["is_valid"], (
+        f"HTML should be valid. Errors: {html_analysis['errors']}"
+    )
 
     # Verify animation contains required elements
     assert "svg" in animation_html.lower(), "Animation should contain SVG element"
-    assert (
-        "animate" in animation_html.lower()
-    ), "Animation should contain animate elements"
-    assert (
-        "synthesizing speech" in animation_html.lower()
-    ), "Animation should contain synthesis text"
+    assert "animate" in animation_html.lower(), (
+        "Animation should contain animate elements"
+    )
+    assert "synthesizing speech" in animation_html.lower(), (
+        "Animation should contain synthesis text"
+    )
 
     # Use flexible attribute matching for dimensions
-    assert match_attribute_flexible(
-        animation_html, "svg", "width", "120"
-    ), "Animation should be 120px wide (per requirements)"
-    assert match_attribute_flexible(
-        animation_html, "svg", "height", "24"
-    ), "Animation should be 24px high (per requirements)"
+    assert match_attribute_flexible(animation_html, "svg", "width", "120"), (
+        "Animation should be 120px wide (per requirements)"
+    )
+    assert match_attribute_flexible(animation_html, "svg", "height", "24"), (
+        "Animation should be 24px high (per requirements)"
+    )
 
     # Verify smooth transitions with regex
     transition_pattern = r"transition:\s*all\s+0\.3s\s+ease-in-out"
-    assert re.search(
-        transition_pattern, animation_html
-    ), "Animation should have smooth transitions"
+    assert re.search(transition_pattern, animation_html), (
+        "Animation should have smooth transitions"
+    )
 
     print("Waveform animation test passed")
 
@@ -397,30 +402,30 @@ def test_loading_indicator():
 
     # Validate HTML structure
     html_analysis = validate_html_structure(loading_html)
-    assert html_analysis[
-        "is_valid"
-    ], f"HTML should be valid. Errors: {html_analysis['errors']}"
+    assert html_analysis["is_valid"], (
+        f"HTML should be valid. Errors: {html_analysis['errors']}"
+    )
 
     # Verify loading indicator contains required elements
-    assert (
-        "processing text" in loading_html.lower()
-    ), "Loading indicator should show processing text"
+    assert "processing text" in loading_html.lower(), (
+        "Loading indicator should show processing text"
+    )
     assert "loading-dot" in loading_html, "Loading indicator should have animated dots"
 
     # Verify smooth transitions with regex
     transition_pattern = r"transition:\s*all\s+0\.3s\s+ease-in-out"
-    assert re.search(
-        transition_pattern, loading_html
-    ), "Loading indicator should have smooth transitions"
+    assert re.search(transition_pattern, loading_html), (
+        "Loading indicator should have smooth transitions"
+    )
 
     # Validate CSS animations are properly defined
     css_validation = validate_css_animations(loading_html)
-    assert css_validation[
-        "all_animations_defined"
-    ], f"Missing keyframes for animations: {css_validation['missing_keyframes']}"
-    assert (
-        "loading-dot" in css_validation["keyframes_found"]
-    ), "loading-dot keyframe should be defined"
+    assert css_validation["all_animations_defined"], (
+        f"Missing keyframes for animations: {css_validation['missing_keyframes']}"
+    )
+    assert "loading-dot" in css_validation["keyframes_found"], (
+        "loading-dot keyframe should be defined"
+    )
 
     print("Loading indicator test passed")
 
@@ -431,17 +436,17 @@ def test_playback_indicator():
 
     # Test cached audio indicator
     cached_html = create_playback_indicator(is_cached=True)
-    assert (
-        "cached audio" in cached_html.lower()
-    ), "Cached indicator should mention cached audio"
+    assert "cached audio" in cached_html.lower(), (
+        "Cached indicator should mention cached audio"
+    )
     assert "#10b981" in cached_html, "Cached indicator should use green color"
     assert "&#9889;" in cached_html, "Cached indicator should have lightning emoji"
 
     # Test new audio indicator
     new_html = create_playback_indicator(is_cached=False)
-    assert (
-        "synthesized audio" in new_html.lower()
-    ), "New audio indicator should mention synthesized audio"
+    assert "synthesized audio" in new_html.lower(), (
+        "New audio indicator should mention synthesized audio"
+    )
     assert "#3b82f6" in new_html, "New audio indicator should use blue color"
     assert "&#128266;" in new_html, "New audio indicator should have speaker emoji"
 
@@ -454,37 +459,37 @@ def test_status_display_states():
 
     # Test ready state
     ready_html = get_tts_status_display(False)
-    assert (
-        "ready for voice synthesis" in ready_html.lower()
-    ), "Ready state should show ready message"
+    assert "ready for voice synthesis" in ready_html.lower(), (
+        "Ready state should show ready message"
+    )
     assert "tts-status ready" in ready_html, "Ready state should have ready CSS class"
 
     # Test loading state
     loading_html = get_tts_status_display(False, is_loading=True)
-    assert (
-        "tts-status synthesizing" in loading_html
-    ), "Loading state should have synthesizing CSS class"
-    assert (
-        "processing text" in loading_html.lower()
-    ), "Loading state should show processing message"
+    assert "tts-status synthesizing" in loading_html, (
+        "Loading state should have synthesizing CSS class"
+    )
+    assert "processing text" in loading_html.lower(), (
+        "Loading state should show processing message"
+    )
 
     # Test synthesizing state (waveform animation)
     synthesizing_html = get_tts_status_display(True)
-    assert (
-        "tts-status synthesizing" in synthesizing_html
-    ), "Synthesizing state should have synthesizing CSS class"
-    assert (
-        "synthesizing speech" in synthesizing_html.lower()
-    ), "Synthesizing state should show synthesis message"
-    assert (
-        "svg" in synthesizing_html.lower()
-    ), "Synthesizing state should contain waveform SVG"
+    assert "tts-status synthesizing" in synthesizing_html, (
+        "Synthesizing state should have synthesizing CSS class"
+    )
+    assert "synthesizing speech" in synthesizing_html.lower(), (
+        "Synthesizing state should show synthesis message"
+    )
+    assert "svg" in synthesizing_html.lower(), (
+        "Synthesizing state should contain waveform SVG"
+    )
 
     # Test playing state
     playing_html = get_tts_status_display(False, is_playing=True, is_cached=False)
-    assert (
-        "tts-status playing" in playing_html
-    ), "Playing state should have playing CSS class"
+    assert "tts-status playing" in playing_html, (
+        "Playing state should have playing CSS class"
+    )
 
     # Test error state
     error_info = {"error_type": "API_KEY_ERROR", "error_message": "Invalid API key"}
@@ -520,27 +525,27 @@ def test_smooth_transitions():
     for i, (state_name, state_html) in enumerate(states):
         # Validate HTML structure first
         html_analysis = validate_html_structure(state_html)
-        assert html_analysis[
-            "is_valid"
-        ], f"{state_name} state HTML should be valid. Errors: {html_analysis['errors']}"
+        assert html_analysis["is_valid"], (
+            f"{state_name} state HTML should be valid. Errors: {html_analysis['errors']}"
+        )
 
         # Check for smooth transitions with flexible pattern
-        assert re.search(
-            transition_pattern, state_html
-        ), f"{state_name} state should have smooth transitions"
+        assert re.search(transition_pattern, state_html), (
+            f"{state_name} state should have smooth transitions"
+        )
 
         # Check that Ready and Error states have fade-in animation
         if i in [0, 4]:  # Ready and Error states should have fade-in
-            assert re.search(
-                fade_in_pattern, state_html
-            ), f"{state_name} state should have fade-in animation"
+            assert re.search(fade_in_pattern, state_html), (
+                f"{state_name} state should have fade-in animation"
+            )
 
         # Validate CSS animations if present
         css_validation = validate_css_animations(state_html)
         if css_validation["animations_found"]:
-            assert css_validation[
-                "all_animations_defined"
-            ], f"{state_name} state missing keyframes: {css_validation['missing_keyframes']}"
+            assert css_validation["all_animations_defined"], (
+                f"{state_name} state missing keyframes: {css_validation['missing_keyframes']}"
+            )
 
     print("Smooth transitions test passed")
 
@@ -554,15 +559,15 @@ def test_cached_audio_requirements():
     waveform_animation = create_waveform_animation()
 
     # Cached playback should not contain synthesis animation elements
-    assert (
-        "synthesizing speech" not in cached_playback.lower()
-    ), "Cached playback should not show synthesis message"
-    assert (
-        cached_playback != waveform_animation
-    ), "Cached playback should be different from waveform animation"
-    assert (
-        "cached" in cached_playback.lower()
-    ), "Cached playback should indicate it's cached"
+    assert "synthesizing speech" not in cached_playback.lower(), (
+        "Cached playback should not show synthesis message"
+    )
+    assert cached_playback != waveform_animation, (
+        "Cached playback should be different from waveform animation"
+    )
+    assert "cached" in cached_playback.lower(), (
+        "Cached playback should indicate it's cached"
+    )
 
     print("Cached audio animation hiding test passed")
 
@@ -598,18 +603,18 @@ def test_visual_requirements_compliance():
 
     # Requirement 1.3: Waveform animation specifications with flexible matching
     waveform = create_waveform_animation()
-    assert match_attribute_flexible(
-        waveform, "svg", "height", "24"
-    ), "Waveform height should be 24 pixels maximum"
-    assert match_attribute_flexible(
-        waveform, "svg", "width", "120"
-    ), "Waveform width should be 120 pixels maximum"
+    assert match_attribute_flexible(waveform, "svg", "height", "24"), (
+        "Waveform height should be 24 pixels maximum"
+    )
+    assert match_attribute_flexible(waveform, "svg", "width", "120"), (
+        "Waveform width should be 120 pixels maximum"
+    )
 
     # Validate waveform HTML structure
     waveform_analysis = validate_html_structure(waveform)
-    assert waveform_analysis[
-        "is_valid"
-    ], f"Waveform HTML should be valid. Errors: {waveform_analysis['errors']}"
+    assert waveform_analysis["is_valid"], (
+        f"Waveform HTML should be valid. Errors: {waveform_analysis['errors']}"
+    )
 
     # Requirement 3.3: Visual feedback during synthesis vs cached playback
     synthesis_status = get_tts_status_display(True)  # Synthesizing
@@ -620,31 +625,31 @@ def test_visual_requirements_compliance():
     # Validate both HTML structures
     synthesis_analysis = validate_html_structure(synthesis_status)
     cached_analysis = validate_html_structure(cached_status)
-    assert synthesis_analysis[
-        "is_valid"
-    ], f"Synthesis status HTML should be valid. Errors: {synthesis_analysis['errors']}"
-    assert cached_analysis[
-        "is_valid"
-    ], f"Cached status HTML should be valid. Errors: {cached_analysis['errors']}"
+    assert synthesis_analysis["is_valid"], (
+        f"Synthesis status HTML should be valid. Errors: {synthesis_analysis['errors']}"
+    )
+    assert cached_analysis["is_valid"], (
+        f"Cached status HTML should be valid. Errors: {cached_analysis['errors']}"
+    )
 
     # Synthesis should show waveform, cached should not
     assert "svg" in synthesis_status.lower(), "Synthesis should show waveform animation"
-    assert (
-        "svg" not in cached_status.lower()
-    ), "Cached playback should not show waveform animation"
+    assert "svg" not in cached_status.lower(), (
+        "Cached playback should not show waveform animation"
+    )
 
     # Validate CSS animations in both states
     synthesis_css = validate_css_animations(synthesis_status)
     cached_css = validate_css_animations(cached_status)
 
     if synthesis_css["animations_found"]:
-        assert synthesis_css[
-            "all_animations_defined"
-        ], f"Synthesis state missing keyframes: {synthesis_css['missing_keyframes']}"
+        assert synthesis_css["all_animations_defined"], (
+            f"Synthesis state missing keyframes: {synthesis_css['missing_keyframes']}"
+        )
     if cached_css["animations_found"]:
-        assert cached_css[
-            "all_animations_defined"
-        ], f"Cached state missing keyframes: {cached_css['missing_keyframes']}"
+        assert cached_css["all_animations_defined"], (
+            f"Cached state missing keyframes: {cached_css['missing_keyframes']}"
+        )
 
     print("Visual requirements compliance test passed")
 
@@ -675,9 +680,9 @@ def test_css_animation_definitions():
         css_validation = validate_css_animations(html)
 
         if css_validation["animations_found"]:
-            assert css_validation[
-                "all_animations_defined"
-            ], f"{test_name}: Missing keyframes for animations: {css_validation['missing_keyframes']}"
+            assert css_validation["all_animations_defined"], (
+                f"{test_name}: Missing keyframes for animations: {css_validation['missing_keyframes']}"
+            )
             print(
                 f"  ✓ {test_name}: All {len(css_validation['animations_found'])} animations properly defined"
             )
@@ -712,9 +717,9 @@ def test_html_structure_validation():
     for test_name, html in test_cases:
         html_analysis = validate_html_structure(html)
 
-        assert html_analysis[
-            "is_valid"
-        ], f"{test_name}: HTML validation failed. Errors: {html_analysis['errors']}"
+        assert html_analysis["is_valid"], (
+            f"{test_name}: HTML validation failed. Errors: {html_analysis['errors']}"
+        )
 
         # Verify basic structure requirements
         assert len(html_analysis["tags"]) > 0, f"{test_name}: Should contain HTML tags"
@@ -747,17 +752,17 @@ def test_flexible_attribute_matching():
     ]
 
     for html in test_html_cases:
-        assert match_attribute_flexible(
-            html, "svg", "width", "120"
-        ), f"Should match width in: {html}"
-        assert match_attribute_flexible(
-            html, "svg", "height", "24"
-        ), f"Should match height in: {html}"
+        assert match_attribute_flexible(html, "svg", "width", "120"), (
+            f"Should match width in: {html}"
+        )
+        assert match_attribute_flexible(html, "svg", "height", "24"), (
+            f"Should match height in: {html}"
+        )
 
     # Test that it doesn't match incorrect values
-    assert not match_attribute_flexible(
-        '<svg width="100">', "svg", "width", "120"
-    ), "Should not match incorrect width"
+    assert not match_attribute_flexible('<svg width="100">', "svg", "width", "120"), (
+        "Should not match incorrect width"
+    )
 
     print("Flexible attribute matching test passed")
 

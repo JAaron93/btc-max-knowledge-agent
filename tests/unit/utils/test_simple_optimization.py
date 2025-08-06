@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 """
+import pytest
+pytestmark = [pytest.mark.unit]
+
+# Marker usage example:
+# pytestmark = [pytest.mark.unit]
+# Unit tests for simple optimization utilities
 Simple test for TTS performance optimizations.
 """
 
@@ -59,10 +65,14 @@ try:
     sys.path.insert(0, str(project_root))
 except RuntimeError as e:
     print(f"Error finding project root: {e}")
-    # Fallback to the old method as last resort
-    project_root = Path(__file__).parent
-    sys.path.insert(0, str(project_root))
-    print(f"Using fallback project root: {project_root}")
+    # Fallback: try a few directories up as last resort
+    fallback_root = Path(__file__).parent.parent.parent  # Go up to repo root
+    if (fallback_root / "src").exists():
+        sys.path.insert(0, str(fallback_root))
+        print(f"Using fallback project root: {fallback_root}")
+    else:
+        print("❌ Cannot find project root, imports may fail")
+        sys.exit(1)
 
 
 def test_buffer_optimization():
@@ -138,28 +148,28 @@ def test_imports():
         print(f"  ✓ get_optimal_buffer_size() functional (returned {buffer_size})")
 
         # Test STREAMING_BUFFER_SIZES constant
-        assert isinstance(
-            STREAMING_BUFFER_SIZES, dict
-        ), f"Expected dict, got {type(STREAMING_BUFFER_SIZES)}"
-        assert (
-            len(STREAMING_BUFFER_SIZES) > 0
-        ), "STREAMING_BUFFER_SIZES should not be empty"
+        assert isinstance(STREAMING_BUFFER_SIZES, dict), (
+            f"Expected dict, got {type(STREAMING_BUFFER_SIZES)}"
+        )
+        assert len(STREAMING_BUFFER_SIZES) > 0, (
+            "STREAMING_BUFFER_SIZES should not be empty"
+        )
         print(
             f"  ✓ STREAMING_BUFFER_SIZES accessible ({len(STREAMING_BUFFER_SIZES)} entries)"
         )
 
         # Test AudioFormatConverter class instantiation
         converter = AudioFormatConverter()
-        assert hasattr(
-            converter, "convert"
-        ), "AudioFormatConverter should have convert method"
+        assert hasattr(converter, "convert"), (
+            "AudioFormatConverter should have convert method"
+        )
         print("  ✓ AudioFormatConverter instantiable")
 
         # Test AudioStreamProcessor class instantiation
         processor = AudioStreamProcessor()
-        assert hasattr(
-            processor, "process_chunk"
-        ), "AudioStreamProcessor should have process_chunk method"
+        assert hasattr(processor, "process_chunk"), (
+            "AudioStreamProcessor should have process_chunk method"
+        )
         print("  ✓ AudioStreamProcessor instantiable")
 
         # Test TTS service imports and functionality

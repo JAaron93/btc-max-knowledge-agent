@@ -2,56 +2,56 @@
 """
 Test runner script for btc-max-knowledge-agent
 
-This script provides a robust way to run tests with proper Python path configuration.
-It eliminates the need for fragile sys.path.append() calls in test files.
+This script defers to pytest.ini for discovery
+(testpaths=tests, pythonpath=src) and avoids manual
+PYTHONPATH mutation. It provides convenience marker flags.
 
 Usage:
-    python run_tests.py                          # Run all tests
-    python run_tests.py test_pinecone_*          # Run specific test pattern
-    python run_tests.py --verbose                # Run with verbose output
-    python run_tests.py --help                   # Show help
+    python run_tests.py                    # Run all tests (quiet)
+    python run_tests.py -v                 # Verbose
+    python run_tests.py -k "expr"          # Keyword selection
+    python run_tests.py --unit             # Only unit tests
+    python run_tests.py --integration      # Only integration tests
+    python run_tests.py --e2e              # Only e2e tests
+    python run_tests.py --performance      # Only performance tests
+    python run_tests.py --ui               # Only ui tests
+    python run_tests.py --security         # Only security tests
+    python run_tests.py --collect-only     # Collection only
 """
 
 import argparse
-import os
 import subprocess
 import sys
-from pathlib import Path
+from typing import List
 
 
-def setup_environment():
-    """Setup environment variables for proper test execution."""
-    project_root = Path(__file__).parent.resolve()
+MARKER_FLAGS = {
+    "unit": "unit",
+    "integration": "integration",
+    "e2e": "e2e",
+    "performance": "performance",
+    "ui": "ui",
+    "security": "security",
+}
 
-    # Set PYTHONPATH to include project root and src directory
-    python_path = [
-        str(project_root),
-        str(project_root / "src"),
-    ]
 
-    # Add to existing PYTHONPATH if it exists
-    existing_path = os.environ.get("PYTHONPATH", "")
-    if existing_path:
-        python_path.append(existing_path)
-
-    os.environ["PYTHONPATH"] = os.pathsep.join(python_path)
-
-    print(f"📁 Project root: {project_root}")
-    print(f"🐍 PYTHONPATH: {os.environ['PYTHONPATH']}")
-    print()
+def build_marker_expr(args: argparse.Namespace) -> str:
+    selected: List[str] = []
+    for flag, marker in MARKER_FLAGS.items():
+        if getattr(args, flag, False):
+            selected.append(marker)
+    if not selected:
+        return ""
+    # Join with or to include any of the selected markers
+    return " or ".join(selected)
 
 
 def run_tests(test_args=None, verbose=False):
     """Run tests using pytest with proper configuration."""
-
-    # Base pytest command
     cmd = [sys.executable, "-m", "pytest"]
-
-    # Add default arguments
     default_args = ["-v" if verbose else "-q", "--tb=short", "--color=yes"]
     cmd.extend(default_args)
 
-    # Add user-specified test arguments
     if test_args:
         cmd.extend(test_args)
 
@@ -76,21 +76,27 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python run_tests.py                                    # Run all tests
-  python run_tests.py test_pinecone_*                    # Run specific pattern
-  python run_tests.py test_pinecone_assistant_url_metadata_enhanced.py  # Run specific file
-  python run_tests.py --verbose                          # Run with verbose output
-  python run_tests.py -k "test_url"                     # Run tests matching pattern
-  python run_tests.py --collect-only                    # Just show what tests would run
+  python run_tests.py                            # Run all tests
+  python run_tests.py -k "test_url"              # Run tests matching pattern
+  python run_tests.py --unit -k "audio"          # Unit tests related to audio
+  python run_tests.py --collect-only             # Just show collected tests
         """,
     )
 
     parser.add_argument(
-        "tests", nargs="*", help="Test files or patterns to run (default: discover all)"
+        "tests",
+        nargs="*",
+        help=(
+            "Optional test files or node ids "
+            "(default: use pytest.ini testpaths)"
+        ),
     )
 
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Run tests with verbose output"
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Run tests with verbose output",
     )
 
     parser.add_argument(
@@ -103,19 +109,52 @@ Examples:
         help="Just collect and show tests, don't run them",
     )
 
+    # Marker convenience flags
+    parser.add_argument(
+        "--unit",
+        action="store_true",
+        help="Run tests marked as unit",
+    )
+    parser.add_argument(
+        "--integration",
+        action="store_true",
+        help="Run tests marked as integration",
+    )
+    parser.add_argument(
+        "--e2e",
+        action="store_true",
+        help="Run tests marked as e2e",
+    )
+    parser.add_argument(
+        "--performance",
+        action="store_true",
+        help="Run tests marked as performance",
+    )
+    parser.add_argument(
+        "--ui",
+        action="store_true",
+        help="Run tests marked as ui",
+    )
+    parser.add_argument(
+        "--security",
+        action="store_true",
+        help="Run tests marked as security",
+    )
+
     args = parser.parse_args()
 
     print("🧪 BTC Max Knowledge Agent Test Runner")
     print("=" * 50)
 
-    # Setup environment
-    setup_environment()
-
-    # Build test arguments
-    test_args = []
+    # Build test arguments; rely on pytest.ini for discovery by default
+    test_args: List[str] = []
 
     if args.tests:
         test_args.extend(args.tests)
+
+    marker_expr = build_marker_expr(args)
+    if marker_expr:
+        test_args.extend(["-m", marker_expr])
 
     if args.keyword:
         test_args.extend(["-k", args.keyword])

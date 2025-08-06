@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Script to demonstrate proper test execution with installable package.
+Script to demonstrate proper test execution with an installable package.
 
 This script shows how to run tests without path manipulation by making
-the project installable first.
+the project installable first. Pytest is configured via pytest.ini.
 """
 
 import subprocess
@@ -41,7 +41,7 @@ def main():
         return 1
 
     print("\n🧪 Step 2: Run tests with proper imports")
-    print("Command: python -m pytest tests/")
+    print("Command: python -m pytest -q  # pytest.ini sets testpaths=tests")
 
     # Show what the imports would look like with proper installation
     print("\n📝 With proper installation, test imports become:")
@@ -52,7 +52,8 @@ def main():
     print("")
     print("   # Use:")
     print(
-        "   from btc_max_knowledge_agent.utils.multi_tier_audio_cache import MultiTierAudioCache"
+        "   from btc_max_knowledge_agent.utils.multi_tier_audio_cache "
+        "import MultiTierAudioCache"
     )
 
     print("\n🎯 Benefits:")
@@ -63,7 +64,7 @@ def main():
     print("   • CI/CD friendly")
 
     print("\n✅ Project is now properly installable!")
-    print("   You can run: pytest tests/ or python -m pytest tests/")
+    print("   You can run: pytest  or  python -m pytest -q")
 
     return 0
 

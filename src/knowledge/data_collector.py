@@ -24,7 +24,9 @@ from utils.url_utils import extract_domain, sanitize_url_for_storage, validate_u
 
 class BitcoinDataCollector:
     def __init__(self, check_url_accessibility: bool = False):
+        import random  # localized import to avoid top-level pollution and keep stdlib only
         self.session = requests.Session()
+
         # Rotate through a small pool of modern User-Agents to reduce 4xx and fingerprinting
         user_agents = [
             # Recent stable Chrome-like UA
@@ -34,8 +36,8 @@ class BitcoinDataCollector:
             # Recent stable Edge-like UA
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
         ]
-        # Simple rotation using time-based index to avoid static UA without additional deps
-        ua = user_agents[int(time.time()) % len(user_agents)]
+        # Pseudorandom rotation to avoid a predictable pattern
+        ua = random.choice(user_agents)
         self.session.headers.update({"User-Agent": ua})
 
         # Configuration for URL validation behavior

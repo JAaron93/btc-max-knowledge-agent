@@ -45,5 +45,5 @@ jobs:
       
       - name: Run tests with proper imports
         run: |
-          # Tests can now use standard absolute imports
-          python -m pytest tests/ -v
+          # Tests can now use standard absolute imports; pytest.ini controls discovery
+          python -m pytest -q

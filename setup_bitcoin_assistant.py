@@ -10,11 +10,16 @@ Prerequisites:
 import json
 import os
 import sys
+from pathlib import Path
 
 from btc_max_knowledge_agent.agents.pinecone_assistant_agent import (
     PineconeAssistantAgent,
 )
 from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
+
+
+# Centralized data directory Path constant
+DATA_DIR: Path = Path("data")
 
 
 def main():
@@ -34,8 +39,10 @@ def main():
         print(f"✅ Collected {len(documents)} documents")
 
         # Save documents locally for backup (inside data/ for tidiness)
-        os.makedirs("data", exist_ok=True)
-        collector.save_documents(documents, "data/bitcoin_knowledge_base.json")
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        collector.save_documents(
+            documents, str(DATA_DIR / "bitcoin_knowledge_base.json")
+        )
 
         # Step 2: Initialize Pinecone Assistant
         print("\n2. Initializing Pinecone Assistant...")
@@ -128,14 +135,14 @@ def main():
             "setup_complete": True,
         }
 
-        os.makedirs("data", exist_ok=True)
-        with open("data/assistant_info.json", "w") as f:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with open(DATA_DIR / "assistant_info.json", "w") as f:
             json.dump(assistant_info, f, indent=2)
         print("\n✅ Setup Complete!")
         print("=" * 50)
         print(f"🤖 Assistant ID: {assistant_id}")
         print(f"📚 Documents uploaded: {len(documents)}")
-        print("💾 Assistant info saved to: data/assistant_info.json")
+        print(f"💾 Assistant info saved to: {DATA_DIR / 'assistant_info.json'}")
         print("\n🔧 MCP Integration:")
         print(
             "- Your Pinecone Assistant MCP is configured in " ".kiro/settings/mcp.json"

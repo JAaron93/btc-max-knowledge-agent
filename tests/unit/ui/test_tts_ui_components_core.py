@@ -77,12 +77,12 @@ def test_tts_state():
     )
     assert not state.stop_animation, "Initial stop_animation should be False"
 
-    # Record time before starting synthesis for validation
-    time_before_start = time.time()
+    # Record time before starting synthesis for validation (using monotonic clock)
+    time_before_start = time.perf_counter()
 
     # Test start synthesis
     state.start_synthesis()
-    time_after_start = time.time()
+    time_after_start = time.perf_counter()
 
     # Validate synthesis state
     assert state.is_synthesizing, "State should be synthesizing after start_synthesis()"
@@ -122,12 +122,12 @@ def test_tts_state():
         # Small delay to ensure different timestamps
         time.sleep(0.01)
 
-        # Record time before this cycle's start
-        cycle_time_before = time.time()
+        # Record time before this cycle's start (using monotonic clock)
+        cycle_time_before = time.perf_counter()
 
         # Start synthesis again
         state.start_synthesis()
-        cycle_time_after = time.time()
+        cycle_time_after = time.perf_counter()
 
         # Validate state transitions
         assert state.is_synthesizing, (
@@ -239,14 +239,14 @@ if __name__ == "__main__":
 
     # Print summary
     logger.info("\n📊 Test Summary:")
-    print(f"   Tests run: {tests_run}")
-    print(f"   Passed: {tests_passed}")
-    print(f"   Failed: {tests_failed}")
+    logger.info(f"   Tests run: {tests_run}")
+    logger.info(f"   Passed: {tests_passed}")
+    logger.info(f"   Failed: {tests_failed}")
 
     if tests_failed == 0:
-        print("🎉 All TTS UI component tests passed!")
+        logger.info("🎉 All TTS UI component tests passed!")
         exit(0)
     else:
-        print(f"💥 {tests_failed} test(s) failed: {', '.join(failed_tests)}")
-        print("   Check the error messages above for details.")
+        logger.info(f"💥 {tests_failed} test(s) failed: {', '.join(failed_tests)}")
+        logger.info("   Check the error messages above for details.")
         exit(1)
