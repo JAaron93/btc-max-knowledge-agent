@@ -67,9 +67,7 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
             "PINECONE_API_KEY": "test-key",
             "PINECONE_INDEX_NAME": "test-index",
             "EMBEDDING_DIMENSION": "768",
-            "ALLOW_LOCALHOST_URLS": (
-                "False"
-            ),  # Production setting - reject localhost URLs
+            "ALLOW_LOCALHOST_URLS": "False",  # Production setting - reject localhost URLs
         }
 
         # Set up environment patching
@@ -104,9 +102,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
         try:
             from utils.config import Config
 
-            assert (
-                Config.ALLOW_LOCALHOST_URLS is False
-            ), "Config should have ALLOW_LOCALHOST_URLS=False"
+            assert Config.ALLOW_LOCALHOST_URLS is False, (
+                "Config should have ALLOW_LOCALHOST_URLS=False"
+            )
         except ImportError as e:
             self.fail(f"Failed to import Config: {e}")
 
@@ -124,9 +122,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
 
         for url in localhost_urls:
             result = self.client.validate_and_sanitize_url(url)
-            assert (
-                result is None
-            ), f"Localhost URL {url} should be rejected when ALLOW_LOCALHOST_URLS=False, got {result}"
+            assert result is None, (
+                f"Localhost URL {url} should be rejected when ALLOW_LOCALHOST_URLS=False, got {result}"
+            )
 
     def test_validate_and_sanitize_url_production_valid_urls(self):
         """Test that normal URLs still work in production mode"""
@@ -142,9 +140,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
 
         for url in valid_urls:
             result = self.client.validate_and_sanitize_url(url)
-            assert (
-                result == url
-            ), f"Valid URL {url} should work in production mode, got {result}"
+            assert result == url, (
+                f"Valid URL {url} should work in production mode, got {result}"
+            )
 
     def test_upsert_documents_handles_localhost_urls_gracefully(self):
         """Test that documents with localhost URLs are handled gracefully in production
@@ -218,20 +216,20 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
 
         # Document 1 (localhost) should have placeholder URL
         doc1_url = call_args[0]["metadata"]["url"]
-        assert (
-            doc1_url == "https://placeholder.local/doc1" or doc1_url == ""
-        ), f"Localhost URL should be replaced with placeholder or empty, got {doc1_url}"
+        assert doc1_url == "https://placeholder.local/doc1" or doc1_url == "", (
+            f"Localhost URL should be replaced with placeholder or empty, got {doc1_url}"
+        )
 
         # Document 2 (valid URL) should be unchanged
-        assert (
-            call_args[1]["metadata"]["url"] == "https://example.com/doc2"
-        ), "Valid URL should be preserved"
+        assert call_args[1]["metadata"]["url"] == "https://example.com/doc2", (
+            "Valid URL should be preserved"
+        )
 
         # Document 3 (localhost IP) should have placeholder URL
         doc3_url = call_args[2]["metadata"]["url"]
-        assert (
-            doc3_url == "https://placeholder.local/doc3" or doc3_url == ""
-        ), f"Localhost IP URL should be replaced with placeholder or empty, got {doc3_url}"
+        assert doc3_url == "https://placeholder.local/doc3" or doc3_url == "", (
+            f"Localhost IP URL should be replaced with placeholder or empty, got {doc3_url}"
+        )
 
     def test_production_security_validation(self):
         """Test that production security validations work correctly"""
@@ -248,9 +246,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
 
         for url in security_test_urls:
             result = self.client.validate_and_sanitize_url(url)
-            assert (
-                result is None
-            ), f"Security-problematic URL {url} should be rejected, got {result}"
+            assert result is None, (
+                f"Security-problematic URL {url} should be rejected, got {result}"
+            )
 
     def test_config_flag_behavior(self):
         """Test that the ALLOW_LOCALHOST_URLS flag is properly respected"""
@@ -258,9 +256,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
         from src.utils.config import Config
 
         # In this test environment, the flag should be False
-        assert (
-            Config.ALLOW_LOCALHOST_URLS is False
-        ), "ALLOW_LOCALHOST_URLS should be False in production test environment"
+        assert Config.ALLOW_LOCALHOST_URLS is False, (
+            "ALLOW_LOCALHOST_URLS should be False in production test environment"
+        )
 
     def test_localhost_domain_variations(self):
         """Test various localhost domain variations are all rejected"""
@@ -275,9 +273,9 @@ class TestPineconeURLMetadataProduction(unittest.TestCase):
 
         for url in localhost_variations:
             result = self.client.validate_and_sanitize_url(url)
-            assert (
-                result is None
-            ), f"Localhost variation {url} should be rejected, got {result}"
+            assert result is None, (
+                f"Localhost variation {url} should be rejected, got {result}"
+            )
 
 
 def main():

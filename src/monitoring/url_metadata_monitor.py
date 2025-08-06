@@ -532,14 +532,12 @@ class URLMetadataMonitor:
 
                     if hour_metrics:
                         durations = [m.duration_ms for m in hour_metrics]
+                        success_count = sum(1 for m in hour_metrics if m.success)
                         trends[op_type].append(
                             {
                                 "hour": hour_end.isoformat(),
                                 "avg_duration_ms": statistics.mean(durations),
-                                "success_rate": (
-                                    sum(1 for m in hour_metrics if m.success)
-                                    / len(hour_metrics)
-                                ),
+                                "success_rate": success_count / len(hour_metrics),
                             }
                         )
 

@@ -37,9 +37,12 @@ if src_dir.exists() and str(src_dir) not in sys.path:
 from src.utils.config import Config
 from src.utils.result_formatter import QueryResultFormatter
 from src.utils.url_error_handler import MAX_QUERY_RETRIES
-from src.utils.url_error_handler import (
-    GracefulDegradation as ImportedGracefulDegradation,
-)
+
+# Try to import GracefulDegradation, with fallback to mock
+try:
+    from src.utils.url_error_handler import GracefulDegradation
+except ImportError:
+    GracefulDegradation = None
 from src.utils.url_metadata_logger import URLMetadataLogger
 from src.utils.url_utils import URLValidator
 
@@ -98,7 +101,7 @@ class PineconeAssistantAgent:
         return {"response": "Mock response", "sources": []}
 
 
-class GracefulDegradation:
+class GracefulDegradationMock:
     """Mock graceful degradation for testing purposes."""
 
     def __init__(self):
@@ -156,7 +159,11 @@ class IntegrationValidator:
         self.url_validator = URLValidator()
         self.result_formatter = QueryResultFormatter()
         self.data_collector = BitcoinDataCollector()
-        self.graceful_degradation = ImportedGracefulDegradation()
+        # Use real GracefulDegradation if available, otherwise use mock
+        if GracefulDegradation is not None:
+            self.graceful_degradation = GracefulDegradation()
+        else:
+            self.graceful_degradation = GracefulDegradationMock()
 
         # Initialize clients if using real Pinecone
         if self.use_real_pinecone:

@@ -18,6 +18,10 @@ from typing import Any, Dict, Optional
 import aiohttp
 import psutil
 
+from btc_max_knowledge_agent.utils.validation import validate_volume_strict
+
+from .validation import validate_volume_strict
+
 from .multi_tier_audio_cache import CacheConfig, get_audio_cache
 from .tts_error_handler import (
     TTSAPIKeyError,
@@ -652,8 +656,7 @@ class TTSService:
         voice_id = voice_id or self.config.voice_id
 
         # Validate volume parameter if provided
-        if volume is not None and not 0.0 <= volume <= 1.0:
-            raise ValueError(f"Volume must be between 0.0 and 1.0, got {volume}")
+        validate_volume_strict(volume)
 
         try:
             # Use error handler for retry logic, passing volume directly to API method

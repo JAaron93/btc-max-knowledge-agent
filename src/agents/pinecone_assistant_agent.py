@@ -1,5 +1,6 @@
 import logging
 import os
+import textwrap
 import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -237,7 +238,7 @@ class PineconeAssistantAgent:
 
         assistant_config = {
             "name": name,
-            "instructions": (
+            "instructions": textwrap.dedent(
                 """You are a Bitcoin and blockchain technology expert assistant. 
             Your role is to educate users about:
             - Bitcoin fundamentals and technology
@@ -249,7 +250,7 @@ class PineconeAssistantAgent:
             
             Always provide accurate, educational responses based on the knowledge base.
             Cite sources when possible and explain complex concepts clearly."""
-            ),
+            ).strip(),
             "model": "gpt-4",
             "metadata": {
                 "purpose": "bitcoin-education",
@@ -419,12 +420,12 @@ class PineconeAssistantAgent:
                                 )
 
                             logger.info(
-                                f"✅ Uploaded batch {i//batch_size + 1}: "
+                                f"✅ Uploaded batch {i // batch_size + 1}: "
                                 f"{len(batch)} documents"
                             )
                         else:
                             error_msg = (
-                                f"Batch {i//batch_size + 1} upload "
+                                f"Batch {i // batch_size + 1} upload "
                                 f"failed: {response.status_code}"
                             )
                             logger.error(f"❌ {error_msg} - {response.text}")
@@ -459,7 +460,7 @@ class PineconeAssistantAgent:
                     except requests.exceptions.RequestException as e:
                         duration_ms = (time.time() - start_time) * 1000
                         error_msg = (
-                            f"Network error uploading batch " f"{i//batch_size + 1}"
+                            f"Network error uploading batch {i // batch_size + 1}"
                         )
                         logger.error(f"❌ {error_msg}: {e}")
 
@@ -509,8 +510,7 @@ class PineconeAssistantAgent:
                     return True
                 else:
                     raise URLMetadataUploadError(
-                        f"Failed to upload any documents to assistant "
-                        f"{assistant_id}"
+                        f"Failed to upload any documents to assistant {assistant_id}"
                     )
 
             except Exception as e:

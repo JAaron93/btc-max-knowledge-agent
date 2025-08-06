@@ -21,7 +21,6 @@ from utils.audio_utils import (
 
 # Audio validation constants
 MIN_AUDIO_DATA_SIZE = 8  # Minimum bytes required for valid audio data
-from utils.tts_service import get_tts_service
 
 
 def test_streaming_manager():
@@ -111,6 +110,9 @@ def test_convenience_functions():
 async def test_tts_integration():
     """Test TTS service integration with streaming."""
     print("\n🧪 Testing TTS integration with streaming...")
+
+    # Import TTS service only when needed to avoid heavy initialization
+    from utils.tts_service import get_tts_service
 
     tts_service = get_tts_service()
 
@@ -207,7 +209,7 @@ async def main():
     results = []
 
     for test_name, test_func in tests:
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print(f"Running: {test_name}")
         print("=" * 50)
 
@@ -219,7 +221,7 @@ async def main():
         results.append((test_name, result))
 
     # Summary
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print("TEST SUMMARY")
     print("=" * 50)
 

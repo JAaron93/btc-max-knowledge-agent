@@ -104,9 +104,7 @@ class URLMetadataLogger:
 
         # Configuration options
         self.config = {
-            "query_truncation_length": (
-                query_truncation_length
-            ),  # Configurable truncation length for query logging
+            "query_truncation_length": query_truncation_length,  # Configurable truncation length for query logging
         }
 
     def _configure_root_logger(self):

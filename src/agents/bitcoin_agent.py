@@ -26,15 +26,11 @@ class BitcoinKnowledgeAgent:
             return {
                 "documents": [],
                 "formatted_response": {
-                    "response": (
-                        "No relevant information found in the Bitcoin knowledge base."
-                    ),
+                    "response": "No relevant information found in the Bitcoin knowledge base.",
                     "sources": [],
                     "summary": "",
                 },
-                "message": (
-                    "No relevant information found in the Bitcoin knowledge base."
-                ),
+                "message": "No relevant information found in the Bitcoin knowledge base.",
             }
 
         # Format results with URL metadata support
@@ -55,26 +51,21 @@ class BitcoinKnowledgeAgent:
             logging.error(f"Error formatting query results: {str(e)}", exc_info=True)
 
             # Provide fallback formatted response
+            summary_text = f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
             formatted_response = {
                 "formatted_response": {
-                    "response": (
-                        f"Found {len(relevant_docs)} relevant documents, but formatting failed."
-                    ),
+                    "response": f"Found {len(relevant_docs)} relevant documents, but formatting failed.",
                     "sources": [
                         doc.get("metadata", {}).get("url", "Unknown source")
                         for doc in relevant_docs
                     ],
-                    "summary": (
-                        f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
-                    ),
+                    "summary": summary_text,
                 },
                 "sources": [
                     doc.get("metadata", {}).get("url", "Unknown source")
                     for doc in relevant_docs
                 ],
-                "summary": (
-                    f"Retrieved {len(relevant_docs)} documents from Bitcoin knowledge base."
-                ),
+                "summary": summary_text,
             }
 
         return {

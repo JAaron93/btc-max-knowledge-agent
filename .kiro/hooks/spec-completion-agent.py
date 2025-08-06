@@ -13,7 +13,14 @@ import os
 import re
 import sys
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypedDict
+
+
+class SpecInfo(TypedDict, total=False):
+    """Type definition for spec information dictionary."""
+
+    name: str
+    description: str
 
 
 def parse_tasks_file(tasks_file_path: str) -> Tuple[int, int, List[str]]:
@@ -49,7 +56,7 @@ def parse_tasks_file(tasks_file_path: str) -> Tuple[int, int, List[str]]:
     return total_tasks, completed_tasks, task_titles
 
 
-def get_spec_info(spec_dir: str) -> Dict[str, str]:
+def get_spec_info(spec_dir: str) -> SpecInfo:
     """Extract spec information from requirements.md and design.md."""
     info = {}
 
@@ -89,7 +96,7 @@ def create_completion_file(
     total_tasks: int,
     completed_tasks: int,
     task_titles: List[str],
-    spec_info: Dict[str, str],
+    spec_info: SpecInfo,
 ) -> None:
     """Create the .completed status file."""
     completion_file = os.path.join(spec_dir, ".completed")
@@ -155,7 +162,7 @@ def create_completion_file(
 
 
 def create_completion_summary(
-    spec_dir: str, spec_info: Dict[str, str], task_titles: List[str]
+    spec_dir: str, spec_info: SpecInfo, task_titles: List[str]
 ) -> None:
     """Create a comprehensive completion summary if it doesn't exist."""
     summary_file = os.path.join(spec_dir, "COMPLETION_SUMMARY.md")
@@ -175,7 +182,7 @@ def create_completion_summary(
 
 ## Implementation Overview
 
-{spec_info.get('description', 'This specification has been successfully implemented.')}
+{spec_info.get("description", "This specification has been successfully implemented.")}
 
 ## Completed Tasks
 

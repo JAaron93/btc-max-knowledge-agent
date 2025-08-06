@@ -6,7 +6,7 @@ Test script for TTS service with circuit breaker integration.
 import asyncio
 import logging
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Set up environment
 os.environ["ELEVEN_LABS_API_KEY"] = "test_key"
@@ -63,7 +63,10 @@ async def test_tts_circuit_breaker_integration():
 
         # Test 2: Mock API failures to trigger circuit opening
         with patch.object(
-            tts_service, "_synthesize_with_api", side_effect=Exception("API Error")
+            tts_service,
+            "_synthesize_with_api",
+            side_effect=Exception("API Error"),
+            new_callable=AsyncMock,
         ):
             logger.info("Generating API failures to trigger circuit opening...")
 
@@ -71,7 +74,7 @@ async def test_tts_circuit_breaker_integration():
                 try:
                     await tts_service.synthesize_text("test text")
                 except Exception as e:
-                    logger.info(f"Expected failure {i+1}: {type(e).__name__}")
+                    logger.info(f"Expected failure {i + 1}: {type(e).__name__}")
 
             # Check circuit state
             error_state = tts_service.get_error_state()
@@ -97,7 +100,10 @@ async def test_tts_circuit_breaker_integration():
 
         # Mock successful API calls for recovery
         with patch.object(
-            tts_service, "_synthesize_with_api", return_value=b"fake_audio_data"
+            tts_service,
+            "_synthesize_with_api",
+            return_value=b"fake_audio_data",
+            new_callable=AsyncMock,
         ):
             try:
                 result = await tts_service.synthesize_text("test text")

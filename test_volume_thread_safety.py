@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Test script to verify thread-safe volume handling in TTS service
+Test script to verify concurrent async-safe volume handling in TTS service
 """
 
 import asyncio
 import time
 from unittest.mock import Mock
+
+from src.utils.validation import validate_volume_strict
 
 
 def test_volume_parameter_passing():
@@ -59,7 +61,7 @@ def test_volume_parameter_passing():
 
 
 def test_concurrent_volume_usage():
-    """Test that concurrent requests with different volumes don't interfere"""
+    """Test that concurrent async requests with different volumes don't interfere"""
     print("Testing concurrent volume usage...")
 
     class MockTTSService:
@@ -114,30 +116,24 @@ def test_concurrent_volume_usage():
         # Sort both lists since concurrent execution order may vary
         volumes_used.sort()
         expected_volumes.sort()
-        assert (
-            volumes_used == expected_volumes
-        ), f"Expected {expected_volumes}, got {volumes_used}"
+        assert volumes_used == expected_volumes, (
+            f"Expected {expected_volumes}, got {volumes_used}"
+        )
 
-        print("✅ Concurrent volume usage works correctly")
+        print("✅ Concurrent async volume usage works correctly")
 
     asyncio.run(test_concurrent_calls())
 
 
 def test_volume_validation():
-    """Test volume validation logic"""
+    """Test volume validation logic using shared validation function"""
     print("Testing volume validation...")
-
-    def validate_volume(volume):
-        """Simulate the validation logic"""
-        if volume is not None and not 0.0 <= volume <= 1.0:
-            raise ValueError(f"Volume must be between 0.0 and 1.0, got {volume}")
-        return True
 
     # Test valid volumes
     valid_volumes = [None, 0.0, 0.3, 0.5, 0.7, 1.0]
     for vol in valid_volumes:
         try:
-            validate_volume(vol)
+            validate_volume_strict(vol)
             print(f"✅ Volume {vol} is valid")
         except ValueError:
             assert False, f"Volume {vol} should be valid"
@@ -146,15 +142,15 @@ def test_volume_validation():
     invalid_volumes = [-0.1, 1.1, 2.0, -1.0]
     for vol in invalid_volumes:
         try:
-            validate_volume(vol)
+            validate_volume_strict(vol)
             assert False, f"Volume {vol} should be invalid"
         except ValueError:
             print(f"✅ Volume {vol} correctly rejected")
 
 
 def main():
-    """Run all thread safety tests"""
-    print("🧪 Testing Thread-Safe Volume Handling")
+    """Run all concurrent async safety tests"""
+    print("🧪 Testing Concurrent Async-Safe Volume Handling")
     print("=" * 40)
 
     try:
@@ -163,11 +159,11 @@ def main():
         test_volume_validation()
 
         print("\n" + "=" * 40)
-        print("🎉 All thread safety tests passed!")
+        print("🎉 All concurrent async safety tests passed!")
         print("\nKey improvements:")
         print("✅ Volume passed directly to API method")
         print("✅ No shared state modification")
-        print("✅ Thread-safe concurrent operations")
+        print("✅ Async-safe concurrent operations")
         print("✅ Config object remains unchanged")
         print("✅ Proper volume validation")
 

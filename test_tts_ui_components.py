@@ -30,9 +30,9 @@ def test_waveform_animation():
     animation = create_waveform_animation()
     assert isinstance(animation, str), "Animation should return a string"
     assert animation.strip(), "Animation should not be empty"
-    assert (
-        "<svg>" in animation or "<svg " in animation
-    ), "Should contain valid SVG opening tag"
+    assert "<svg>" in animation or "<svg " in animation, (
+        "Should contain valid SVG opening tag"
+    )
     assert "</svg>" in animation, "Should contain SVG closing tag"
     assert "animate" in animation
     assert "Synthesizing speech..." in animation
@@ -72,9 +72,9 @@ def test_tts_state():
 
     # Test initial state
     assert not state.is_synthesizing, "Initial state should not be synthesizing"
-    assert (
-        state.synthesis_start_time is None
-    ), "Initial synthesis_start_time should be None"
+    assert state.synthesis_start_time is None, (
+        "Initial synthesis_start_time should be None"
+    )
     assert not state.stop_animation, "Initial stop_animation should be False"
 
     # Record time before starting synthesis for validation
@@ -86,32 +86,32 @@ def test_tts_state():
 
     # Validate synthesis state
     assert state.is_synthesizing, "State should be synthesizing after start_synthesis()"
-    assert (
-        state.synthesis_start_time is not None
-    ), "synthesis_start_time should be set after start_synthesis()"
+    assert state.synthesis_start_time is not None, (
+        "synthesis_start_time should be set after start_synthesis()"
+    )
     assert not state.stop_animation, "stop_animation should be False during synthesis"
 
     # Validate timestamp is recent and reasonable
-    assert isinstance(
-        state.synthesis_start_time, (int, float)
-    ), "synthesis_start_time should be a numeric timestamp"
-    assert (
-        time_before_start <= state.synthesis_start_time <= time_after_start
-    ), f"synthesis_start_time ({state.synthesis_start_time}) should be between {time_before_start} and {time_after_start}"
+    assert isinstance(state.synthesis_start_time, (int, float)), (
+        "synthesis_start_time should be a numeric timestamp"
+    )
+    assert time_before_start <= state.synthesis_start_time <= time_after_start, (
+        f"synthesis_start_time ({state.synthesis_start_time}) should be between {time_before_start} and {time_after_start}"
+    )
 
     # Store first synthesis start time for later comparison
     first_start_time = state.synthesis_start_time
 
     # Test stop synthesis
     state.stop_synthesis()
-    assert (
-        not state.is_synthesizing
-    ), "State should not be synthesizing after stop_synthesis()"
+    assert not state.is_synthesizing, (
+        "State should not be synthesizing after stop_synthesis()"
+    )
     assert state.stop_animation, "stop_animation should be True after stop_synthesis()"
     # Verify start time is preserved after stopping
-    assert (
-        state.synthesis_start_time == first_start_time
-    ), "synthesis_start_time should be preserved after stop_synthesis()"
+    assert state.synthesis_start_time == first_start_time, (
+        "synthesis_start_time should be preserved after stop_synthesis()"
+    )
 
     # Test multiple start-stop cycles
     print("  Testing multiple start-stop cycles...")
@@ -130,26 +130,26 @@ def test_tts_state():
         cycle_time_after = time.time()
 
         # Validate state transitions
-        assert (
-            state.is_synthesizing
-        ), f"Cycle {cycle + 1}: Should be synthesizing after start"
-        assert (
-            not state.stop_animation
-        ), f"Cycle {cycle + 1}: stop_animation should be False during synthesis"
+        assert state.is_synthesizing, (
+            f"Cycle {cycle + 1}: Should be synthesizing after start"
+        )
+        assert not state.stop_animation, (
+            f"Cycle {cycle + 1}: stop_animation should be False during synthesis"
+        )
 
         # Validate new timestamp
-        assert (
-            state.synthesis_start_time is not None
-        ), f"Cycle {cycle + 1}: synthesis_start_time should be set"
-        assert (
-            cycle_time_before <= state.synthesis_start_time <= cycle_time_after
-        ), f"Cycle {cycle + 1}: synthesis_start_time should be recent"
+        assert state.synthesis_start_time is not None, (
+            f"Cycle {cycle + 1}: synthesis_start_time should be set"
+        )
+        assert cycle_time_before <= state.synthesis_start_time <= cycle_time_after, (
+            f"Cycle {cycle + 1}: synthesis_start_time should be recent"
+        )
 
         # Verify timestamp is updated (should be different from first cycle)
         if cycle > 0:
-            assert (
-                state.synthesis_start_time != first_start_time
-            ), f"Cycle {cycle + 1}: synthesis_start_time should be updated on new start"
+            assert state.synthesis_start_time != first_start_time, (
+                f"Cycle {cycle + 1}: synthesis_start_time should be updated on new start"
+            )
 
         # Store this cycle's start time
         cycle_start_time = state.synthesis_start_time
@@ -158,15 +158,15 @@ def test_tts_state():
         state.stop_synthesis()
 
         # Validate stop state
-        assert (
-            not state.is_synthesizing
-        ), f"Cycle {cycle + 1}: Should not be synthesizing after stop"
-        assert (
-            state.stop_animation
-        ), f"Cycle {cycle + 1}: stop_animation should be True after stop"
-        assert (
-            state.synthesis_start_time == cycle_start_time
-        ), f"Cycle {cycle + 1}: synthesis_start_time should be preserved after stop"
+        assert not state.is_synthesizing, (
+            f"Cycle {cycle + 1}: Should not be synthesizing after stop"
+        )
+        assert state.stop_animation, (
+            f"Cycle {cycle + 1}: stop_animation should be True after stop"
+        )
+        assert state.synthesis_start_time == cycle_start_time, (
+            f"Cycle {cycle + 1}: synthesis_start_time should be preserved after stop"
+        )
 
     # Test rapid start-stop cycles (stress test)
     print("  Testing rapid start-stop cycles...")
@@ -175,24 +175,24 @@ def test_tts_state():
         state.start_synthesis()
         rapid_start_time = state.synthesis_start_time
 
-        assert (
-            state.is_synthesizing
-        ), f"Rapid cycle {rapid_cycle + 1}: Should be synthesizing"
-        assert (
-            rapid_start_time is not None
-        ), f"Rapid cycle {rapid_cycle + 1}: Start time should be set"
+        assert state.is_synthesizing, (
+            f"Rapid cycle {rapid_cycle + 1}: Should be synthesizing"
+        )
+        assert rapid_start_time is not None, (
+            f"Rapid cycle {rapid_cycle + 1}: Start time should be set"
+        )
 
         state.stop_synthesis()
 
-        assert (
-            not state.is_synthesizing
-        ), f"Rapid cycle {rapid_cycle + 1}: Should not be synthesizing after stop"
-        assert (
-            state.stop_animation
-        ), f"Rapid cycle {rapid_cycle + 1}: stop_animation should be True"
-        assert (
-            state.synthesis_start_time == rapid_start_time
-        ), f"Rapid cycle {rapid_cycle + 1}: Start time should be preserved"
+        assert not state.is_synthesizing, (
+            f"Rapid cycle {rapid_cycle + 1}: Should not be synthesizing after stop"
+        )
+        assert state.stop_animation, (
+            f"Rapid cycle {rapid_cycle + 1}: stop_animation should be True"
+        )
+        assert state.synthesis_start_time == rapid_start_time, (
+            f"Rapid cycle {rapid_cycle + 1}: Start time should be preserved"
+        )
 
     print(
         "✅ TTS state management test passed (including timestamp validation and multiple cycles)"
@@ -238,7 +238,7 @@ if __name__ == "__main__":
             # Continue with next test instead of stopping
 
     # Print summary
-    print("\n📊 Test Summary:")
+    logger.info("\n📊 Test Summary:")
     print(f"   Tests run: {tests_run}")
     print(f"   Passed: {tests_passed}")
     print(f"   Failed: {tests_failed}")

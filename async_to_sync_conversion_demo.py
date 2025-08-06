@@ -24,7 +24,7 @@ try:
     from security.config import SecurityConfigurationManager
 except ImportError as e:
     print("⚠️  IMPORT ERROR: Failed to import SecurityConfigurationManager")
-    print("   Module: security.config")
+    print(f"   Module: {e.name}")
     print(f"   Error: {e}")
     print("   This module contains the configuration management logic.")
     MODULES_AVAILABLE = False
@@ -33,7 +33,7 @@ try:
     from security.models import SecurityConfiguration
 except ImportError as e:
     print("⚠️  IMPORT ERROR: Failed to import SecurityConfiguration")
-    print("   Module: security.models")
+    print(f"   Module: {e.name}")
     print(f"   Error: {e}")
     print("   This module contains the security configuration data models.")
     MODULES_AVAILABLE = False
@@ -68,9 +68,9 @@ def demonstrate_async_to_sync_conversion():
     print("The async methods in SecurityConfigurationManager did not perform")
     print("any asynchronous operations, creating unnecessary async overhead:")
     print("• validate_config() - only performed synchronous validation")
-    print("• load_secure_config() - only read environment variables and " "validated")
-    print("• reload_config() - only cleared cache and called " "load_secure_config()")
-    print("• validate_environment_variables() - only checked env vars " "synchronously")
+    print("• load_secure_config() - only read environment variables and validated")
+    print("• reload_config() - only cleared cache and called load_secure_config()")
+    print("• validate_environment_variables() - only checked env vars synchronously")
 
     print("\n❌ BEFORE (Unnecessary Async):")
     print("```python")
@@ -84,7 +84,7 @@ def demonstrate_async_to_sync_conversion():
     print("        return ValidationResult(...)")
     print("")
     print("    async def load_secure_config(self) -> SecurityConfiguration:")
-    print("        env_vars = self._load_environment_variables()  " "# Synchronous")
+    print("        env_vars = self._load_environment_variables()  # Synchronous")
     print("        config = SecurityConfiguration(...)  # Synchronous")
     print(
         "        validation_result = await self.validate_config(config)  "
@@ -94,7 +94,7 @@ def demonstrate_async_to_sync_conversion():
     print("")
     print("# Usage required async/await:")
     print("config_manager = SecurityConfigurationManager()")
-    print("config = await config_manager.load_secure_config()  " "# Unnecessary await")
+    print("config = await config_manager.load_secure_config()  # Unnecessary await")
     print("```")
     print("• ❌ Unnecessary async overhead for synchronous operations")
     print("• ❌ Required await calls for no async benefit")
@@ -113,9 +113,9 @@ def demonstrate_async_to_sync_conversion():
     print("        return ValidationResult(...)")
     print("")
     print("    def load_secure_config(self) -> SecurityConfiguration:")
-    print("        env_vars = self._load_environment_variables()  " "# Synchronous")
+    print("        env_vars = self._load_environment_variables()  # Synchronous")
     print("        config = SecurityConfiguration(...)  # Synchronous")
-    print("        validation_result = self.validate_config(config)  " "# Direct call")
+    print("        validation_result = self.validate_config(config)  # Direct call")
     print("        return config")
     print("")
     print("# Usage is now straightforward:")
@@ -178,8 +178,7 @@ def demonstrate_async_to_sync_conversion():
     with patch.dict(os.environ, env_vars, clear=False):
         result = config_manager.validate_environment_variables()
         print(
-            "   ✅ Direct call: validate_environment_variables() → "
-            f"{result.is_valid}"
+            f"   ✅ Direct call: validate_environment_variables() → {result.is_valid}"
         )
         print("   ✅ No await needed, immediate result")
 

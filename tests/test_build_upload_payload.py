@@ -346,9 +346,7 @@ class TestBuildUploadPayloadIntegration(unittest.TestCase):
         doc = {
             "id": "bitcoin_whitepaper",
             "title": "Bitcoin: A Peer-to-Peer Electronic Cash System",
-            "content": (
-                "Abstract. A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution."
-            ),
+            "content": "Abstract. A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution.",
             "source": "bitcoin.org",
             "category": "fundamentals",
             "url": "https://bitcoin.org/bitcoin.pdf",

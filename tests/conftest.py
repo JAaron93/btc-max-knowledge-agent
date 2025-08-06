@@ -462,16 +462,16 @@ def sample_test_data():
             50: {
                 "A" * 150: "A" * 50,
                 "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
-                    "Bitcoin halving mechanism and economic impact on cry"
+                    (
+                        "Bitcoin halving mechanism and economic impact on cryptocurrency "
+                    )[:50]
                 ),
             },
             100: {
                 "A" * 150: "A" * 100,
                 "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics": (
                     "Bitcoin halving mechanism and economic impact on cryptocurrency market dynamics"
-                )[
-                    :100
-                ],
+                )[:100],
             },
             200: {
                 "A" * 150: "A" * 150,  # Shorter than limit

@@ -55,9 +55,7 @@ class TestAdminAuthRateLimitingIntegration:
             {
                 "ADMIN_USERNAME": "test_admin",
                 "ADMIN_PASSWORD_HASH": test_password_hash,
-                "ADMIN_SECRET_KEY": (
-                    "test_secret_key_64_hex_chars_representing_32_bytes_total"
-                ),
+                "ADMIN_SECRET_KEY": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             },
             clear=False,
         ):
@@ -118,12 +116,12 @@ class TestAdminAuthRateLimitingIntegration:
 
         # Expire some sessions
         # Directly manipulate session data for testing purposes
-        self.authenticator.active_sessions[tokens[0]][
-            "expires_at"
-        ] = datetime.now() - timedelta(hours=1)
-        self.authenticator.active_sessions[tokens[1]][
-            "expires_at"
-        ] = datetime.now() - timedelta(hours=1)
+        self.authenticator.active_sessions[tokens[0]]["expires_at"] = (
+            datetime.now() - timedelta(hours=1)
+        )
+        self.authenticator.active_sessions[tokens[1]]["expires_at"] = (
+            datetime.now() - timedelta(hours=1)
+        )
 
         # Run cleanup
         expired_count = self.authenticator.cleanup_expired_sessions()
@@ -258,26 +256,26 @@ class TestSessionSecurityPromptInjectionIntegration:
                 retrieved_session = self.session_manager.get_session(session_id)
 
                 # Assert retrieved_session is None (session terminated after high-confidence injection)
-                assert (
-                    retrieved_session is None
-                ), f"Session should be terminated after high-confidence detection on prompt {i}: '{prompt}' (confidence: {result.confidence_score:.3f})"
+                assert retrieved_session is None, (
+                    f"Session should be terminated after high-confidence detection on prompt {i}: '{prompt}' (confidence: {result.confidence_score:.3f})"
+                )
 
                 # Break the loop to avoid processing further prompts as the session is already terminated.
                 break
             else:
                 # For low-confidence or benign prompts, session should remain active (not terminated)
                 retrieved_session = self.session_manager.get_session(session_id)
-                assert (
-                    retrieved_session is not None
-                ), f"Session should still exist for prompt {i}: '{prompt}' (confidence: {result.confidence_score:.3f})"
+                assert retrieved_session is not None, (
+                    f"Session should still exist for prompt {i}: '{prompt}' (confidence: {result.confidence_score:.3f})"
+                )
 
         # Verify that we detected a high-confidence injection and terminated the session
-        assert (
-            high_confidence_detected
-        ), "Should have detected at least one high-confidence injection"
-        assert (
-            detection_index == 1
-        ), f"Expected detection at index 1, but detected at index {detection_index}"
+        assert high_confidence_detected, (
+            "Should have detected at least one high-confidence injection"
+        )
+        assert detection_index == 1, (
+            f"Expected detection at index 1, but detected at index {detection_index}"
+        )
 
         # Verify that the remaining prompts would not have sessions available
         # (This demonstrates that the loop broke after first high-confidence hit)
@@ -285,9 +283,9 @@ class TestSessionSecurityPromptInjectionIntegration:
         for remaining_prompt in remaining_prompts:
             # These prompts should not be processed in a real scenario since session is terminated
             final_check = self.session_manager.get_session(session_id)
-            assert (
-                final_check is None
-            ), f"Session should remain terminated for remaining prompt: '{remaining_prompt}'"
+            assert final_check is None, (
+                f"Session should remain terminated for remaining prompt: '{remaining_prompt}'"
+            )
 
         # Clean up is not needed since session was already terminated
 

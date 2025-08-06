@@ -13,7 +13,7 @@ try:
     from btc_max_knowledge_agent.utils.result_formatter import (
         AssistantResponseFormatter,
         MCPResponseFormatter,
-        QueryResultFormatter,
+        QueryResultFormatter
     )
 except ImportError as e:
     print(f"Error importing formatter classes: {e}")

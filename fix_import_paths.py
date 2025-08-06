@@ -55,42 +55,20 @@ class ImportPathFixer:
         # Define import path mappings for common issues
         self.import_fixes = {
             # Config import fixes
-            r"from src\.retrieval\.pinecone_client import Config": (
-                "from src.utils.config import Config"
-            ),
-            r"from src\.agents\.pinecone_assistant_agent import Config": (
-                "from src.utils.config import Config"
-            ),
-            r'patch\("src\.retrieval\.pinecone_client\.Config"\)': (
-                'patch("src.utils.config.Config")'
-            ),
-            r'patch\("src\.agents\.pinecone_assistant_agent\.Config"\)': (
-                'patch("src.utils.config.Config")'
-            ),
+            r"from src\.retrieval\.pinecone_client import Config": "from src.utils.config import Config",
+            r"from src\.agents\.pinecone_assistant_agent import Config": "from src.utils.config import Config",
+            r'patch\("src\.retrieval\.pinecone_client\.Config"\)': 'patch("src.utils.config.Config")',
+            r'patch\("src\.agents\.pinecone_assistant_agent\.Config"\)': 'patch("src.utils.config.Config")',
             # Pinecone client import fixes
-            r'patch\("src\.agents\.pinecone_assistant_agent\.Pinecone"\)': (
-                'patch("pinecone.Pinecone")'
-            ),
-            r'patch\("src\.agents\.pinecone_assistant_agent\.PineconeClient"\)': (
-                'patch("src.retrieval.pinecone_client.PineconeClient")'
-            ),
+            r'patch\("src\.agents\.pinecone_assistant_agent\.Pinecone"\)': 'patch("pinecone.Pinecone")',
+            r'patch\("src\.agents\.pinecone_assistant_agent\.PineconeClient"\)': 'patch("src.retrieval.pinecone_client.PineconeClient")',
             # Monitor import fixes - use the correct module path
-            r'patch\("src\.monitoring\.url_metadata_monitor\.datetime"\)': (
-                'patch("src.monitoring.url_metadata_monitor.datetime")'
-            ),
-            r'patch\("btc_max_knowledge_agent\.monitoring\.url_metadata_monitor\.datetime"\)': (
-                'patch("datetime.datetime")'
-            ),
+            r'patch\("src\.monitoring\.url_metadata_monitor\.datetime"\)': 'patch("src.monitoring.url_metadata_monitor.datetime")',
+            r'patch\("btc_max_knowledge_agent\.monitoring\.url_metadata_monitor\.datetime"\)': 'patch("datetime.datetime")',
             # URL utils fixes
-            r"from src\.utils\.url_utils import normalize_url": (
-                "from src.utils.url_utils import normalize_url_format as normalize_url"
-            ),
-            r'patch\("src\.utils\.url_utils\.normalize_url"\)': (
-                'patch("src.utils.url_utils.normalize_url_format")'
-            ),
-            r'patch\("src\.utils\.url_utils\.is_private_ip"\)': (
-                'patch("src.utils.url_utils.is_secure_url")'
-            ),
+            r"from src\.utils\.url_utils import normalize_url": "from src.utils.url_utils import normalize_url_format as normalize_url",
+            r'patch\("src\.utils\.url_utils\.normalize_url"\)': 'patch("src.utils.url_utils.normalize_url_format")',
+            r'patch\("src\.utils\.url_utils\.is_private_ip"\)': 'patch("src.utils.url_utils.is_secure_url")',
             # Data collector fixes
             r"process_and_add_chunks": "process_documents",
         }
@@ -100,9 +78,7 @@ class ImportPathFixer:
             # PineconeAssistantAgent fixes
             "src.agents.pinecone_assistant_agent": {
                 "Pinecone": None,  # Remove - doesn't exist
-                "PineconeClient": (
-                    "from src.retrieval.pinecone_client import PineconeClient"
-                ),
+                "PineconeClient": "from src.retrieval.pinecone_client import PineconeClient",
             },
             # URL utils fixes
             "src.utils.url_utils": {
@@ -475,7 +451,8 @@ def main():
     else:
         print("\n✅ No import path issues found!")
 
-    print("\n🎯 Import path fixes completed!")
+    import logging
+    logging.info("🎯 Import path fixes completed!")
 
 
 if __name__ == "__main__":

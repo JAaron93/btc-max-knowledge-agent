@@ -170,9 +170,9 @@ def test_streaming_manager():
         # Test optimization
         optimization_results = manager.optimize_streaming_performance()
         print(f"Streaming optimization results: {optimization_results}")
-        assert (
-            optimization_results is not None
-        ), "Optimization results should not be None"
+        assert optimization_results is not None, (
+            "Optimization results should not be None"
+        )
 
     finally:
         # Cleanup streaming manager resources if needed
@@ -191,9 +191,9 @@ async def test_performance_optimization():
         # Test optimization
         optimization_results = tts_service.optimize_performance()
         print(f"TTS optimization results: {optimization_results}")
-        assert (
-            optimization_results is not None
-        ), "Optimization results should not be None"
+        assert optimization_results is not None, (
+            "Optimization results should not be None"
+        )
 
         # Test comprehensive stats
         comprehensive_stats = tts_service.get_performance_stats()
@@ -203,10 +203,7 @@ async def test_performance_optimization():
     finally:
         if tts_service:
             await tts_service.cleanup_resources()
-
-    print("✅ Performance optimization test completed")
-    await tts_service.cleanup_resources()
-    print("✅ Performance optimization test completed")
+        print("✅ Performance optimization test completed")
 
 
 async def main():

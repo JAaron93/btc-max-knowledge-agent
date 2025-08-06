@@ -52,30 +52,30 @@ def test_tts_components_exist():
         assert 'height="30"' in animation, "SVG should have correct height"
         assert "<rect" in animation, "Animation should contain rectangle elements"
         assert "animate" in animation, "Animation should contain animate elements"
-        assert (
-            "Synthesizing speech..." in animation
-        ), "Animation should contain synthesis text"
+        assert "Synthesizing speech..." in animation, (
+            "Animation should contain synthesis text"
+        )
         assert "#3b82f6" in animation, "Animation should use correct blue color"
 
         # Test status display for different states
         status_ready = get_tts_status_display(False)
         assert isinstance(status_ready, str)
         assert len(status_ready) > 0
-        assert (
-            "Ready for voice synthesis" in status_ready
-        ), "Ready status should contain expected text"
+        assert "Ready for voice synthesis" in status_ready, (
+            "Ready status should contain expected text"
+        )
         assert "🔊" in status_ready, "Ready status should contain speaker emoji"
         assert "#6b7280" in status_ready, "Ready status should use correct gray color"
 
         status_synthesizing = get_tts_status_display(True)
         assert isinstance(status_synthesizing, str)
         assert len(status_synthesizing) > 0
-        assert (
-            "Synthesizing speech..." in status_synthesizing
-        ), "Synthesizing status should contain expected text"
-        assert (
-            "<svg" in status_synthesizing
-        ), "Synthesizing status should contain SVG animation"
+        assert "Synthesizing speech..." in status_synthesizing, (
+            "Synthesizing status should contain expected text"
+        )
+        assert "<svg" in status_synthesizing, (
+            "Synthesizing status should contain SVG animation"
+        )
 
         status_error = get_tts_status_display(False, has_error=True)
         assert isinstance(status_error, str)

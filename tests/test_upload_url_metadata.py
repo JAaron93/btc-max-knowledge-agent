@@ -29,30 +29,24 @@ def test_setup():
 
     # Sample test files with metadata
     test_files = {
-        "bitcoin_fundamentals.txt": (
-            """# Bitcoin Fundamentals
+        "bitcoin_fundamentals.txt": """# Bitcoin Fundamentals
 
 This is a test file about Bitcoin fundamentals.
 
 ### Document Metadata
 **Source URL:** https://example.com/bitcoin-fundamentals
 **Original Article:** [View on Example.com](https://example.com/bitcoin-fundamentals)
-**Direct Link:** [Download PDF](https://example.com/bitcoin-fundamentals.pdf)"""
-        ),
-        "bitcoin_news.txt": (
-            """# Bitcoin News
+**Direct Link:** [Download PDF](https://example.com/bitcoin-fundamentals.pdf)""",
+        "bitcoin_news.txt": """# Bitcoin News
 
 Latest Bitcoin news and updates.
 
 ### Document Metadata
 **Source URL:** https://news.example.com/bitcoin
-**Original Article:** [View on News Example](https://news.example.com/bitcoin)"""
-        ),
-        "bitcoin_overview.txt": (
-            """# Bitcoin Overview
+**Original Article:** [View on News Example](https://news.example.com/bitcoin)""",
+        "bitcoin_overview.txt": """# Bitcoin Overview
 
-A comprehensive overview of Bitcoin."""
-        ),
+A comprehensive overview of Bitcoin.""",
     }
 
     # Create test files in the temporary directory
@@ -110,9 +104,9 @@ def test_file_metadata_validation(test_setup):
         filepath = os.path.join(upload_dir, filename)
 
         # Verify file exists
-        assert os.path.exists(
-            filepath
-        ), f"Test file {filename} was not created in {upload_dir}"
+        assert os.path.exists(filepath), (
+            f"Test file {filename} was not created in {upload_dir}"
+        )
 
         # Read file content with error handling
         try:
@@ -120,15 +114,15 @@ def test_file_metadata_validation(test_setup):
                 content = f.read()
 
             # Check for required metadata elements
-            assert (
-                "### Document Metadata" in content
-            ), f"File {filename} is missing the metadata section"
+            assert "### Document Metadata" in content, (
+                f"File {filename} is missing the metadata section"
+            )
 
             # Check for source URL if it's not the overview file
             if filename != "bitcoin_overview.txt":
-                assert (
-                    "**Source URL:**" in content
-                ), f"File {filename} is missing the Source URL field"
+                assert "**Source URL:**" in content, (
+                    f"File {filename} is missing the Source URL field"
+                )
 
         except UnicodeDecodeError:
             pytest.fail(f"Failed to read {filename}: Invalid UTF-8 encoding")

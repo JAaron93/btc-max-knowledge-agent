@@ -14,6 +14,7 @@ import atexit  # noqa: E402
 import base64  # noqa: E402
 import io  # noqa: E402
 import logging  # noqa: E402
+import math  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
 import tempfile  # noqa: E402
@@ -697,20 +698,18 @@ class AudioStreamingManager:
             )
 
             # Create streaming data structure with optimization metadata
+            audio_length = len(audio_bytes)
             streaming_data = {
                 "audio_bytes": audio_bytes,
                 "duration": duration,
                 "is_cached": is_cached,
                 "format": "mp3",  # ElevenLabs default
                 "sample_rate": 44100,
-                "size_bytes": len(audio_bytes),
+                "size_bytes": audio_length,
                 "streaming_ready": True,
                 "optimal_buffer_size": optimal_buffer_size,
                 "connection_type": connection_type,
-                "estimated_chunks": (
-                    len(audio_bytes) // optimal_buffer_size
-                    + (1 if len(audio_bytes) % optimal_buffer_size else 0)
-                ),
+                "estimated_chunks": math.ceil(audio_length / optimal_buffer_size),
             }
 
             # Convert to Gradio-compatible format

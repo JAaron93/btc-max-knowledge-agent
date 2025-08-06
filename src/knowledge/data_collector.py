@@ -25,13 +25,18 @@ from utils.url_utils import extract_domain, sanitize_url_for_storage, validate_u
 class BitcoinDataCollector:
     def __init__(self, check_url_accessibility: bool = False):
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                )
-            }
-        )
+        # Rotate through a small pool of modern User-Agents to reduce 4xx and fingerprinting
+        user_agents = [
+            # Recent stable Chrome-like UA
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            # Recent stable Firefox-like UA
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 13.3; rv:124.0) Gecko/20100101 Firefox/124.0",
+            # Recent stable Edge-like UA
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+        ]
+        # Simple rotation using time-based index to avoid static UA without additional deps
+        ua = user_agents[int(time.time()) % len(user_agents)]
+        self.session.headers.update({"User-Agent": ua})
 
         # Configuration for URL validation behavior
         self.check_url_accessibility = check_url_accessibility

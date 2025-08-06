@@ -33,8 +33,9 @@ def main():
 
         print(f"✅ Collected {len(documents)} documents")
 
-        # Save documents locally for backup
-        collector.save_documents(documents, "bitcoin_knowledge_base.json")
+        # Save documents locally for backup (inside data/ for tidiness)
+        os.makedirs("data", exist_ok=True)
+        collector.save_documents(documents, "data/bitcoin_knowledge_base.json")
 
         # Step 2: Initialize Pinecone Assistant
         print("\n2. Initializing Pinecone Assistant...")
