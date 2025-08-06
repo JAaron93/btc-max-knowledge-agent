@@ -12,28 +12,25 @@ This module provides extensive testing for the TTS service including:
 
 import asyncio
 import hashlib
-import json
-import threading
-import time
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
 
-from src.utils.audio_utils import (AudioFormatConverter, AudioProcessingError,
-                                   ContentExtractionError,
-                                   ResponseContentExtractor)
-from src.utils.multi_tier_audio_cache import CacheConfig, MultiTierAudioCache
-from src.utils.tts_error_handler import (CircuitBreaker, CircuitState,
-                                         TTSAPIKeyError, TTSCircuitOpenError,
-                                         TTSError, TTSErrorHandler,
-                                         TTSNetworkError, TTSRateLimitError,
-                                         TTSRetryExhaustedError,
-                                         TTSServerError, get_tts_error_handler)
-from src.utils.tts_service import (AudioCache, CacheEntry, TTSConfig,
-                                   TTSService, get_tts_service,
-                                   initialize_tts_service)
+from src.utils.audio_utils import ContentExtractionError, ResponseContentExtractor
+from src.utils.tts_error_handler import (
+    TTSAPIKeyError,
+    TTSError,
+    TTSNetworkError,
+    TTSRateLimitError,
+    TTSServerError,
+)
+from src.utils.tts_service import (
+    TTSConfig,
+    TTSService,
+    get_tts_service,
+    initialize_tts_service,
+)
 
 
 class TestTTSServiceUnit:

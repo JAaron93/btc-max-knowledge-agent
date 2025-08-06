@@ -8,9 +8,8 @@ Tests payload structure validation and null-safe metadata handling.
 import hashlib
 import os
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 
 # Using proper absolute imports with editable package installation (pip install -e ".[dev]")
 # This eliminates the need for sys.path manipulation and provides better IDE support

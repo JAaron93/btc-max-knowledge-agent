@@ -8,15 +8,16 @@ ensuring proper doubling behavior, ceiling enforcement, and reset logic.
 
 import unittest
 
-from test_utils import setup_test_imports
-
-# Set up source path for imports
-setup_test_imports()
-
-from utils.exponential_backoff import (DEFAULT_INITIAL_DELAY,
-                                       DEFAULT_MAX_DELAY, DEFAULT_MULTIPLIER,
-                                       backoff_sequence, next_backoff,
-                                       reset_backoff, total_backoff_time)
+# Import path is configured in tests/conftest.py; import directly
+from utils.exponential_backoff import (
+    DEFAULT_INITIAL_DELAY,
+    DEFAULT_MAX_DELAY,
+    DEFAULT_MULTIPLIER,
+    backoff_sequence,
+    next_backoff,
+    reset_backoff,
+    total_backoff_time,
+)
 
 
 class TestExponentialBackoff(unittest.TestCase):
@@ -41,10 +42,14 @@ class TestExponentialBackoff(unittest.TestCase):
     def test_next_backoff_ceiling_enforcement(self):
         """Test that the backoff is capped at the maximum delay."""
         # Test with default ceiling (300 seconds = 5 minutes)
-        self.assertEqual(next_backoff(200.0), 300.0)  # 200 * 2 = 400, capped to 300
-        self.assertEqual(next_backoff(250.0), 300.0)  # 250 * 2 = 500, capped to 300
-        self.assertEqual(next_backoff(300.0), 300.0)  # Already at ceiling
-        self.assertEqual(next_backoff(500.0), 300.0)  # Above ceiling, still capped
+        # 200 * 2 = 400, capped to 300
+        self.assertEqual(next_backoff(200.0), 300.0)
+        # 250 * 2 = 500, capped to 300
+        self.assertEqual(next_backoff(250.0), 300.0)
+        # Already at ceiling
+        self.assertEqual(next_backoff(300.0), 300.0)
+        # Above ceiling, still capped
+        self.assertEqual(next_backoff(500.0), 300.0)
 
         # Test with custom ceiling
         self.assertEqual(
@@ -69,7 +74,10 @@ class TestExponentialBackoff(unittest.TestCase):
         self.assertEqual(next_backoff(-1, initial_delay=2.0), 2.0)
 
         # Combined custom parameters
-        self.assertEqual(next_backoff(0, multiplier=1.5, initial_delay=0.8), 0.8)
+        self.assertEqual(
+            next_backoff(0, multiplier=1.5, initial_delay=0.8),
+            0.8,
+        )
         self.assertEqual(next_backoff(2.0, multiplier=1.5), 3.0)
 
     def test_next_backoff_edge_cases(self):
@@ -88,8 +96,14 @@ class TestExponentialBackoff(unittest.TestCase):
         self.assertEqual(next_backoff(10.0, multiplier=1.0), 10.0)
 
         # Very large multiplier
-        self.assertEqual(next_backoff(1.0, multiplier=100.0, max_delay=1000.0), 100.0)
-        self.assertEqual(next_backoff(10.0, multiplier=100.0, max_delay=500.0), 500.0)
+        self.assertEqual(
+            next_backoff(1.0, multiplier=100.0, max_delay=1000.0),
+            100.0,
+        )
+        self.assertEqual(
+            next_backoff(10.0, multiplier=100.0, max_delay=500.0),
+            500.0,
+        )
 
     def test_reset_backoff(self):
         """Test the reset_backoff function."""
@@ -135,7 +149,12 @@ class TestExponentialBackoff(unittest.TestCase):
         self.assertEqual(sequence, expected)
 
         # All custom parameters
-        sequence = backoff_sequence(4, multiplier=1.5, max_delay=5.0, initial_delay=0.8)
+        sequence = backoff_sequence(
+            4,
+            multiplier=1.5,
+            max_delay=5.0,
+            initial_delay=0.8,
+        )
         expected = [0.8, 1.2, 1.8, 2.7]
         # Use assertAlmostEqual for floating point comparison
         self.assertEqual(len(sequence), len(expected))

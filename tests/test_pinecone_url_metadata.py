@@ -4,7 +4,6 @@ Test script to verify URL metadata handling in PineconeClient
 """
 
 import os
-import sys
 import unittest
 from unittest.mock import Mock, patch
 

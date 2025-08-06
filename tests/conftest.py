@@ -4,6 +4,9 @@ Pytest fixtures for URL metadata logging tests.
 
 This module provides reusable fixtures for testing URL metadata functionality,
 including temporary directory management and pre-built configuration objects.
+
+It also centralizes project import path setup (autouse session fixture)
+so tests do not need to mutate sys.path inline, resolving Ruff E402 warnings.
 """
 
 import shutil
@@ -20,31 +23,32 @@ def setup_test_environment():
     """
     Session-scoped fixture that automatically sets up the test environment.
 
-    This fixture ensures that the src directory is properly added to sys.path
-    before any tests run, eliminating the need for individual test files to
-    manipulate sys.path directly.
-
-    The fixture is marked as autouse=True, so it runs automatically for all tests.
+    Ensures repository imports work without per-file sys.path hacks by placing
+    repository root and src/ on sys.path for the duration of the test session.
     """
     import sys
     from pathlib import Path
 
-    # Get the project root and src directory
-    project_root = Path(__file__).parent.parent
-    src_dir = project_root / "src"
-    src_str = str(src_dir.resolve())
+    tests_dir = Path(__file__).resolve().parent
+    repo_root = tests_dir.parent
+    src_dir = repo_root / "src"
 
-    # Store original sys.path to restore later
     original_path = sys.path.copy()
 
-    # Add src directory to path if not already present
+    # Prepend repo root and src so both "src.*" and project-local imports work.
+    repo_root_str = str(repo_root)
+    src_str = str(src_dir)
+
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
     if src_str not in sys.path:
         sys.path.insert(0, src_str)
 
-    yield
-
-    # Cleanup: restore original sys.path
-    sys.path[:] = original_path
+    try:
+        yield
+    finally:
+        # Restore original sys.path
+        sys.path[:] = original_path
 
 
 @dataclass
@@ -263,7 +267,6 @@ def mock_pinecone_client():
         pytest.skip("PineconeClient not available")
 
     # Get the dynamic embedding dimension from the current environment or use default
-    import os
 
     embedding_dimension = os.getenv("EMBEDDING_DIMENSION", "768")
 
@@ -511,8 +514,6 @@ def mock_pinecone_index():
     """
     from unittest.mock import Mock
 
-    import numpy as np
-
     mock_index = Mock()
 
     # Legacy vectors (no URL metadata)
@@ -619,7 +620,7 @@ def mock_assistant_agent():
     Returns:
         Mock: Configured mock assistant agent
     """
-    from unittest.mock import Mock, patch
+    from unittest.mock import Mock
 
     # Mock the assistant agent class
     mock_agent = Mock()

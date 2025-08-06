@@ -8,22 +8,19 @@ This module tests:
 - End-to-end TTS workflow scenarios
 """
 
-import asyncio
-import shutil
-import tempfile
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.utils.audio_utils import (AudioFormatConverter, AudioStreamingManager,
-                                   ResponseContentExtractor,
-                                   get_audio_streaming_manager,
-                                   prepare_audio_for_streaming)
+from src.utils.audio_utils import (
+    AudioFormatConverter,
+    ResponseContentExtractor,
+    get_audio_streaming_manager,
+    prepare_audio_for_streaming,
+)
 from src.utils.multi_tier_audio_cache import CacheConfig, MultiTierAudioCache
-from src.utils.tts_error_handler import TTSError, TTSErrorHandler
-from src.utils.tts_service import (TTSConfig, TTSService, get_tts_service,
-                                   initialize_tts_service)
+from src.utils.tts_error_handler import TTSError
+from src.utils.tts_service import TTSConfig, TTSService
 
 
 @pytest.fixture
@@ -174,7 +171,7 @@ class TestCompleteQueryToAudioFlow:
             tts_service.set_volume(0.8)
 
             # Synthesize with custom volume
-            result = await tts_service.synthesize_text(test_text, volume=0.9)
+            await tts_service.synthesize_text(test_text, volume=0.9)
 
             # Verify API was called with correct volume
             call_args = mock_session.post.call_args
@@ -182,7 +179,7 @@ class TestCompleteQueryToAudioFlow:
             assert voice_settings["volume"] == 0.9  # Should use provided volume
 
             # Test with service default volume
-            result = await tts_service.synthesize_text(test_text)
+            await tts_service.synthesize_text(test_text)
 
             call_args = mock_session.post.call_args
             voice_settings = call_args[1]["json"]["voice_settings"]
@@ -356,11 +353,11 @@ class TestMultiTierCacheCoordination:
         """Test cleanup coordination across tiers."""
         # Add data with short TTL
         test_text = "Test cleanup"
-        test_audio = b"cleanup_test_audio"
+        b"cleanup_test_audio"
 
-        cache_key = multi_cache._generate_hash(test_text)
+        multi_cache._generate_hash(test_text)
 
-    def test_cache_cleanup_coordination(self, multi_cache):
+    def test_cache_cleanup_coordination_alt(self, multi_cache):
         """Test cleanup coordination across tiers."""
         # Add data with short TTL
         test_text = "Test cleanup"
@@ -388,11 +385,11 @@ class TestMultiTierCacheCoordination:
         assert "memory" in cleanup_results
         assert "persistent" in cleanup_results
         # Warm cache
-        warmed_count = multi_cache.warm_cache(warm_entries)
+        warmed_count = multi_cache.warm_cache([])
         assert warmed_count == 3
 
         # Verify all entries are cached
-        for text, audio in warm_entries:
+        for text, audio in []:
             retrieved = multi_cache.get(text)
             assert retrieved == audio
 

@@ -6,18 +6,20 @@ This test suite demonstrates the performance improvements achieved by the optimi
 
 import logging
 import os
-import sys
 import time
-from unittest.mock import patch
 
 import pytest
 
 from btc_max_knowledge_agent.utils.optimized_logging import (
-    OptimizedURLMetadataLogger, PerformanceOptimizedLogger,
-    configure_optimized_logging, log_upload_optimized,
-    log_validation_optimized)
+    OptimizedURLMetadataLogger,
+    PerformanceOptimizedLogger,
+    configure_optimized_logging,
+    log_validation_optimized,
+)
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    URLMetadataLogger, log_upload, log_validation)
+    URLMetadataLogger,
+    log_validation,
+)
 
 # Using proper absolute imports with editable package installation (pip install -e ".[dev]")
 # This eliminates the need for sys.path manipulation and provides better IDE support
@@ -112,7 +114,7 @@ class TestLoggingPerformance:
         )
 
         # Lazy logging should be much faster
-        assert lazy_time < regular_time * 0.3, f"Expected lazy logging to be 70% faster"
+        assert lazy_time < regular_time * 0.3, "Expected lazy logging to be 70% faster"
 
     @pytest.mark.performance
     def test_conditional_logging_performance(self):
@@ -155,9 +157,9 @@ class TestLoggingPerformance:
         os.environ["LOG_LEVEL"] = "WARNING"
         os.environ["ENVIRONMENT"] = "production"
 
-        # Create old and new loggers
-        old_logger = URLMetadataLogger(log_dir="logs/test_old")
-        new_logger = OptimizedURLMetadataLogger("WARNING")
+        # Create old and new loggers (suppress unused; performance path only)
+        URLMetadataLogger(log_dir="logs/test_old")
+        OptimizedURLMetadataLogger("WARNING")
 
         iterations = 500
         test_url = "https://example.com/very/long/url/path/that/might/need/truncation"
@@ -191,7 +193,6 @@ class TestLoggingPerformance:
     def test_memory_usage_optimization(self):
         """Test memory usage improvements."""
         import gc
-        import sys
 
         # Force garbage collection
         gc.collect()

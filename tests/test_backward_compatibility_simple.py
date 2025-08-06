@@ -5,7 +5,6 @@ Simple backward compatibility tests for URL metadata system.
 
 from unittest.mock import Mock, patch
 
-import numpy as np
 import pytest
 
 from src.retrieval.pinecone_client import PineconeClient

@@ -6,7 +6,10 @@ Test the result formatting functionality with URL metadata support
 import pytest
 
 from btc_max_knowledge_agent.utils.result_formatter import (
-    AssistantResponseFormatter, MCPResponseFormatter, QueryResultFormatter)
+    AssistantResponseFormatter,
+    MCPResponseFormatter,
+    QueryResultFormatter,
+)
 
 
 @pytest.fixture

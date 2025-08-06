@@ -3,13 +3,11 @@
 Tests for Session Management
 """
 
-import time
 from datetime import datetime, timedelta
 
 import pytest
 
-from src.web.session_manager import (SessionData, SessionManager,
-                                     get_session_manager)
+from src.web.session_manager import SessionData, SessionManager, get_session_manager
 
 
 class TestSessionData:
@@ -226,9 +224,11 @@ class TestGlobalSessionManager:
 
     def test_convenience_functions(self):
         """Test convenience functions"""
-        from src.web.session_manager import (create_session,
-                                             get_or_create_session,
-                                             get_session)
+        from src.web.session_manager import (
+            create_session,
+            get_or_create_session,
+            get_session,
+        )
 
         # Create session
         session_id = create_session()

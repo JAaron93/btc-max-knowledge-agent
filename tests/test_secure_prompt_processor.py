@@ -6,16 +6,13 @@ These tests validate the implementation of Step 3 from the security hardening ta
 "Guard follow-up iterations when session == None"
 """
 
-from typing import Any, Dict, List
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.security.models import (DetectionResult, SecurityAction,
-                                 SecuritySeverity)
+from src.security.models import DetectionResult, SecurityAction, SecuritySeverity
 from src.security.prompt_injection_detector import PromptInjectionDetector
-from src.security.prompt_processor import (PromptProcessingResult,
-                                           SecurePromptProcessor)
+from src.security.prompt_processor import SecurePromptProcessor
 from src.web.session_manager import SessionManager
 
 

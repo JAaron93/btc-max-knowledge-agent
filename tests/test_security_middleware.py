@@ -6,23 +6,23 @@ request validation, error handling, and security event logging.
 """
 
 import asyncio
-import json
 from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-from starlette.responses import JSONResponse
 
 from src.security.interfaces import ISecurityMonitor, ISecurityValidator
-from src.security.middleware import (SecurityHeadersMiddleware,
-                                     SecurityValidationMiddleware,
-                                     create_security_middleware)
-from src.security.models import (SecurityAction, SecurityConfiguration,
-                                 SecurityEvent, SecurityEventType,
-                                 SecuritySeverity, SecurityViolation,
-                                 ValidationResult)
+from src.security.middleware import create_security_middleware
+from src.security.models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecurityEvent,
+    SecurityEventType,
+    SecuritySeverity,
+    SecurityViolation,
+    ValidationResult,
+)
 
 
 class MockSecurityValidator(ISecurityValidator):
@@ -153,7 +153,7 @@ class TestSecurityValidationMiddleware:
         exempt_paths = ["/health", "/docs", "/openapi.json"]
 
         for path in exempt_paths:
-            response = client.get(path)
+            client.get(path)
             # Should not call validator for exempt paths
             assert len(mock_validator.validate_input_calls) == 0
 

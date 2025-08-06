@@ -24,7 +24,6 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Optional
 
 
 def setup_src_path() -> Path:
@@ -134,7 +133,7 @@ def _auto_setup_src_path() -> None:
     # Attempt to set up src path with error handling
     try:
         setup_src_path()
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         # Src directory doesn't exist - this is not necessarily an error
         # as the module might be used in contexts where src isn't available
         pass

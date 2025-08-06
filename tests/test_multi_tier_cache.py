@@ -27,12 +27,14 @@ import tempfile
 import threading
 import time
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from btc_max_knowledge_agent.utils.multi_tier_audio_cache import (
-    BaseCacheBackend, CacheConfig, MemoryCacheBackend, MultiTierAudioCache,
-    SQLiteCacheBackend)
+    CacheConfig,
+    MemoryCacheBackend,
+    MultiTierAudioCache,
+    SQLiteCacheBackend,
+)
 
 # Using proper absolute imports with editable package installation (pip install -e ".[dev]")
 # This eliminates the need for sys.path manipulation and provides better IDE support

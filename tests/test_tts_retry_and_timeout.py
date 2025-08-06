@@ -10,18 +10,19 @@ This module tests:
 
 import asyncio
 import time
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
 import pytest
 
-from src.utils.tts_error_handler import (CircuitBreaker, CircuitBreakerConfig,
-                                         CircuitState, TTSAPIKeyError,
-                                         TTSError, TTSErrorHandler,
-                                         TTSNetworkError, TTSRateLimitError,
-                                         TTSRetryExhaustedError,
-                                         TTSServerError)
+from src.utils.tts_error_handler import (
+    TTSAPIKeyError,
+    TTSErrorHandler,
+    TTSNetworkError,
+    TTSRateLimitError,
+    TTSRetryExhaustedError,
+    TTSServerError,
+)
 from src.utils.tts_service import TTSConfig, TTSService
 
 
@@ -210,7 +211,7 @@ class TestRetryLogic:
         # Verify exponential backoff for 429 errors
         # Base delay is 1.0s, max delay is 16.0s for rate limits
         base_delay = error_handler.retry_config["base_delay_429"]
-        max_delay = error_handler.retry_config["max_delay_429"]
+        _ = error_handler.retry_config["max_delay_429"]
 
         # First delay should be around base_delay (1.0s) with jitter
         assert base_delay * 0.75 <= delay_1 <= base_delay * 1.25
@@ -404,7 +405,7 @@ class TestRateLimitHandling:
 
         start_time = time.time()
         result = await error_handler.execute_with_retry(mock_api_call)
-        total_time = time.time() - start_time
+        _ = time.time() - start_time
 
         assert result == "success"
         assert len(call_times) == 3

@@ -7,15 +7,23 @@ configuration management, data models, and interface definitions.
 
 import os
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from src.security import (AuthenticationStatus, AuthResult, DetectionResult,
-                          ResourceMetrics, SecurityAction,
-                          SecurityConfiguration, SecurityConfigurationManager,
-                          SecurityEvent, SecurityEventType, SecuritySeverity,
-                          SecurityViolation, TokenBucket, ValidationResult)
+from src.security import (
+    AuthenticationStatus,
+    AuthResult,
+    ResourceMetrics,
+    SecurityConfiguration,
+    SecurityConfigurationManager,
+    SecurityEvent,
+    SecurityEventType,
+    SecuritySeverity,
+    SecurityViolation,
+    TokenBucket,
+    ValidationResult,
+)
 
 
 class TestSecurityConfiguration:

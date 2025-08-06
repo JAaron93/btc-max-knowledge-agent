@@ -22,20 +22,18 @@ import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from src.utils.multi_tier_audio_cache import CacheConfig, MultiTierAudioCache
-from src.utils.tts_error_handler import (TTSErrorHandler, TTSRateLimitError,
-                                         TTSServerError)
 from src.utils.tts_service import TTSConfig, TTSService
 
 
 class TestHighConcurrencySimulation:
     """Test high concurrency simulation with simultaneous TTS synthesis requests."""
 
-    @pytest_asyncio.fixture
+    @pytest.mark.asyncio
     def tts_service(self):
         """Provide TTS service for concurrency testing."""
         config = TTSConfig(api_key="test_key", voice_id="test_voice")
@@ -129,7 +127,7 @@ class TestHighConcurrencySimulation:
                 # Mix of cache operations
                 if task_id % 3 == 0:
                     # Cache read - run in thread to avoid blocking event loop
-                    result = await asyncio.to_thread(tts_service.get_cached_audio, key)
+                    await asyncio.to_thread(tts_service.get_cached_audio, key)
                     return {"task_id": task_id, "operation": "read", "success": True}
                 elif task_id % 3 == 1:
                     # Cache write - run in thread to avoid blocking event loop
@@ -137,7 +135,7 @@ class TestHighConcurrencySimulation:
                     return {"task_id": task_id, "operation": "write", "success": True}
                 else:
                     # Cache stats - run in thread to avoid blocking event loop
-                    stats = await asyncio.to_thread(tts_service.get_cache_stats)
+                    await asyncio.to_thread(tts_service.get_cache_stats)
                     return {"task_id": task_id, "operation": "stats", "success": True}
             except Exception as e:
                 return {"task_id": task_id, "success": False, "error": str(e)}
@@ -328,14 +326,14 @@ class TestCacheContentionTesting:
                     start_time = time.time()
 
                     if operation_type == "read":
-                        result = multi_cache.get(key)
+                        _ = multi_cache.get(key)
                         success = True
                     elif operation_type == "write":
                         cache_key = multi_cache.put(key, test_audio)
                         success = cache_key is not None
                     else:  # 'mixed'
                         if i % 2 == 0:
-                            result = multi_cache.get(key)
+                            multi_cache.get(key)
                         else:
                             multi_cache.put(key, test_audio)
                         success = True
@@ -394,7 +392,7 @@ class TestCacheContentionTesting:
             for future in futures:
                 future.result()  # This will raise any exceptions that occurred
 
-        total_time = time.time() - start_time
+        _ = time.time() - start_time
 
         # Analyze results
         all_results = []
@@ -402,7 +400,7 @@ class TestCacheContentionTesting:
             all_results.extend(type_results)
 
         successful_operations = [r for r in all_results if r["success"]]
-        failed_operations = [r for r in all_results if not r["success"]]
+        _ = [r for r in all_results if not r["success"]]
 
         # Calculate success rate
         total_operations = len(all_results)
@@ -508,9 +506,7 @@ class TestAPIRateLimitStressTesting:
         successful_results = [
             r for r in results if isinstance(r, dict) and r.get("success")
         ]
-        failed_results = [
-            r for r in results if isinstance(r, dict) and not r.get("success")
-        ]
+        _ = [r for r in results if isinstance(r, dict) and not r.get("success")]
 
         # Calculate metrics
         success_rate = len(successful_results) / num_requests
@@ -566,7 +562,7 @@ class TestPerformanceBenchmarking:
                 with patch("aiohttp.ClientSession", return_value=mock_session):
                     start_time = time.time()
                     try:
-                        result = await benchmark_service.synthesize_text(text)
+                        await benchmark_service.synthesize_text(text)
                         end_time = time.time()
                         return {
                             "success": True,

@@ -9,16 +9,24 @@ from unittest.mock import patch
 
 import pytest
 
-from btc_max_knowledge_agent.knowledge.data_collector import \
-    BitcoinDataCollector
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 from btc_max_knowledge_agent.monitoring.url_metadata_monitor import (
-    URLMetadataMonitor, record_upload, record_validation, url_metadata_monitor)
-from btc_max_knowledge_agent.utils.url_error_handler import \
-    exponential_backoff_retry
+    URLMetadataMonitor,
+    record_upload,
+    record_validation,
+    url_metadata_monitor,
+)
+from btc_max_knowledge_agent.utils.url_error_handler import exponential_backoff_retry
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    LOG_ROTATION_BACKUP_COUNT, LOG_ROTATION_MAX_BYTES, URLMetadataLogger,
-    correlation_context, log_retry, log_upload, log_validation,
-    url_metadata_logger)
+    LOG_ROTATION_BACKUP_COUNT,
+    LOG_ROTATION_MAX_BYTES,
+    URLMetadataLogger,
+    correlation_context,
+    log_retry,
+    log_upload,
+    log_validation,
+    url_metadata_logger,
+)
 from btc_max_knowledge_agent.utils.url_utils import is_secure_url
 
 
@@ -509,7 +517,9 @@ class TestErrorHandling:
 
         for url, success, duration in invalid_validation_cases:
             try:
-                monitor.record_validation(
+                # Use a fresh monitor to avoid undefined reference
+                local_monitor = URLMetadataMonitor()
+                local_monitor.record_validation(
                     url, success, duration, error_type="test_error"
                 )
             except Exception:
@@ -537,7 +547,8 @@ class TestErrorHandling:
 
         for url, success, duration, size in invalid_upload_cases:
             try:
-                monitor.record_upload(
+                local_monitor = URLMetadataMonitor()
+                local_monitor.record_upload(
                     url, success, duration, size, error_type="test_error"
                 )
             except Exception:
@@ -559,7 +570,8 @@ class TestErrorHandling:
 
         for url, count, duration in invalid_retrieval_cases:
             try:
-                monitor.record_retrieval(url, count, duration)
+                local_monitor = URLMetadataMonitor()
+                local_monitor.record_retrieval(url, count, duration)
             except Exception:
                 pass
 
@@ -568,7 +580,8 @@ class TestErrorHandling:
 
         for error_type in invalid_error_types:
             try:
-                monitor.record_validation(
+                local_monitor = URLMetadataMonitor()
+                local_monitor.record_validation(
                     "test_url", False, 50.0, error_type=error_type
                 )
             except Exception:
@@ -586,12 +599,13 @@ class TestErrorHandling:
 
         for url, success, duration in boundary_cases:
             try:
-                monitor.record_validation(url, success, duration)
+                # Use the global monitor per preference
+                url_metadata_monitor.record_validation(url, success, duration)
             except Exception:
                 pass
 
         # The monitor should not crash when generating summary after all invalid inputs
-        summary = monitor.generate_hourly_summary()
+        summary = url_metadata_monitor.generate_hourly_summary()
         assert summary is not None
 
         # Verify summary structure is still intact

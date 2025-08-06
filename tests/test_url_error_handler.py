@@ -14,10 +14,18 @@ from unittest.mock import call, patch
 import pytest
 
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy, GracefulDegradation, RetryExhaustedError,
-    URLMetadataError, URLMetadataUploadError, URLRetrievalError,
-    URLValidationError, exponential_backoff_retry, retry_url_retrieval,
-    retry_url_upload, retry_url_validation)
+    FallbackURLStrategy,
+    GracefulDegradation,
+    RetryExhaustedError,
+    URLMetadataError,
+    URLMetadataUploadError,
+    URLRetrievalError,
+    URLValidationError,
+    exponential_backoff_retry,
+    retry_url_retrieval,
+    retry_url_upload,
+    retry_url_validation,
+)
 
 
 class TestCustomExceptions:

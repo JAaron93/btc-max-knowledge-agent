@@ -2,10 +2,14 @@ import logging
 
 import pytest
 
-from src.security.models import (DEFAULT_THRESHOLD_HIGH, DEFAULT_THRESHOLD_LOW,
-                                 SecurityEventType, SecuritySeverity,
-                                 _sanitize_thresholds,
-                                 get_contextual_severity_for_event_type)
+from src.security.models import (
+    DEFAULT_THRESHOLD_HIGH,
+    DEFAULT_THRESHOLD_LOW,
+    SecurityEventType,
+    SecuritySeverity,
+    _sanitize_thresholds,
+    get_contextual_severity_for_event_type,
+)
 
 
 # Test cases for the _sanitize_thresholds helper function

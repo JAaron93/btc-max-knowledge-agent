@@ -73,7 +73,35 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
     def test_upload_with_url_validation_timeout(self, mock_validate_url, mock_post):
         """Test upload operation when URL validation times out."""
         # Mock validation timeout
-        mock_validate.side_effect = FuturesTimeoutError("Validation timed out")
+        with patch("src.retrieval.url_validator.validate_url") as mock_validate:
+            mock_validate.side_effect = FuturesTimeoutError("Validation timed out")
+
+            # Test documents
+            documents = [
+                {
+                    "id": "doc1",
+                    "title": "Test Document",
+                    "content": "Test content",
+                    "source": "Test Source",
+                    "category": "test",
+                    "url": "https://slow-loading-site.com/document",
+                }
+            ]
+
+            # Call upload_documents
+            result = self.agent.upload_documents("test-assistant-id", documents)
+
+            # Should still succeed with empty URL on timeout
+            assert result is True, (
+                "Upload should succeed even with URL validation timeout"
+            )
+
+            # Verify request was made with empty URL due to timeout
+            call_args = mock_post.call_args
+            uploaded_doc = call_args[1]["json"]["documents"][0]
+            assert uploaded_doc["metadata"]["url"] == "", (
+                "URL should be empty string when validation times out"
+            )
 
         # Mock successful upload response
         mock_response = Mock()
@@ -102,9 +130,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         # Verify request was made with empty URL due to timeout
         call_args = mock_post.call_args
         uploaded_doc = call_args[1]["json"]["documents"][0]
-        assert (
-            uploaded_doc["metadata"]["url"] == ""
-        ), "URL should be empty string when validation times out"
+        assert uploaded_doc["metadata"]["url"] == "", (
+            "URL should be empty string when validation times out"
+        )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     @patch("src.utils.url_utils.check_urls_accessibility_parallel")
@@ -156,40 +184,40 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
         # Upload documents
         result = self.agent.upload_documents("test-assistant-id", documents)
-        assert (
-            result is True
-        ), "Batch upload with mixed URL accessibility should succeed"
+        assert result is True, (
+            "Batch upload with mixed URL accessibility should succeed"
+        )
 
         # Get uploaded documents
         call_args = mock_post.call_args
         uploaded_docs = call_args[1]["json"]["documents"]
 
         # Verify URL handling based on accessibility
-        assert (
-            uploaded_docs[0]["metadata"]["url"] == "https://accessible.com/doc1"
-        ), "Accessible URL should be preserved"
-        assert (
-            uploaded_docs[0]["metadata"].get("url_accessible", True) is True
-        ), "Accessible URL should be marked as accessible"
+        assert uploaded_docs[0]["metadata"]["url"] == "https://accessible.com/doc1", (
+            "Accessible URL should be preserved"
+        )
+        assert uploaded_docs[0]["metadata"].get("url_accessible", True) is True, (
+            "Accessible URL should be marked as accessible"
+        )
 
         # Inaccessible URL should be marked
-        assert (
-            uploaded_docs[1]["metadata"]["url"] == "https://inaccessible.com/doc2"
-        ), "Inaccessible URL should still be stored"
-        assert (
-            uploaded_docs[1]["metadata"].get("url_accessible", True) is False
-        ), "Inaccessible URL should be marked as inaccessible"
+        assert uploaded_docs[1]["metadata"]["url"] == "https://inaccessible.com/doc2", (
+            "Inaccessible URL should still be stored"
+        )
+        assert uploaded_docs[1]["metadata"].get("url_accessible", True) is False, (
+            "Inaccessible URL should be marked as inaccessible"
+        )
 
         # Timeout URL should be handled gracefully
-        assert (
-            uploaded_docs[2]["metadata"]["url"] == "https://timeout.com/doc3"
-        ), "Timeout URL should still be stored"
-        assert (
-            "url_check_timeout" in uploaded_docs[2]["metadata"]
-        ), "Timeout URL should have timeout metadata flag"
-        assert (
-            uploaded_docs[2]["metadata"]["url_check_timeout"] is True
-        ), "URL check timeout flag should be True"
+        assert uploaded_docs[2]["metadata"]["url"] == "https://timeout.com/doc3", (
+            "Timeout URL should still be stored"
+        )
+        assert "url_check_timeout" in uploaded_docs[2]["metadata"], (
+            "Timeout URL should have timeout metadata flag"
+        )
+        assert uploaded_docs[2]["metadata"]["url_check_timeout"] is True, (
+            "URL check timeout flag should be True"
+        )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     def test_query_with_partial_url_metadata(self, mock_post):
@@ -254,39 +282,39 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         assert len(sources) == 4, f"Should have 4 sources, got {len(sources)}"
 
         # Check first source (complete metadata)
-        assert (
-            sources[0]["url"] == "https://btc-tech.org/guide"
-        ), "First source should have complete URL metadata"
-        assert (
-            sources[0]["published"] == "2023-01-15"
-        ), "First source should have complete published metadata"
+        assert sources[0]["url"] == "https://btc-tech.org/guide", (
+            "First source should have complete URL metadata"
+        )
+        assert sources[0]["published"] == "2023-01-15", (
+            "First source should have complete published metadata"
+        )
 
         # Check second source (missing URL)
-        assert (
-            sources[1]["url"] == ""
-        ), "Second source with missing URL should have empty URL field"
-        assert (
-            sources[1]["published"] == "2023-02-20"
-        ), "Second source should preserve published date"
+        assert sources[1]["url"] == "", (
+            "Second source with missing URL should have empty URL field"
+        )
+        assert sources[1]["published"] == "2023-02-20", (
+            "Second source should preserve published date"
+        )
 
         # Check third source (empty URL, missing fields)
-        assert (
-            sources[2]["url"] == ""
-        ), "Third source with empty URL should have empty URL field"
-        assert (
-            sources[2].get("published", "") == ""
-        ), "Third source should have empty published field when missing"
-        assert (
-            sources[2].get("source", "") == ""
-        ), "Third source should have empty source field when missing"
+        assert sources[2]["url"] == "", (
+            "Third source with empty URL should have empty URL field"
+        )
+        assert sources[2].get("published", "") == "", (
+            "Third source should have empty published field when missing"
+        )
+        assert sources[2].get("source", "") == "", (
+            "Third source should have empty source field when missing"
+        )
 
         # Check fourth source (missing metadata)
-        assert (
-            sources[3]["url"] == ""
-        ), "Fourth source with missing metadata should have empty URL"
-        assert (
-            sources[3].get("title", "") == ""
-        ), "Fourth source should have empty title when metadata missing"
+        assert sources[3]["url"] == "", (
+            "Fourth source with missing metadata should have empty URL"
+        )
+        assert sources[3].get("title", "") == "", (
+            "Fourth source should have empty title when metadata missing"
+        )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     @patch("src.monitoring.url_metadata_monitor.url_metadata_monitor")
@@ -316,13 +344,13 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         mock_monitor.track_upload.assert_called_once()
         # Verify the parameters passed to track_upload
         call_args = mock_monitor.track_upload.call_args
-        assert (
-            call_args[0][0] == "test-assistant-id"
-        ), "Monitor should be called with correct assistant ID"
+        assert call_args[0][0] == "test-assistant-id", (
+            "Monitor should be called with correct assistant ID"
+        )
         assert len(call_args[0][1]) == 1, "Monitor should track one document"
-        assert (
-            call_args[0][1][0]["id"] == "doc1"
-        ), "Monitor should track correct document ID"
+        assert call_args[0][1][0]["id"] == "doc1", (
+            "Monitor should track correct document ID"
+        )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     def test_retry_mechanism_on_upload_failure(self, mock_post):
@@ -345,14 +373,14 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
         # Should eventually succeed
         result = retry_upload()
-        assert (
-            result is True
-        ), "Retry mechanism should eventually succeed after failures"
+        assert result is True, (
+            "Retry mechanism should eventually succeed after failures"
+        )
 
         # Verify three attempts were made
-        assert (
-            mock_post.call_count == 3
-        ), f"Should make 3 retry attempts, made {mock_post.call_count}"
+        assert mock_post.call_count == 3, (
+            f"Should make 3 retry attempts, made {mock_post.call_count}"
+        )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     @patch("src.utils.url_metadata_logger.logger")
@@ -379,9 +407,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
         # Verify correlation ID was used in logging
         # Note: Actual verification depends on logging implementation
-        assert (
-            len(mock_logger.method_calls) > 0
-        ), "Logger should have been called during upload operation"
+        assert len(mock_logger.method_calls) > 0, (
+            "Logger should have been called during upload operation"
+        )
 
         # Step 1: Verify at least one log call includes correlation ID
         correlation_id_found = False
@@ -412,9 +440,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
         # Step 2: Verify correlation ID is a non-empty string
         if found_correlation_id:
-            assert isinstance(
-                found_correlation_id, str
-            ), f"Correlation ID should be string, got {type(found_correlation_id)}"
+            assert isinstance(found_correlation_id, str), (
+                f"Correlation ID should be string, got {type(found_correlation_id)}"
+            )
             assert len(found_correlation_id) > 0, "Correlation ID should not be empty"
 
         # Step 3: Verify consistency across all log calls with correlation ID
@@ -424,9 +452,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
                 if isinstance(extra, dict):
                     # Check direct correlation_id
                     if "correlation_id" in extra:
-                        assert (
-                            extra["correlation_id"] == found_correlation_id
-                        ), "Correlation ID should be consistent across all log calls"
+                        assert extra["correlation_id"] == found_correlation_id, (
+                            "Correlation ID should be consistent across all log calls"
+                        )
                     # Check nested correlation_id
                     if "extra_fields" in extra and isinstance(
                         extra["extra_fields"], dict
@@ -435,7 +463,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
                             assert (
                                 extra["extra_fields"]["correlation_id"]
                                 == found_correlation_id
-                            ), "Correlation ID should be consistent across all log calls"
+                            ), (
+                                "Correlation ID should be consistent across all log calls"
+                            )
 
     def test_url_normalization_in_upload(self):
         """Test URL normalization during upload process."""
@@ -451,12 +481,12 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         for input_url, expected in test_cases:
             result = self.agent._validate_and_sanitize_url(input_url)
             # Basic validation - actual normalization depends on implementation
-            assert (
-                result is not None
-            ), f"URL normalization should not return None for {input_url}"
-            assert result.startswith(
-                "https://"
-            ), f"Normalized URL should start with https://, got {result}"
+            assert result is not None, (
+                f"URL normalization should not return None for {input_url}"
+            )
+            assert result.startswith("https://"), (
+                f"Normalized URL should start with https://, got {result}"
+            )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     def test_metadata_field_consistency(self, mock_post):
@@ -489,14 +519,14 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         required_fields = ["url", "published", "title", "source", "category"]
         for doc in uploaded_docs:
             for field in required_fields:
-                assert (
-                    field in doc["metadata"]
-                ), f"Document {doc['id']} missing required field '{field}'"
+                assert field in doc["metadata"], (
+                    f"Document {doc['id']} missing required field '{field}'"
+                )
                 # Empty string for missing fields
                 if doc["id"] == "minimal":
-                    assert (
-                        doc["metadata"][field] == ""
-                    ), f"Minimal document should have empty {field}, got '{doc['metadata'][field]}'"
+                    assert doc["metadata"][field] == "", (
+                        f"Minimal document should have empty {field}, got '{doc['metadata'][field]}'"
+                    )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     def test_network_error_handling_during_query(self, mock_post):
@@ -510,12 +540,12 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         result = self.agent.query_assistant("test-assistant-id", "What is Bitcoin?")
 
         # Should return error response
-        assert (
-            "answer" in result
-        ), "Network error response should contain 'answer' field"
-        assert (
-            "Sorry, I encountered an error" in result["answer"]
-        ), "Error response should contain error message"
+        assert "answer" in result, (
+            "Network error response should contain 'answer' field"
+        )
+        assert "Sorry, I encountered an error" in result["answer"], (
+            "Error response should contain error message"
+        )
         assert result["sources"] == [], "Network error should return empty sources list"
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
@@ -531,9 +561,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
 
         # Should handle timeout gracefully
         assert "answer" in result, "Timeout response should contain 'answer' field"
-        assert (
-            "error" in result["answer"].lower()
-        ), "Timeout response should contain error indication"
+        assert "error" in result["answer"].lower(), (
+            "Timeout response should contain error indication"
+        )
         assert result["sources"] == [], "Timeout should return empty sources list"
 
     def test_url_security_validation(self):
@@ -550,9 +580,9 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
         for dangerous_url in dangerous_urls:
             result = self.agent._validate_and_sanitize_url(dangerous_url)
             # Should reject dangerous URLs
-            assert (
-                result is None
-            ), f"Dangerous URL {dangerous_url} should be rejected, got {result}"
+            assert result is None, (
+                f"Dangerous URL {dangerous_url} should be rejected, got {result}"
+            )
 
     @patch("src.agents.pinecone_assistant_agent.requests.post")
     def test_unicode_url_handling(self, mock_post):
@@ -592,14 +622,14 @@ class TestPineconeAssistantURLMetadataEnhanced(unittest.TestCase):
             url = doc["metadata"]["url"]
             if doc["id"] == "unicode1":
                 # Chinese characters should be percent-encoded
-                assert (
-                    "%E6%96%87%E6%A1%A3" in url
-                ), f"Chinese characters (文档) not properly encoded in URL: {url}"
-                assert (
-                    "%E6%B5%8B%E8%AF%95" in url
-                ), f"Chinese characters (测试) not properly encoded in URL: {url}"
+                assert "%E6%96%87%E6%A1%A3" in url, (
+                    f"Chinese characters (文档) not properly encoded in URL: {url}"
+                )
+                assert "%E6%B5%8B%E8%AF%95" in url, (
+                    f"Chinese characters (测试) not properly encoded in URL: {url}"
+                )
             elif doc["id"] == "unicode2":
                 # Emoji should be percent-encoded
-                assert (
-                    "%F0%9F%9A%80" in url
-                ), f"Emoji (🚀) not properly encoded in URL: {url}"
+                assert "%F0%9F%9A%80" in url, (
+                    f"Emoji (🚀) not properly encoded in URL: {url}"
+                )

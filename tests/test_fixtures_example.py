@@ -12,8 +12,10 @@ import pytest
 
 from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
 
-from .conftest import (pytest_parametrize_config_variants,
-                       pytest_parametrize_truncation_lengths)
+from .conftest import (
+    pytest_parametrize_config_variants,
+    pytest_parametrize_truncation_lengths,
+)
 
 
 class TestFixturesExample:

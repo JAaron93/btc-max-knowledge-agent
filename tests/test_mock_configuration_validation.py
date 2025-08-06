@@ -3,7 +3,6 @@
 Test script to validate updated mock configurations align with current code structure.
 """
 
-from unittest.mock import Mock, patch
 
 import pytest
 

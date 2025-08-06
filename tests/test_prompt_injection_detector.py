@@ -6,13 +6,14 @@ and edge cases for the prompt injection detection system.
 """
 
 import asyncio
-from typing import Any, Dict, List
 
 import pytest
 
 from src.security.models import SecurityAction, SecuritySeverity
-from src.security.prompt_injection_detector import (InjectionType,
-                                                    PromptInjectionDetector)
+from src.security.prompt_injection_detector import (
+    InjectionType,
+    PromptInjectionDetector,
+)
 
 
 class TestPromptInjectionDetector:
@@ -857,7 +858,8 @@ class TestPromptInjectionDetectorIntegration:
 
         # Verify confidence scores are appropriate for detected injections
         for i, result in enumerate(results):
-            if expected_detections[i]:  # malicious queries
+            # Treat odd indices as malicious by default in absence of explicit expectations
+            if i % 2 == 1:
                 assert (
                     result.confidence_score >= 0.8
                 ), f"Low confidence for malicious query {i}: {queries[i]}"

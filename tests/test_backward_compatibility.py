@@ -6,8 +6,7 @@ Test backward compatibility with documents that don't have URLs
 import os
 import tempfile
 
-from btc_max_knowledge_agent.utils.url_utils import (extract_domain,
-                                                     is_url_valid)
+from btc_max_knowledge_agent.utils.url_utils import extract_domain, is_url_valid
 
 
 def test_documents_without_urls():

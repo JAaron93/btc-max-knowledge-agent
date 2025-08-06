@@ -14,10 +14,12 @@ import pytest
 import requests.exceptions
 
 try:
-    from src.utils.url_error_handler import (FallbackURLStrategy,
-                                             GracefulDegradation,
-                                             URLValidationError,
-                                             exponential_backoff_retry)
+    from src.utils.url_error_handler import (
+        FallbackURLStrategy,
+        GracefulDegradation,
+        URLValidationError,
+        exponential_backoff_retry,
+    )
 except ImportError:
     # Skip tests if these modules aren't available
     pytest.skip("URL error handler modules not available", allow_module_level=True)
@@ -326,9 +328,9 @@ def test_pinecone_client_document_preparation():
             if url == "https://valid.example.com":
                 assert (
                     validated_url == "https://valid.example.com"
-                ), f"Valid URL should pass validation"
+                ), "Valid URL should pass validation"
             elif url == "invalid-url-format":
-                assert validated_url is None, f"Invalid URL should fail validation"
+                assert validated_url is None, "Invalid URL should fail validation"
         else:
             validated_url = ""
 
@@ -495,10 +497,10 @@ def test_integration_scenarios():
 
         # Fail on first 2 attempts, succeed on 3rd attempt
         if attempt_count < 3:
-            print(f"FAILED (ConnectionError)")
+            print("FAILED (ConnectionError)")
             raise ConnectionError(f"Network error on attempt {attempt_count}")
 
-        print(f"SUCCESS")
+        print("SUCCESS")
         return {"status": "success", "data": ["item1", "item2"]}
 
     result = unreliable_api_call()

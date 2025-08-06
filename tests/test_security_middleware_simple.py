@@ -5,22 +5,23 @@ This module tests the FastAPI security middleware functionality without
 importing problematic modules.
 """
 
-import json
 from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.security.interfaces import ISecurityMonitor, ISecurityValidator
-from src.security.middleware import (SecurityHeadersMiddleware,
-                                     SecurityValidationMiddleware,
-                                     create_security_middleware)
-from src.security.models import (SecurityAction, SecurityConfiguration,
-                                 SecurityEvent, SecurityEventType,
-                                 SecuritySeverity, SecurityViolation,
-                                 ValidationResult)
+from src.security.middleware import create_security_middleware
+from src.security.models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecurityEvent,
+    SecurityEventType,
+    SecuritySeverity,
+    SecurityViolation,
+    ValidationResult,
+)
 
 # Using proper absolute imports with editable package installation (pip install -e ".[dev]")
 # This eliminates the need for sys.path manipulation and provides better IDE support
@@ -305,8 +306,10 @@ class TestSecurityValidationMiddleware:
         assert success_event.details["validation_passed"] is True
 
         # Test that the new event type has correct default severity
-        from security.models import (get_default_severity_for_event_type,
-                                     should_event_trigger_alert)
+        from security.models import (
+            get_default_severity_for_event_type,
+            should_event_trigger_alert,
+        )
 
         default_severity = get_default_severity_for_event_type(
             SecurityEventType.INPUT_VALIDATION_SUCCESS
@@ -354,8 +357,11 @@ class TestSecurityEventTypeHandling:
 
     def test_all_event_types_have_default_severity(self):
         """Test that all event types have default severity mappings."""
-        from security.models import (SecurityEventType, SecuritySeverity,
-                                     get_default_severity_for_event_type)
+        from security.models import (
+            SecurityEventType,
+            SecuritySeverity,
+            get_default_severity_for_event_type,
+        )
 
         # Test all event types
         for event_type in SecurityEventType:
@@ -371,8 +377,7 @@ class TestSecurityEventTypeHandling:
 
     def test_alert_triggering_logic(self):
         """Test that alert triggering logic handles all event types."""
-        from security.models import (SecurityEventType,
-                                     should_event_trigger_alert)
+        from security.models import SecurityEventType, should_event_trigger_alert
 
         # Test that informational events don't trigger alerts
         non_alerting_events = [
@@ -402,8 +407,7 @@ class TestSecurityEventTypeHandling:
 
     def test_event_serialization_with_new_type(self):
         """Test that SecurityEvent serialization works with INPUT_VALIDATION_SUCCESS."""
-        from security.models import (SecurityEvent, SecurityEventType,
-                                     SecuritySeverity)
+        from security.models import SecurityEvent, SecurityEventType, SecuritySeverity
 
         event = SecurityEvent(
             event_type=SecurityEventType.INPUT_VALIDATION_SUCCESS,

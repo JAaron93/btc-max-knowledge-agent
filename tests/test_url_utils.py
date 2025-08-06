@@ -17,10 +17,19 @@ import pytest
 
 # Import the functions to test
 from btc_max_knowledge_agent.utils.url_utils import (
-    MAX_URL_LENGTH, check_url_accessibility, check_urls_accessibility_parallel,
-    extract_domain, format_url_for_display, is_secure_url,
-    normalize_url_rfc3986, sanitize_url, sanitize_url_for_storage,
-    validate_and_sanitize_url, validate_url_batch, validate_url_format)
+    MAX_URL_LENGTH,
+    check_url_accessibility,
+    check_urls_accessibility_parallel,
+    extract_domain,
+    format_url_for_display,
+    is_secure_url,
+    normalize_url_rfc3986,
+    sanitize_url,
+    sanitize_url_for_storage,
+    validate_and_sanitize_url,
+    validate_url_batch,
+    validate_url_format,
+)
 
 
 def reload_config_modules():

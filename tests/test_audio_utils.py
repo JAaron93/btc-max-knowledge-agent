@@ -3,15 +3,19 @@ Unit tests for audio processing utilities.
 """
 
 import base64
-import io
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from btc_max_knowledge_agent.utils.audio_utils import (
-    AudioFormatConverter, AudioProcessingError, AudioStreamProcessor,
-    ContentExtractionError, ResponseContentExtractor, extract_tts_content,
-    prepare_audio_for_gradio, stream_audio_chunks)
+    AudioFormatConverter,
+    AudioProcessingError,
+    AudioStreamProcessor,
+    ContentExtractionError,
+    ResponseContentExtractor,
+    extract_tts_content,
+    prepare_audio_for_gradio,
+    stream_audio_chunks,
+)
 
 
 class TestResponseContentExtractor:

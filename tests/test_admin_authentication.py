@@ -4,7 +4,6 @@ Tests for Admin Authentication System
 """
 
 import importlib.util
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -13,14 +12,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
+# Import path is configured in tests/conftest.py; keep imports at top.
 from src.web.admin_auth import AdminAuthenticator
 from src.web.admin_router import admin_router
 
-# Import shared password hashing utility from scripts directory
+# Import shared password hashing utility from scripts directory without sys.path hacks
+project_root = Path(__file__).resolve().parents[1]
 scripts_path = project_root / "scripts"
 spec = importlib.util.spec_from_file_location(
     "generate_admin_hash", scripts_path / "generate_admin_hash.py"
@@ -43,14 +40,16 @@ class TestAdminAuthenticator:
             {
                 "ADMIN_USERNAME": "test_admin",
                 "ADMIN_PASSWORD_HASH": test_password_hash,
-                "ADMIN_SECRET_KEY": "test_secret_key_64_hex_chars_representing_32_bytes_total",
+                "ADMIN_SECRET_KEY": (
+                    "test_secret_key_64_hex_chars_representing_32_bytes_total"
+                ),
             },
             clear=False,
         ):
             self.authenticator = AdminAuthenticator()
 
     def test_password_verification_through_authentication(self):
-        """Test password verification through public authentication interface"""
+        """Test password verification through public authentication."""
         # Test with correct credentials - should succeed
         token = self.authenticator.authenticate_admin(
             "test_admin", "admin123", "192.168.1.1"
@@ -258,7 +257,8 @@ class TestAdminRouter:
             mock_get_auth.return_value = mock_authenticator
 
             response = self.client.post(
-                "/admin/login", json={"username": "admin", "password": "admin123"}
+                "/admin/login",
+                json={"username": "admin", "password": "admin123"},
             )
 
             assert response.status_code == 200
@@ -274,7 +274,8 @@ class TestAdminRouter:
             mock_get_auth.return_value = mock_authenticator
 
             response = self.client.post(
-                "/admin/login", json={"username": "admin", "password": "wrong_password"}
+                "/admin/login",
+                json={"username": "admin", "password": "wrong_password"},
             )
 
             assert response.status_code == 401
@@ -316,13 +317,14 @@ class TestAdminRouter:
             }
 
             response = self.client.get(
-                "/admin/sessions/stats", headers={"Authorization": "Bearer valid_token"}
+                "/admin/sessions/stats",
+                headers={"Authorization": "Bearer valid_token"},
             )
 
             assert response.status_code == 200
             data = response.json()
             assert "session_statistics" in data
-            assert data["admin_access"] == True
+            assert data["admin_access"]
 
     def test_admin_logout(self):
         """Test admin logout"""
@@ -333,7 +335,8 @@ class TestAdminRouter:
             mock_get_auth.return_value = mock_authenticator
 
             response = self.client.post(
-                "/admin/logout", headers={"Authorization": "Bearer valid_token"}
+                "/admin/logout",
+                headers={"Authorization": "Bearer valid_token"},
             )
 
             assert response.status_code == 200
@@ -357,7 +360,7 @@ class TestAdminRouter:
             assert response.status_code == 200
             data = response.json()
             assert "force-deleted successfully" in data["message"]
-            assert data["admin_access"] == True
+            assert data["admin_access"]
 
 
 if __name__ == "__main__":

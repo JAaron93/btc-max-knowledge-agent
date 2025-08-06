@@ -3,8 +3,6 @@
 Integration tests for Argon2id password hashing upgrade
 """
 
-import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest

@@ -6,10 +6,9 @@ and various edge cases.
 """
 
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import patch
 
-import pytest
 
 from btc_max_knowledge_agent.utils.audio_cache import AudioCache, CacheEntry
 
@@ -240,7 +239,7 @@ class TestAudioCache:
         audio1 = b"audio1"
         audio2 = b"audio2"
 
-        key1 = cache.put(text1, audio1)
+        cache.put(text1, audio1)
         key2 = cache.put(text2, audio2)
         assert len(cache) == 2
 

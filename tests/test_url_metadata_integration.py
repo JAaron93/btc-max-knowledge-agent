@@ -18,11 +18,17 @@ import requests
 
 from btc_max_knowledge_agent.knowledge.data_collector import DataCollector
 from btc_max_knowledge_agent.retrieval.pinecone_client import PineconeClient
-from utils.url_error_handler import (GracefulDegradation, URLValidationError,
-                                     exponential_backoff_retry)
+from utils.url_error_handler import (
+    GracefulDegradation,
+    URLValidationError,
+    exponential_backoff_retry,
+)
 from utils.url_metadata_logger import get_correlation_id, set_correlation_id
-from utils.url_utils import (check_urls_accessibility_parallel, is_secure_url,
-                             sanitize_url_for_storage, validate_url_batch)
+from utils.url_utils import (
+    check_urls_accessibility_parallel,
+    sanitize_url_for_storage,
+    validate_url_batch,
+)
 
 
 class TestEndToEndURLMetadataFlow:
@@ -168,8 +174,8 @@ class TestEndToEndURLMetadataFlow:
         mock_pinecone_class.return_value = mock_pinecone
 
         # Initialize components
-        pinecone_client = PineconeClient()
-        data_collector = DataCollector(check_url_accessibility=False)
+        PineconeClient()
+        DataCollector(check_url_accessibility=False)
 
         # Test graceful degradation functionality with URL validation failures
         test_url = "not-a-valid-url"

@@ -3,10 +3,8 @@
 Tests for Enhanced Session Security Features
 """
 
-import sys
 import time
 from datetime import datetime, timedelta
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -27,10 +25,10 @@ class TestRateLimiter:
 
         # First 5 requests should be allowed
         for i in range(5):
-            assert limiter.is_allowed(client_id) == True
+            assert limiter.is_allowed(client_id)
 
         # 6th request should be denied
-        assert limiter.is_allowed(client_id) == False
+        assert not limiter.is_allowed(client_id)
 
     def test_rate_limiter_resets_after_window(self):
         """Test that rate limiter resets after time window"""
@@ -40,15 +38,15 @@ class TestRateLimiter:
         client_id = "test_client"
 
         # Use up the limit
-        assert limiter.is_allowed(client_id) == True
-        assert limiter.is_allowed(client_id) == True
-        assert limiter.is_allowed(client_id) == False
+        assert limiter.is_allowed(client_id)
+        assert limiter.is_allowed(client_id)
+        assert not limiter.is_allowed(client_id)
 
         # Wait for window to reset
         time.sleep(1.1)
 
         # Should be allowed again
-        assert limiter.is_allowed(client_id) == True
+        assert limiter.is_allowed(client_id)
 
     def test_rate_limiter_per_client_isolation(self):
         """Test that rate limiting is isolated per client"""
@@ -58,14 +56,14 @@ class TestRateLimiter:
         client2 = "client_2"
 
         # Client 1 uses up their limit
-        assert limiter.is_allowed(client1) == True
-        assert limiter.is_allowed(client1) == True
-        assert limiter.is_allowed(client1) == False
+        assert limiter.is_allowed(client1)
+        assert limiter.is_allowed(client1)
+        assert not limiter.is_allowed(client1)
 
         # Client 2 should still be allowed
-        assert limiter.is_allowed(client2) == True
-        assert limiter.is_allowed(client2) == True
-        assert limiter.is_allowed(client2) == False
+        assert limiter.is_allowed(client2)
+        assert limiter.is_allowed(client2)
+        assert not limiter.is_allowed(client2)
 
     def test_rate_limiter_stats(self):
         """Test rate limiter statistics"""
@@ -94,13 +92,13 @@ class TestSessionRateLimiter:
 
         # Session info has higher limit (20)
         for i in range(20):
-            assert limiter.check_session_info_limit(client_ip) == True
-        assert limiter.check_session_info_limit(client_ip) == False
+            assert limiter.check_session_info_limit(client_ip)
+        assert not limiter.check_session_info_limit(client_ip)
 
         # Session delete has lower limit (5) - should still work for different endpoint
         for i in range(5):
-            assert limiter.check_session_delete_limit(client_ip) == True
-        assert limiter.check_session_delete_limit(client_ip) == False
+            assert limiter.check_session_delete_limit(client_ip)
+        assert not limiter.check_session_delete_limit(client_ip)
 
     def test_session_rate_limiter_stats(self):
         """Test session rate limiter statistics"""
@@ -419,11 +417,11 @@ class TestSecurityLogging:
         client_id = "test_client"
 
         # First request allowed
-        assert limiter.is_allowed(client_id) == True
+        assert limiter.is_allowed(client_id)
 
         # Second request should be denied and logged
         with patch("src.web.rate_limiter.logger") as mock_logger:
-            assert limiter.is_allowed(client_id) == False
+            assert not limiter.is_allowed(client_id)
             mock_logger.warning.assert_called_once()
 
             # Verify log message contains relevant information

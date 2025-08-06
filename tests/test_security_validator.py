@@ -10,15 +10,16 @@ This test suite covers:
 - Library health monitoring
 """
 
-import asyncio
-from typing import Any, Dict
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from src.security.models import (SecurityAction, SecurityConfiguration,
-                                 SecuritySeverity, SecurityViolation,
-                                 ValidationResult)
+from src.security.models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecuritySeverity,
+    SecurityViolation,
+)
 from src.security.validator import LibraryHealthStatus, SecurityValidator
 
 
@@ -195,7 +196,7 @@ class TestSecurityValidator:
 
     def test_utf8_validation_error_handling(self, validator):
         """Test UTF-8 validation error handling by mocking encoding errors."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         # Mock a UnicodeDecodeError to test error handling
         mock_error = UnicodeDecodeError("utf-8", b"invalid", 0, 1, "invalid start byte")
@@ -352,7 +353,7 @@ class TestSecurityValidator:
 
         test_input = "<script>alert('xss')</script>Hello"
 
-        result = await validator.sanitize_input(test_input)
+        await validator.sanitize_input(test_input)
 
         # Check that bleach was called with correct parameters
         mock_bleach.clean.assert_called_once()
@@ -371,7 +372,7 @@ class TestSecurityValidator:
 
         test_input = "<script>alert('xss')</script>"
 
-        result = await validator.sanitize_input(test_input)
+        await validator.sanitize_input(test_input)
 
         # Check that escape was called
         mock_escape.assert_called()

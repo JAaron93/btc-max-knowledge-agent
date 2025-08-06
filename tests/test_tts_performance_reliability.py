@@ -14,17 +14,14 @@ import shutil
 import tempfile
 import threading
 import time
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
 
-from src.utils.audio_utils import (AudioFormatConverter, AudioStreamingManager,
-                                   AudioStreamProcessor,
-                                   get_audio_streaming_manager)
+from src.utils.audio_utils import AudioFormatConverter, get_audio_streaming_manager
 from src.utils.multi_tier_audio_cache import CacheConfig, MultiTierAudioCache
-from src.utils.tts_error_handler import (TTSErrorHandler, TTSNetworkError,
-                                         TTSServerError)
+from src.utils.tts_error_handler import TTSNetworkError, TTSServerError
 from src.utils.tts_service import TTSConfig, TTSService
 
 
@@ -208,7 +205,7 @@ class TestAudioStreamingPerformance:
                 conversion_time = end_time - start_time
 
                 # Verify conversion
-                assert gradio_uri.startswith(f"data:audio/")
+                assert gradio_uri.startswith("data:audio/")
                 assert "base64," in gradio_uri
 
                 # Performance should be reasonable
@@ -724,7 +721,7 @@ class TestReliabilityUnderAdverseConditions:
         with patch("aiohttp.ClientSession", return_value=mock_session):
             for i in range(25):  # Ensure we exceed the error count
                 try:
-                    result = await reliable_service.synthesize_text(f"{test_text} {i}")
+                    await reliable_service.synthesize_text(f"{test_text} {i}")
                     success_count += 1
                 except Exception:
                     pass  # Expected failures
@@ -768,7 +765,7 @@ class TestReliabilityUnderAdverseConditions:
     @pytest.mark.asyncio
     async def test_rapid_state_changes(self, reliable_service):
         """Test reliability under rapid state changes."""
-        test_text = "Rapid state change test"
+        _ = "Rapid state change test"
 
         # Rapidly change volume settings while performing operations
         async def volume_changer():

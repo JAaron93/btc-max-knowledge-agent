@@ -6,9 +6,6 @@ This file identifies critical test coverage gaps that should be addressed
 to ensure comprehensive security testing.
 """
 
-import sys
-from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 

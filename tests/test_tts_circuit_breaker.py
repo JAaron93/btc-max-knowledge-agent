@@ -8,18 +8,24 @@ This module tests:
 - Circuit breaker configuration and thresholds
 """
 
-import asyncio
 import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from src.utils.tts_error_handler import (CircuitBreaker, CircuitBreakerConfig,
-                                         CircuitState, TTSCircuitOpenError,
-                                         TTSError, TTSErrorHandler,
-                                         TTSNetworkError, TTSRateLimitError,
-                                         TTSServerError)
+from src.utils.tts_error_handler import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitState,
+    TTSCircuitOpenError,
+    TTSError,
+    TTSErrorHandler,
+    TTSNetworkError,
+    TTSRateLimitError,
+    TTSServerError,
+    TTSRetryExhaustedError,
+)
 from src.utils.tts_service import TTSConfig, TTSService
 
 

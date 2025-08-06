@@ -6,7 +6,6 @@ This test ensures that all fixtures are properly configured and provide
 the expected data structures and behavior.
 """
 
-from unittest.mock import Mock
 
 import pytest
 
@@ -271,10 +270,12 @@ def test_mock_logger_fixture(mock_logger):
 
 def test_parametrize_decorators():
     """Test that parametrize decorators are properly defined."""
-    from tests.conftest import (pytest_parametrize_config_variants,
-                                pytest_parametrize_error_scenarios,
-                                pytest_parametrize_truncation_lengths,
-                                pytest_parametrize_vector_types)
+    from tests.conftest import (
+        pytest_parametrize_config_variants,
+        pytest_parametrize_error_scenarios,
+        pytest_parametrize_truncation_lengths,
+        pytest_parametrize_vector_types,
+    )
 
     # Test that they are pytest.mark.parametrize objects
     assert hasattr(pytest_parametrize_truncation_lengths, "mark")
