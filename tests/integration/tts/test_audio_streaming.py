@@ -2,16 +2,18 @@
 """
 Test script for audio streaming functionality.
 """
+
 # Ensure pytest handles async tests in this module
 import pytest
+
 pytestmark = pytest.mark.asyncio
 
 import asyncio
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent
+# Add project root to path (navigate up from tests/integration/tts/ to project root)
+project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "src"))
 

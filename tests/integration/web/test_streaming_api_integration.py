@@ -92,7 +92,6 @@ def test_streaming_test_endpoint():
             print(f"   Cached: {data.get('cached')}")
 
             streaming_data = data.get("streaming_data", {})
-            streaming_data = data.get("streaming_data", {})
             if streaming_data:
                 duration = streaming_data.get("duration")
                 if duration is not None:
@@ -179,7 +178,7 @@ def main():
     results = []
 
     for test_name, test_func in tests:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Running: {test_name}")
         print("=" * 60)
 
@@ -191,7 +190,7 @@ def main():
             break
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("INTEGRATION TEST SUMMARY")
     print("=" * 60)
 

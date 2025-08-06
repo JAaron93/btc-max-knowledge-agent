@@ -369,9 +369,10 @@ def test_waveform_animation():
     )
 
     # Verify animation contains required elements
-    assert "svg" in animation_html.lower(), "Animation should contain SVG element"
-    assert "animate" in animation_html.lower(), (
-        "Animation should contain animate elements"
+    assert "svg" in animation_html.lower(), f"Animation should contain SVG element, but got: {animation_html[:100]}..."
+    assert (
+        "animate" in animation_html.lower()
+    ), f"Animation should contain animate elements, but got: {animation_html[:100]}..."
     )
     assert "synthesizing speech" in animation_html.lower(), (
         "Animation should contain synthesis text"
@@ -535,7 +536,7 @@ def test_smooth_transitions():
         )
 
         # Check that Ready and Error states have fade-in animation
-        if i in [0, 4]:  # Ready and Error states should have fade-in
+        if state_name in ["Ready", "Error"]:  # Ready and Error states should have fade-in
             assert re.search(fade_in_pattern, state_html), (
                 f"{state_name} state should have fade-in animation"
             )

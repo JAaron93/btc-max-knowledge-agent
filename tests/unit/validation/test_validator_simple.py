@@ -55,13 +55,12 @@ async def test_validator():
     library_status = validator.get_library_status()
     status_parts = []
 
-    # Format library status information using public API
-    for lib_name in ["libinjection", "bleach", "markupsafe", "pymodsecurity"]:
-        if lib_name in library_status:
-            lib_info = library_status[lib_name]
-            if isinstance(lib_info, dict) and "available" in lib_info:
-                status = "OK" if lib_info["available"] else "UNAVAILABLE"
-                status_parts.append(f"{lib_name}:{status}")
+    # Format library status information using public API (dynamic over returned keys)
+    for lib_name in library_status.keys():
+        lib_info = library_status[lib_name]
+        if isinstance(lib_info, dict) and "available" in lib_info:
+            status = "OK" if lib_info["available"] else "UNAVAILABLE"
+            status_parts.append(f"{lib_name}:{status}")
 
     print(f"Library status: {', '.join(status_parts)}")
 

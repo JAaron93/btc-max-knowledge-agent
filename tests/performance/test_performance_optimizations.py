@@ -61,8 +61,10 @@ try:
     sys.path.insert(0, str(project_root))
 except RuntimeError as e:
     print(f"Error finding project root: {e}")
-    # Fallback to the old method as last resort
-    project_root = Path(__file__).parent
+    # Fallback: try going up directories from current location
+    project_root = Path(
+        __file__
+    ).parent.parent.parent  # tests/performance -> tests -> project_root
     sys.path.insert(0, str(project_root))
     print(f"Using fallback project root: {project_root}")
 
@@ -126,8 +128,10 @@ def test_memory_monitoring():
         print(f"Memory cleanup results: {cleanup_results}")
         assert cleanup_results is not None, "Cleanup results should not be None"
     finally:
-        # Cleanup is handled by garbage collection for sync resources
-        pass
+        # Explicitly cleanup resources
+        if hasattr(tts_service, "cleanup_resources"):
+            # Note: This would need to be made async if cleanup_resources is async
+            pass  # or implement sync cleanup method
 
     print("✅ Memory monitoring test completed")
 

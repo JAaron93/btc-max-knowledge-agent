@@ -135,8 +135,8 @@ def test_volume_validation():
         try:
             validate_volume_strict(vol)
             print(f"✅ Volume {vol} is valid")
-        except ValueError:
-            assert False, f"Volume {vol} should be valid"
+        except ValueError as e:
+            assert False, f"Volume {vol} should be valid but got error: {e}"
 
     # Test invalid volumes
     invalid_volumes = [-0.1, 1.1, 2.0, -1.0]

@@ -53,6 +53,18 @@ async def test_circuit_breaker_basic():
     logger.info("✓ Circuit remains CLOSED after successes")
 
     # Test failures to trigger opening
+    # First, test hitting exact threshold (2 failures out of 4 = 50%)
+    circuit_breaker_exact = CircuitBreaker(config)
+    for _ in range(2):
+        circuit_breaker_exact.record_success()
+    for _ in range(2):
+        circuit_breaker_exact.record_failure()
+    # Should still be closed at exactly 50%
+    state_exact = circuit_breaker_exact.get_state()
+    assert state_exact["state"] == "closed"
+    logger.info("✓ Circuit remains CLOSED at exact threshold")
+    
+    # Now test exceeding threshold
     for i in range(3):  # 3 failures out of 4 requests = 75% failure rate
         assert circuit_breaker.can_execute()
         circuit_breaker.record_failure()
@@ -102,8 +114,14 @@ async def test_circuit_breaker_failure_during_recovery():
 
     circuit_breaker = CircuitBreaker(config)
 
+    # Verify initial state before forcing failures
+    assert circuit_breaker.can_execute()
+    assert circuit_breaker.get_state()["state"] == "closed"
+    logger.info("✓ Circuit starts in CLOSED state")
+
     # Force circuit to OPEN state
     for _ in range(3):
+        assert circuit_breaker.can_execute()  # Should still be executable before threshold
         circuit_breaker.record_failure()
 
     state = circuit_breaker.get_state()

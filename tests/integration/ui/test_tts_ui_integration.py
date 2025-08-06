@@ -9,7 +9,9 @@ from pathlib import Path
 import gradio as gr
 
 # Add project root to path
-project_root = Path(__file__).resolve().parent
+project_root = Path(__file__).resolve()
+while not (project_root / "src").exists() and project_root != project_root.parent:
+    project_root = project_root.parent
 sys.path.insert(0, str(project_root))
 
 

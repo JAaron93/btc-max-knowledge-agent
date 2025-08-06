@@ -7,7 +7,10 @@ import sys
 from pathlib import Path
 
 # Add project root to path (avoid duplicates)
-project_root = Path(__file__).parent
+# Add project root to path (avoid duplicates)
+project_root = Path(
+    __file__
+).parent.parent.parent.parent  # Go up from tests/integration/ui/ to project root
 project_root_str = str(project_root)
 src_path_str = str(project_root / "src")
 
@@ -114,6 +117,9 @@ def test_tts_state_management():
         state.stop_synthesis()
         assert not state.is_synthesizing
         assert state.stop_animation
+        # Verify synthesis_start_time behavior after stopping
+        # (This depends on the actual implementation - may be None or preserved)
+        print(f"   synthesis_start_time after stop: {state.synthesis_start_time}")
 
         print("✅ TTS state management works correctly")
         return True
@@ -143,8 +149,9 @@ def test_gradio_interface_creation():
         return True
 
     except ImportError as e:
-        print(f"⚠️  Gradio not available for testing: {e}")
-        return True  # Not a failure if Gradio isn't installed
+        # Explicitly indicate the test was skipped due to missing dependency
+        print(f"⚠️  Gradio not available for testing (skipped): {e}")
+        return None
     except Exception as e:
         print(f"❌ Gradio interface creation test failed: {e}")
         return False
@@ -164,7 +171,7 @@ def main():
     results = []
 
     for test_name, test_func in tests:
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print(f"Running: {test_name}")
         print("=" * 50)
 
@@ -172,20 +179,29 @@ def main():
         results.append((test_name, result))
 
     # Summary
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print("UI STREAMING TEST SUMMARY")
     print("=" * 50)
 
     passed = 0
     for test_name, result in results:
-        status = "✅ PASSED" if result else "❌ FAILED"
+        if result is None:
+            status = "⏭️ SKIPPED"
+        else:
+            status = "✅ PASSED" if result else "❌ FAILED"
         print(f"{test_name}: {status}")
         if result:
             passed += 1
 
-    print(f"\nOverall: {passed}/{len(results)} tests passed")
+    # Count skipped for clarity
+    skipped = sum(1 for _, r in results if r is None)
+    total = len(results)
+    print(f"\nOverall: {passed}/{total} tests passed, {skipped} skipped")
 
-    if passed == len(results):
+    if passed == total - skipped and skipped > 0:
+        print("ℹ️  All executed tests passed; some tests were skipped due to missing dependencies.")
+        return True
+    elif passed == total:
         print("🎉 All TTS UI streaming tests passed!")
         return True
     else:

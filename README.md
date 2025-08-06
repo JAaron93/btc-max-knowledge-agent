@@ -1,6 +1,32 @@
-# 🪙 Bitcoin Knowledge Assistant Web Application
+# 🪙 Bitcoin Knowledge Assistant
 
-A modern web application that provides intelligent Bitcoin and blockchain knowledge using **Pinecone Assistant** with smart document retrieval.
+Quick links
+- Development guide: docs/guides/development.md
+- Changelog: docs/changelogs/CHANGELOG.md
+- Architecture overview: docs/architecture/overview.md
+- Testing guide: docs/testing/guide.md
+
+Getting started
+1) Create and activate a virtual environment
+   python -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+2) Install in development mode with extras
+   pip install -e ".[dev]"
+
+3) Run tests (pytest.ini controls discovery and pythonpath)
+   python -m pytest -q
+
+Project conventions
+- Tests live under tests/{unit,integration,e2e,performance,ui,security}
+- Pytest is configured via pytest.ini (testpaths=tests, pythonpath=src)
+- Local runners:
+  - python run_tests.py [--unit|--integration|--e2e|--performance|--ui|--security] [-k expr] [--collect-only]
+  - ./run_tests.sh [same flags]
+
+Documentation
+- All documentation is consolidated under docs/
+- Legacy paths are mapped in docs/REDIRECTS.md
 
 ## 🚀 Features
 

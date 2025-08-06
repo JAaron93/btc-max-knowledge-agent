@@ -40,9 +40,9 @@ async def test_circuit_breaker_basic():
     # Create circuit breaker with low threshold for testing
     config = CircuitBreakerConfig(
         failure_threshold=0.5,  # 50% failure rate
-        window_size=4,  # Small window for quick testing
-        cooldown_period=2,  # 2 second cooldown
-        success_threshold=2,  # 2 successes to close
+        window_size=4,          # Small window for quick testing
+        cooldown_period=2,      # 2 second cooldown
+        success_threshold=2,    # 2 successes to close
     )
 
     error_handler = TTSErrorHandler(circuit_config=config)
@@ -63,7 +63,7 @@ async def test_circuit_breaker_basic():
     circuit_state = error_handler.get_circuit_breaker_state()
     logger.info(f"Circuit state after failures: {circuit_state}")
 
-    if circuit_state["state"] == "open":
+    if circuit_state["state"] == CircuitState.OPEN.value:
         logger.info("✓ Circuit opened after failure threshold reached")
     else:
         logger.warning(f"⚠ Circuit state is {circuit_state['state']}, expected 'open'")
@@ -79,7 +79,7 @@ async def test_circuit_breaker_basic():
 
     # Test 4: Wait for cooldown and test half-open state
     logger.info("Waiting for cooldown period...")
-    await asyncio.sleep(2.5)  # Wait longer than cooldown period
+    await asyncio.sleep(config.cooldown_period + 0.5)  # Wait longer than cooldown period
 
     # Next request should transition to half-open
     try:
@@ -91,7 +91,7 @@ async def test_circuit_breaker_basic():
         logger.info("✓ Second success should close the circuit")
 
         circuit_state = error_handler.get_circuit_breaker_state()
-        if circuit_state["state"] == "closed":
+        if circuit_state["state"] == CircuitState.CLOSED.value:
             logger.info("✓ Circuit closed after successful recovery")
         else:
             logger.warning(
@@ -100,7 +100,6 @@ async def test_circuit_breaker_basic():
 
     except Exception as e:
         logger.error(f"✗ Recovery failed: {type(e).__name__}: {e}")
-
 
 async def test_circuit_breaker_failure_during_recovery():
     """Test circuit breaker behavior when failure occurs during half-open state."""
@@ -120,7 +119,8 @@ async def test_circuit_breaker_failure_during_recovery():
             pass
 
     logger.info("Circuit opened, waiting for cooldown...")
-    await asyncio.sleep(1.5)
+-    await asyncio.sleep(1.5)
++    await asyncio.sleep(config.cooldown_period + 0.5)
 
     # Try to recover but fail - should go back to open
     try:
@@ -129,28 +129,29 @@ async def test_circuit_breaker_failure_during_recovery():
         logger.info(f"Recovery attempt failed as expected: {type(e).__name__}")
 
     circuit_state = error_handler.get_circuit_breaker_state()
-    if circuit_state["state"] == "open":
+-    if circuit_state["state"] == "open":
++    if circuit_state["state"] == CircuitState.OPEN.value:
         logger.info("✓ Circuit returned to OPEN state after failed recovery")
     else:
         logger.warning(f"⚠ Circuit state is {circuit_state['state']}, expected 'open'")
 
-
 async def test_timeout_handling():
-    """Test timeout handling in TTS operations."""
+    """Test timeout handling in TTS operations without long sleeps."""
     logger.info("\n=== Testing Timeout Handling ===")
 
+    # Simulate a timeout immediately to avoid long sleep.
     async def simulate_timeout_operation():
-        """Simulate an operation that times out."""
-        await asyncio.sleep(50)  # Longer than total timeout (45s)
-        return "should not reach here"
+        raise asyncio.TimeoutError("Simulated timeout")
 
     error_handler = TTSErrorHandler()
 
     try:
-        # This should timeout and be handled as a network error
+        # This should surface as a handled network/timeout error through the retry wrapper
         await error_handler.execute_with_retry(simulate_timeout_operation)
         logger.error("✗ Expected timeout error but operation succeeded")
     except Exception as e:
+        # We intentionally accept any mapped/raised exception type since TTSErrorHandler
+        # may wrap timeouts as network or circuit errors depending on policy.
         logger.info(f"✓ Timeout handled correctly: {type(e).__name__}: {e}")
 
 

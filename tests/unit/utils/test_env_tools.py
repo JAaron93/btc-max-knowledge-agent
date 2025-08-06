@@ -172,7 +172,7 @@ class TestEnvTools(unittest.TestCase):
             f"Overriding environment variable '{self.test_key}' from '{self.test_value}' to '{self.override_value}'"
         )
 
-        # Verify warning was called in both cases
+        # Verify warning was called for the override case
         self.assertEqual(mock_logger.warning.call_count, 1)
 
     @patch("env_tools.logger")

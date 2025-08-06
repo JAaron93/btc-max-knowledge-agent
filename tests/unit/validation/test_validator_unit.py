@@ -31,19 +31,25 @@ from security.models import (
 from security.validator import LibraryHealthStatus, SecurityValidator
 
 
+@pytest.fixture(scope="module")
+def security_config() -> SecurityConfiguration:
+    """Reusable SecurityConfiguration for tests to reduce duplication."""
+    return SecurityConfiguration(
+        max_query_length=4096,
+        max_metadata_fields=50,
+        max_context_tokens=8192,
+        max_tokens=1000,
+        injection_detection_threshold=0.8,
+        sanitization_confidence_threshold=0.7,
+    )
+
+
 class TestSecurityValidator:
     """Test suite for SecurityValidator component."""
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.config = SecurityConfiguration(
-            max_query_length=4096,
-            max_metadata_fields=50,
-            max_context_tokens=8192,
-            max_tokens=1000,
-            injection_detection_threshold=0.8,
-            sanitization_confidence_threshold=0.7,
-        )
+    def setup_method(self, _method, request: pytest.FixtureRequest):
+        """Set up test fixtures using shared configuration fixture."""
+        self.config = request.getfixturevalue("security_config")
         self.validator = SecurityValidator(self.config)
 
     def test_initialization(self):
@@ -74,6 +80,25 @@ class TestSecurityValidator:
             assert isinstance(lib_info, dict)
             assert "available" in lib_info
             assert isinstance(lib_info["available"], bool)
+    
+        @pytest.mark.asyncio
+        async def test_input_length_validation_edge_cases(self):
+            """Edge cases for input length validation: empty and single-character inputs."""
+            context = {"source_ip": "127.0.0.1"}
+    
+            # Empty string
+            result_empty = await self.validator.validate_input("", context)
+            empty_length_violations = [
+                v for v in result_empty.violations if v.violation_type == "input_length_exceeded"
+            ]
+            assert len(empty_length_violations) == 0
+    
+            # Single character
+            result_single = await self.validator.validate_input("a", context)
+            single_length_violations = [
+                v for v in result_single.violations if v.violation_type == "input_length_exceeded"
+            ]
+            assert len(single_length_violations) == 0
 
     @pytest.mark.asyncio
     async def test_input_length_validation_within_limit(self):
@@ -234,9 +259,9 @@ class TestSecurityValidator:
         expected_weight_sum = sum(scores)
         expected_result = expected_weighted_sum / expected_weight_sum
 
-        # The algorithm uses weighted average where each score is weighted by itself
-        # This favors higher confidence scores in the final result
-        # For [0.9, 0.8, 0.7]: (0.9²+0.8²+0.7²)/(0.9+0.8+0.7) ≈ 0.8083
+        # The algorithm uses weighted average where each score is weighted by itself.
+        # This favors higher confidence scores in the final result.
+        # For [0.9, 0.8, 0.7]: (0.9^2 + 0.8^2 + 0.7^2) / (0.9 + 0.8 + 0.7) ~= 0.8083
         assert abs(result - expected_result) < 0.001, (
             f"Expected {expected_result:.4f}, got {result:.4f}. "
             f"Algorithm: weighted_sum({expected_weighted_sum:.4f}) / "
@@ -270,6 +295,27 @@ class TestSecurityValidator:
         assert (
             abs(extreme_result - extreme_expected) < 0.001
         ), f"Expected {extreme_expected:.4f}, got {extreme_result:.4f}"
+
+    def test_recommended_action_mixed_violations(self):
+        """Ensure highest severity is prioritized when multiple violations exist."""
+        # Mixed severities: WARNING and ERROR should result in BLOCK
+        warning_violation = SecurityViolation(
+            violation_type="xss_injection",
+            severity=SecuritySeverity.WARNING,
+            description="XSS warning-level issue",
+            confidence_score=0.8,
+        )
+        error_violation = SecurityViolation(
+            violation_type="input_length_exceeded",
+            severity=SecuritySeverity.ERROR,
+            description="Error-level issue",
+            confidence_score=0.9,
+        )
+
+        action = self.validator._determine_recommended_action(
+            [warning_violation, error_violation]
+        )
+        assert action == SecurityAction.BLOCK
 
     def test_recommended_action_determination(self):
         """Test recommended action determination based on violations."""
@@ -392,13 +438,5 @@ class TestSecurityValidator:
 
 
 if __name__ == "__main__":
-    # Run tests
-    import subprocess
-
-    result = subprocess.run(
-        [sys.executable, "-m", "pytest", __file__, "-v"], capture_output=True, text=True
-    )
-    print(result.stdout)
-    if result.stderr:
-        print("STDERR:", result.stderr)
-    sys.exit(result.returncode)
+    # Enable standard pytest discovery/execution for this file
+    sys.exit(pytest.main([__file__, "-v"]))
