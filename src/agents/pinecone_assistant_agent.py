@@ -6,17 +6,24 @@ from urllib.parse import urlparse
 
 import requests
 
-from btc_max_knowledge_agent.monitoring.url_metadata_monitor import \
-    record_upload
+from btc_max_knowledge_agent.monitoring.url_metadata_monitor import record_upload
 from btc_max_knowledge_agent.utils.config import Config
-from btc_max_knowledge_agent.utils.result_formatter import \
-    AssistantResponseFormatter
+from btc_max_knowledge_agent.utils.result_formatter import AssistantResponseFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    FallbackURLStrategy, GracefulDegradation, URLMetadataUploadError,
-    URLValidationError, exponential_backoff_retry, retry_url_upload)
+    FallbackURLStrategy,
+    GracefulDegradation,
+    URLMetadataUploadError,
+    URLValidationError,
+    exponential_backoff_retry,
+    retry_url_upload,
+)
+
 # Import our logging infrastructure
 from btc_max_knowledge_agent.utils.url_metadata_logger import (
-    correlation_context, generate_correlation_id, log_upload)
+    correlation_context,
+    generate_correlation_id,
+    log_upload,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -82,14 +82,14 @@ def main():
     print("-" * 35)
     print("✅ Credentials generated successfully!")
 
-    print(f"\n📝 Add these to your .env file:")
+    print("\n📝 Add these to your .env file:")
     print("=" * 50)
     print(f"ADMIN_USERNAME={username}")
     print(f"ADMIN_PASSWORD_HASH={password_hash}")
     print(f"ADMIN_SECRET_KEY={secret_key}")
     print("=" * 50)
 
-    print(f"\n🚀 Or set as environment variables:")
+    print("\n🚀 Or set as environment variables:")
     print("=" * 50)
     print(f'export ADMIN_USERNAME="{username}"')
     print(f'export ADMIN_PASSWORD_HASH="{password_hash}"')
@@ -97,7 +97,7 @@ def main():
     print("=" * 50)
 
     # Security reminders
-    print(f"\n🔒 Security Reminders:")
+    print("\n🔒 Security Reminders:")
     print("• Keep these credentials secure and private")
     print("• Never commit credentials to version control")
     print("• Use environment variables in production")
@@ -106,14 +106,14 @@ def main():
     print("• Monitor admin access logs")
 
     # Verification info
-    print(f"\n📊 Credential Information:")
+    print("\n📊 Credential Information:")
     print(f"• Username: {username}")
-    print(f"• Password hash format: Argon2id")
+    print("• Password hash format: Argon2id")
     print(f"• Password hash length: {len(password_hash)} characters")
     print(f"• Secret key length: {len(secret_key)} characters (32 bytes)")
-    print(f"• Hash algorithm: Argon2id (OWASP recommended)")
+    print("• Hash algorithm: Argon2id (OWASP recommended)")
 
-    print(f"\n✅ Admin credentials ready for production deployment!")
+    print("\n✅ Admin credentials ready for production deployment!")
 
 
 if __name__ == "__main__":

@@ -15,9 +15,13 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from utils.exponential_backoff import (DEFAULT_MAX_DELAY, backoff_sequence,
-                                       next_backoff, reset_backoff,
-                                       total_backoff_time)
+from utils.exponential_backoff import (
+    DEFAULT_MAX_DELAY,
+    backoff_sequence,
+    next_backoff,
+    reset_backoff,
+    total_backoff_time,
+)
 
 
 def simulate_api_call() -> bool:

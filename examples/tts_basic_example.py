@@ -22,7 +22,7 @@ else:
         "Please ensure the script is run from the correct location or adjust the path."
     )
 
-from utils.tts_service import TTSError, get_tts_service
+from utils.tts_service import TTSError, get_tts_service  # noqa: E402
 
 
 async def main():

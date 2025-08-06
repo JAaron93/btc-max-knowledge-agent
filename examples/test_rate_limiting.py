@@ -5,8 +5,8 @@ Test script to demonstrate rate limiting functionality
 
 import os
 import sys
-import time
-from datetime import datetime
+from datetime import datetime as dt
+from datetime import timedelta
 
 # Import secure utilities
 from secure_import_utils import import_class_from_project
@@ -99,7 +99,7 @@ def test_rate_limiting():
         if lockout_info:
             # Format the locked_until timestamp for better readability
             locked_until = lockout_info["locked_until"]
-            if isinstance(locked_until, datetime):
+            if isinstance(locked_until, dt):
                 formatted_time = locked_until.strftime("%Y-%m-%d %H:%M:%S")
                 print(f"   📅 Locked until: {formatted_time}")
             else:
@@ -113,7 +113,7 @@ def test_rate_limiting():
     else:
         print("   ❌ Lockout bypassed unexpectedly")
 
-    print(f"\n4. Testing different IP (not locked out)")
+    print("\n4. Testing different IP (not locked out)")
     print("-" * 50)
 
     different_ip = "192.168.1.101"
@@ -124,7 +124,7 @@ def test_rate_limiting():
     else:
         print(f"   ❌ Different IP {different_ip} failed unexpectedly")
 
-    print(f"\n5. Testing admin statistics")
+    print("\n5. Testing admin statistics")
     print("-" * 50)
 
     stats = auth.get_admin_stats()
@@ -143,7 +143,7 @@ def test_rate_limiting():
         for locked_ip in rate_limiting["locked_ips"]:
             # Format the locked_until timestamp for better readability
             locked_until = locked_ip["locked_until"]
-            if isinstance(locked_until, datetime):
+            if isinstance(locked_until, dt):
                 formatted_time = locked_until.strftime("%Y-%m-%d %H:%M:%S")
                 print(
                     f"      🔒 {locked_ip['ip']}: {locked_ip['failed_attempts']} attempts, locked until {formatted_time}"
@@ -153,7 +153,7 @@ def test_rate_limiting():
                     f"      🔒 {locked_ip['ip']}: {locked_ip['failed_attempts']} attempts, locked until {locked_until}"
                 )
 
-    print(f"\n6. Testing manual IP unlock")
+    print("\n6. Testing manual IP unlock")
     print("-" * 50)
 
     # Test manual unlock
@@ -171,7 +171,7 @@ def test_rate_limiting():
     else:
         print(f"   ⚠️  IP {test_ip} was not locked or not found")
 
-    print(f"\n7. Testing cleanup of expired lockouts")
+    print("\n7. Testing cleanup of expired lockouts")
     print("-" * 50)
 
     # Create multiple failed attempts to trigger a lockout
@@ -202,10 +202,8 @@ def test_rate_limiting():
         # Simulate lockout expiry by manually modifying the lockout timestamp
         # This is a test-specific approach to simulate time passage
         if hasattr(auth, "failed_attempts") and cleanup_test_ip in auth.failed_attempts:
-            from datetime import datetime, timedelta
-
             # Set lockout to have expired 1 minute ago
-            expired_time = datetime.now() - timedelta(minutes=1)
+            expired_time = dt.now() - timedelta(minutes=1)
             auth.failed_attempts[cleanup_test_ip]["locked_until"] = expired_time
             print(f"   🕐 Simulated lockout expiry for IP: {cleanup_test_ip}")
 
@@ -226,11 +224,11 @@ def test_rate_limiting():
             )
         else:
             print(
-                f"   ⚠️  Lockout still exists after cleanup (may not have been expired)"
+                "   ⚠️  Lockout still exists after cleanup (may not have been expired)"
             )
     else:
         print(
-            f"   ⚠️  Lockout not created as expected - cleanup test is a basic smoke test"
+            "   ⚠️  Lockout not created as expected - cleanup test is a basic smoke test"
         )
         # Run cleanup anyway as a basic smoke test
         cleaned = auth.cleanup_expired_sessions()

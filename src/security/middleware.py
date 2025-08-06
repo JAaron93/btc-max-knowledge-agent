@@ -6,8 +6,6 @@ validates them using the SecurityValidator, and handles security violations
 appropriately.
 """
 
-import io
-import json
 import logging
 import time
 from typing import Any, Callable, Dict, Optional
@@ -15,14 +13,18 @@ from uuid import uuid4
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
-from starlette.datastructures import Headers
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import empty_receive, empty_send
 from starlette.types import ASGIApp
 
 from .interfaces import ISecurityMonitor, ISecurityValidator
-from .models import (SecurityAction, SecurityConfiguration, SecurityEvent,
-                     SecurityEventType, SecuritySeverity, ValidationResult)
+from .models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecurityEvent,
+    SecurityEventType,
+    SecuritySeverity,
+    ValidationResult,
+)
 
 logger = logging.getLogger(__name__)
 

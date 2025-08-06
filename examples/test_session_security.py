@@ -291,32 +291,36 @@ def test_session_security():
 
         print(f"    📝 Message: {message}")
 
-    print(f"\n🎯 Enhanced Security Validation Summary:")
-    print(f"   • 400 Bad Request: Invalid request format")
-    print(f"   • 401 Unauthorized: Missing, invalid, or expired session")
-    print(f"   • 403 Forbidden: Session ID mismatch (cross-user access)")
-    print(f"   • 410 Gone: Requested session has expired")
-    print(f"   • 200 OK: Valid session ownership")
+    print(
+        """
+🎯 Enhanced Security Validation Summary:
+   • 400 Bad Request: Invalid request format
+   • 401 Unauthorized: Missing, invalid, or expired session
+   • 403 Forbidden: Session ID mismatch (cross-user access)
+   • 410 Gone: Requested session has expired
+   • 200 OK: Valid session ownership
 
-    print(f"\n🔒 Security Features Implemented:")
-    print(f"   • Input validation and format checking")
-    print(f"   • Session expiration validation")
-    print(f"   • Comprehensive security logging")
-    print(f"   • IP address tracking for audit trails")
-    print(f"   • Protection against malformed requests")
+🔒 Security Features Implemented:
+   • Input validation and format checking
+   • Session expiration validation
+   • Comprehensive security logging
+   • IP address tracking for audit trails
+   • Protection against malformed requests
 
-    print(f"\n✅ Enhanced validation prevents:")
-    print(f"   • Cross-user session access attempts")
-    print(f"   • Access with expired or invalid sessions")
-    print(f"   • Malformed session ID attacks")
-    print(f"   • Session hijacking attempts")
-    print(f"   • Unauthorized access without proper authentication")
+✅ Enhanced validation prevents:
+   • Cross-user session access attempts
+   • Access with expired or invalid sessions
+   • Malformed session ID attacks
+   • Session hijacking attempts
+   • Unauthorized access without proper authentication
 
-    print(f"\n📋 Security Events Logged:")
-    print(f"   • All validation attempts with IP addresses")
-    print(f"   • Failed validation reasons and details")
-    print(f"   • Successful authentications for audit")
-    print(f"   • Session format and expiration violations")
+📋 Security Events Logged:
+   • All validation attempts with IP addresses
+   • Failed validation reasons and details
+   • Successful authentications for audit
+   • Session format and expiration violations
+"""
+    )
 
 
 def demonstrate_security_logging():

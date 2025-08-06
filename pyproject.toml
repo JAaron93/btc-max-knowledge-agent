@@ -35,3 +35,10 @@ include = ["btc_max_knowledge_agent*"]
 line-length = 88
 target-version = ['py38']
 include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+force_grid_wrap = 0
+ensure_newline_before_comments = true
+known_first_party = ["btc_max_knowledge_agent"]
+src_paths = ["src"]

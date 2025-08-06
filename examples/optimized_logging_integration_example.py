@@ -8,6 +8,7 @@ into existing code to achieve performance improvements.
 import os
 import sys
 import time
+
 # Add src to path for imports
 from pathlib import Path
 from typing import Any, Dict, List
@@ -17,9 +18,11 @@ src_dir = Path(__file__).resolve().parent.parent / "src"
 if src_dir.exists() and str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
-from utils.optimized_logging import (PerformanceOptimizedLogger,
-                                     configure_optimized_logging,
-                                     timed_operation)
+from utils.optimized_logging import (  # noqa: E402
+    PerformanceOptimizedLogger,
+    configure_optimized_logging,
+    timed_operation,
+)
 
 
 class OptimizedPineconeClient:

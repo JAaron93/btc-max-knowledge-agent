@@ -10,15 +10,12 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 logger = logging.getLogger(__name__)
-
-# Ensure logging is configured if the application hasn't set it up yet
-# This prevents silent defaulting to WARNING level and improves log visibility
-# Only configures logging if no handlers exist (respects existing configurations)
-if not logging.getLogger().hasHandlers():
-    logging.basicConfig(level=logging.INFO)
+# Note: This library does not configure logging handlers or levels.
+# Applications should configure logging at process startup to avoid
+# interfering with global logging configuration.
 
 
 # RATE LIMIT DEFAULTS
@@ -66,7 +63,7 @@ class SecurityEventType(Enum):
 
 
 class SecuritySeverity(Enum):
-    """Enumeration of security event severity levels for prioritization and alerting."""
+    """Enumeration of severity levels for prioritization and alerting."""
 
     INFO = "info"
     WARNING = "warning"
@@ -81,13 +78,14 @@ def get_default_severity_for_event_type(
     """
     Get the default/baseline severity level for a given event type.
 
-    This function provides recommended default severity levels for different event types
-    to ensure consistent handling across the security system. Note that many event types
-    can have contextual variations in severity (as documented in SecurityEventType enum),
-    but this function returns the baseline/most common severity level.
+    This function provides recommended default severity levels for different
+    event types to ensure consistent handling across the security system.
+    Many event types can have contextual variations in severity (see
+    SecurityEventType enum), but this returns the baseline/most common level.
 
-    For context-specific severity determination, use get_contextual_severity_for_event_type()
-    which considers additional factors like frequency, impact, and system state.
+    For context-specific severity determination, use
+    get_contextual_severity_for_event_type(), which considers factors like
+    frequency, impact, and system state.
 
     Args:
         event_type: The security event type
@@ -96,51 +94,66 @@ def get_default_severity_for_event_type(
         Default SecuritySeverity level (baseline recommendation)
 
     Examples:
-        >>> get_default_severity_for_event_type(SecurityEventType.RATE_LIMIT_EXCEEDED)
-        SecuritySeverity.WARNING  # Default, but could be ERROR in high-frequency scenarios
+        >>> get_default_severity_for_event_type(
+        ...     SecurityEventType.RATE_LIMIT_EXCEEDED
+        ... )
+        SecuritySeverity.WARNING  # May be ERROR in high-frequency scenarios
 
-        >>> get_default_severity_for_event_type(SecurityEventType.INPUT_VALIDATION_FAILURE)
-        SecuritySeverity.ERROR  # Default, but could be WARNING for minor issues or CRITICAL for injection attempts
+        >>> get_default_severity_for_event_type(
+        ...     SecurityEventType.INPUT_VALIDATION_FAILURE
+        ... )
+        SecuritySeverity.ERROR  # Could be WARNING (minor) or CRITICAL (injection)
     """
-    # Default severity mapping - represents the most common/baseline severity for each event type
-    # Many events can have higher severity in specific contexts (see SecurityEventType documentation)
+    # Default severity mapping - baseline severity for each event type.
+    # Many events can have higher severity in specific contexts.
     severity_mapping = {
-        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,  # Can be CRITICAL for repeated attempts
+        SecurityEventType.AUTHENTICATION_FAILURE: SecuritySeverity.ERROR,  # CRITICAL if repeated
         SecurityEventType.AUTHENTICATION_SUCCESS: SecuritySeverity.INFO,
-        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,  # Can be ERROR for severe rate limiting
-        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,  # Can be WARNING (minor) or CRITICAL (injection)
+        SecurityEventType.RATE_LIMIT_EXCEEDED: SecuritySeverity.WARNING,  # ERROR for severe rate limiting
+        SecurityEventType.INPUT_VALIDATION_FAILURE: SecuritySeverity.ERROR,  # WARNING (minor) or CRITICAL (injection)
         SecurityEventType.INPUT_VALIDATION_SUCCESS: SecuritySeverity.INFO,
         SecurityEventType.PROMPT_INJECTION_DETECTED: SecuritySeverity.CRITICAL,
-        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,  # Can be ERROR for clearly malicious patterns
-        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,  # Can be WARNING for legitimate denials
-        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,  # Can be WARNING for security-critical changes
-        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,  # Can be CRITICAL for system-wide failures
+        SecurityEventType.SUSPICIOUS_QUERY_PATTERN: SecuritySeverity.WARNING,  # ERROR for clearly malicious patterns
+        SecurityEventType.API_ACCESS_DENIED: SecuritySeverity.ERROR,  # WARNING for legitimate denials
+        SecurityEventType.CONFIGURATION_CHANGE: SecuritySeverity.INFO,  # WARNING for security-critical changes
+        SecurityEventType.SYSTEM_ERROR: SecuritySeverity.ERROR,  # CRITICAL for system-wide failures
         SecurityEventType.DATA_EXFILTRATION_ATTEMPT: SecuritySeverity.CRITICAL,
-        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,  # Can be ERROR for severe exhaustion
-        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,  # Can be CRITICAL for privilege escalation
+        SecurityEventType.RESOURCE_EXHAUSTION: SecuritySeverity.WARNING,  # ERROR for severe exhaustion
+        SecurityEventType.UNAUTHORIZED_ACCESS_ATTEMPT: SecuritySeverity.ERROR,  # CRITICAL for privilege escalation
         SecurityEventType.REQUEST_SUCCESS: SecuritySeverity.INFO,
     }
     return severity_mapping.get(event_type, SecuritySeverity.WARNING)
 
 
-def _sanitize_thresholds(low: Any, high: Any) -> Tuple[float, float]:
+def _sanitize_thresholds(
+    low: Any,
+    high: Any,
+    default_low: float = DEFAULT_THRESHOLD_LOW,
+    default_high: float = DEFAULT_THRESHOLD_HIGH,
+) -> Tuple[float, float]:
     """
-    Sanitize and validate threshold values with consistent logging and fallback behavior.
+    Sanitize and validate threshold values with consistent logging and
+    fallback behavior.
 
     This helper function applies three key validation rules:
-    1. Type and positivity validation - ensures both values are numeric and positive
+    1. Type and positivity validation - ensures both values are numeric and
+       positive
     2. Fallback to defaults - replaces invalid values with safe defaults
-    3. Ordering validation - ensures low < high, resetting both to defaults if violated
+    3. Ordering validation - ensures low < high, resetting both to defaults
+       if violated
 
-    The function mirrors the logging behavior used throughout the security system
-    for consistent traceability and debugging support.
+    The function mirrors the logging behavior used throughout the security
+    system for consistent traceability and debugging support.
 
     Args:
         low: The low threshold value (any type, will be validated)
         high: The high threshold value (any type, will be validated)
+        default_low: Fallback value for low threshold when input is invalid
+        default_high: Fallback value for high threshold when input is invalid
 
     Returns:
-        A tuple of (sanitized_low, sanitized_high) as float values, guaranteed to be:
+        A tuple of (sanitized_low, sanitized_high) as float values, guaranteed
+        to be:
         - Both positive numbers
         - low < high
         - Safe defaults if input values were invalid
@@ -160,7 +173,8 @@ def _sanitize_thresholds(low: Any, high: Any) -> Tuple[float, float]:
 
     Note:
         This function logs warnings for all validation failures using the same
-        logger messages and levels as the original implementation for consistency.
+        logger messages and levels as the original implementation for
+        consistency.
     """
     sanitized_low = low
     sanitized_high = high
@@ -168,33 +182,34 @@ def _sanitize_thresholds(low: Any, high: Any) -> Tuple[float, float]:
     # Validate high threshold: correct type and positivity
     if not isinstance(high, (int, float)) or high <= 0:
         logger.warning(
-            "Invalid threshold_high value in rate limit context: %s (type: %s). Using default: %s",
+            "Invalid threshold_high: %s (type: %s). Using default: %s",
             high,
             type(high).__name__,
-            DEFAULT_THRESHOLD_HIGH,
+            default_high,
         )
-        sanitized_high = DEFAULT_THRESHOLD_HIGH
+        sanitized_high = default_high
 
     # Validate low threshold: correct type and positivity
     if not isinstance(low, (int, float)) or low <= 0:
         logger.warning(
-            "Invalid threshold_low value in rate limit context: %s (type: %s). Using default: %s",
+            "Invalid threshold_low: %s (type: %s). Using default: %s",
             low,
             type(low).__name__,
-            DEFAULT_THRESHOLD_LOW,
+            default_low,
         )
-        sanitized_low = DEFAULT_THRESHOLD_LOW
+        sanitized_low = default_low
 
     # Validate ordering: low must be less than high
     if sanitized_low >= sanitized_high:
         logger.warning(
-            "Invalid threshold relationship: threshold_low (%s) >= threshold_high (%s). Resetting to defaults (%s, %s)",
+            "Invalid thresholds: low (%s) >= high (%s). Resetting to defaults "
+            "(%s, %s)",
             sanitized_low,
             sanitized_high,
-            DEFAULT_THRESHOLD_LOW,
-            DEFAULT_THRESHOLD_HIGH,
+            default_low,
+            default_high,
         )
-        sanitized_low, sanitized_high = DEFAULT_THRESHOLD_LOW, DEFAULT_THRESHOLD_HIGH
+        sanitized_low, sanitized_high = default_low, default_high
 
     return float(sanitized_low), float(sanitized_high)
 
@@ -255,7 +270,10 @@ def get_contextual_severity_for_event_type(
         threshold_low = context.get("threshold_low", DEFAULT_THRESHOLD_LOW)
 
         threshold_low, threshold_high = _sanitize_thresholds(
-            threshold_low, threshold_high
+            threshold_low,
+            threshold_high,
+            DEFAULT_THRESHOLD_LOW,
+            DEFAULT_THRESHOLD_HIGH,
         )
 
         if frequency == "high" or attempt_count > threshold_high:
@@ -293,7 +311,7 @@ def get_contextual_severity_for_event_type(
         user_type = context.get("user_type", "regular")
         attempt_count = context.get("attempt_count", 1)
 
-        # Escalate for authenticated users being denied (potential privilege escalation)
+        # Escalate for authenticated users being denied (possible privilege escalation)
         if user_type in ["regular", "admin"]:
             return SecuritySeverity.CRITICAL
 
@@ -363,7 +381,7 @@ def should_event_trigger_alert(event_type: SecurityEventType) -> bool:
 
 
 class SecurityAction(Enum):
-    """Enumeration of recommended security actions for violation remediation."""
+    """Enumeration of recommended actions for violation remediation."""
 
     ALLOW = "allow"
     SANITIZE = "sanitize"
@@ -401,7 +419,8 @@ class SecurityViolation:
     Represents a specific security violation detected during validation.
 
     Attributes:
-        violation_type: Type of security violation (e.g., "sql_injection", "xss")
+        violation_type: Type of security violation (e.g., "sql_injection",
+            "xss")
         severity: Severity level of the violation
         description: Human-readable description of the violation
         detected_pattern: The specific pattern that triggered the violation
@@ -418,17 +437,22 @@ class SecurityViolation:
     location: Optional[str] = None
     # Location field documentation:
     # Indicates where in the input the security violation was detected.
-    # This field helps pinpoint the exact location of a security issue for debugging
-    # and providing specific feedback to users. The format varies depending on the
+    # This field helps pinpoint the exact location of a security issue for
+    # debugging and providing specific feedback to users. The format varies
+    # depending on the
     # type of input being validated:
     #
     # Common format patterns:
-    # - Field names: "query_parameter", "metadata_field", "header_value", "api_key"
+    # - Field names: "query_parameter", "metadata_field", "header_value",
+    #   "api_key"
     # - Text positions: "line:column" format, e.g., "5:12", "1:45"
-    # - JSON paths: JSONPath notation, e.g., "$.query.filters[0].value", "$.metadata.tags[2]"
-    # - Query components: "vector_values", "namespace", "filter_expression", "top_k"
+    # - JSON paths: JSONPath notation, e.g., "$.query.filters[0].value",
+    #   "$.metadata.tags[2]"
+    # - Query components: "vector_values", "namespace", "filter_expression",
+    #   "top_k"
     # - HTTP components: "request_body", "query_string", "authorization_header"
-    # - Character ranges: "chars:10-25" for specific character positions in text
+    # - Character ranges: "chars:10-25" for specific character positions in
+    #   text
     #
     # Examples:
     # - "query_parameter" - violation found in main query parameter
@@ -440,7 +464,8 @@ class SecurityViolation:
     # Set to None when:
     # - Location cannot be determined (e.g., system-wide violations)
     # - Location is not applicable (e.g., rate limiting violations)
-    # - Multiple locations are involved (described in violation description instead)
+    # - Multiple locations are involved (described in violation description
+    #   instead)
     #
     # This information is used for:
     # - Debugging security issues during development
@@ -578,8 +603,9 @@ class AnomalyMetrics(TypedDict, total=False):
     """
     Type definition for anomaly metrics dictionary.
 
-    This TypedDict defines the expected structure for metrics stored in anomalies.
-    All fields are optional (total=False) to allow for different types of anomalies
+    This TypedDict defines the expected structure for metrics stored in
+    anomalies. All fields are optional (total=False) to allow for different
+    types of anomalies
     that may not have all metrics available.
     """
 
@@ -621,7 +647,9 @@ class Anomaly:
     anomaly_type: str = "unknown"
     severity: SecuritySeverity = SecuritySeverity.WARNING
     description: str = ""
-    metrics: AnomalyMetrics = field(default_factory=_create_empty_anomaly_metrics)
+    metrics: AnomalyMetrics = field(
+        default_factory=_create_empty_anomaly_metrics
+    )
     threshold_exceeded: Optional[str] = None
     recommended_actions: List[str] = field(default_factory=list)
 

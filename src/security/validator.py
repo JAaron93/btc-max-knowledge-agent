@@ -29,8 +29,13 @@ except ImportError:
         metadata = None
 
 from .interfaces import ISecurityValidator
-from .models import (SecurityAction, SecurityConfiguration, SecuritySeverity,
-                     SecurityViolation, ValidationResult)
+from .models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecuritySeverity,
+    SecurityViolation,
+    ValidationResult,
+)
 
 # Import security libraries with fallback handling
 try:

@@ -7,7 +7,7 @@ with the existing FastAPI application.
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -15,8 +15,7 @@ from pydantic import BaseModel, Field
 
 from .config import SecurityConfigurationManager
 from .middleware import create_security_middleware
-from .models import (Anomaly, SecurityConfiguration, SecurityEvent,
-                     SecuritySeverity)
+from .models import Anomaly, SecurityEvent, SecuritySeverity
 from .validator import SecurityValidator
 
 logger = logging.getLogger(__name__)

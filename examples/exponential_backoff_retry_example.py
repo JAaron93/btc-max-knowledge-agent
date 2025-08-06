@@ -14,8 +14,12 @@ import requests
 
 # Import the enhanced retry functionality
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    MAX_QUERY_RETRIES, RetryExhaustedError, URLMetadataUploadError,
-    exponential_backoff_retry, query_retry_with_backoff)
+    MAX_QUERY_RETRIES,
+    RetryExhaustedError,
+    URLMetadataUploadError,
+    exponential_backoff_retry,
+    query_retry_with_backoff,
+)
 
 # Set up logging to see retry attempts
 logging.basicConfig(level=logging.INFO)

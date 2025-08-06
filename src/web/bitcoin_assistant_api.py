@@ -10,15 +10,16 @@ import time
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import Cookie, FastAPI, Header, HTTPException, Request, Response
+from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
 from pydantic import BaseModel, Field
 
-from utils.audio_utils import (create_gradio_streaming_audio,
-                               extract_tts_content,
-                               get_audio_streaming_manager,
-                               prepare_audio_for_gradio)
+from utils.audio_utils import (
+    extract_tts_content,
+    get_audio_streaming_manager,
+    prepare_audio_for_gradio,
+)
 
 # Import TTS components
 try:
@@ -34,6 +35,7 @@ except ImportError:
 
 from .admin_router import admin_router
 from .rate_limiter import get_session_rate_limiter
+
 # Import session management
 from .session_manager import SessionData, get_session_manager
 
@@ -616,7 +618,6 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
         # Initialize response data
         audio_data = None
         audio_streaming_data = None
-        tts_cached = False
         tts_synthesis_time = None
 
         # Process TTS if enabled
@@ -628,7 +629,7 @@ async def query_bitcoin_knowledge(request: QueryRequest, response: Response):
                 if tts_result:
                     audio_data = tts_result["audio_data"]
                     audio_streaming_data = tts_result.get("streaming_data")
-                    tts_cached = tts_result["cached"]
+                    tts_result["cached"]
                     tts_synthesis_time = tts_result.get("synthesis_time")
             except Exception as e:
                 # Log TTS error but don't fail the entire request

@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import gradio as gr
 import requests
@@ -527,7 +527,7 @@ def get_tts_status_display(
 
     # Handle voice disabled state
     if is_disabled:
-        return f"""
+        return """
         <div class="tts-status ready" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.3s ease-in-out;">
             <span style="color: #6b7280; font-size: 13px; font-weight: 500;">🔇 Voice disabled</span>
         </div>
@@ -585,7 +585,7 @@ def get_tts_status_display(
             color = "#dc2626"  # Red for network issues
         elif error_type == "RETRY_EXHAUSTED":
             display_message = "🔴 Voice synthesis failed - Text continues"
-            tooltip = f"All retry attempts exhausted. Voice synthesis is temporarily disabled but text display continues normally. The service will attempt recovery automatically."
+            tooltip = "All retry attempts exhausted. Voice synthesis is temporarily disabled but text display continues normally. The service will attempt recovery automatically."
             color = "#dc2626"  # Red for exhausted retries
         elif error_type == "SYNTHESIS_FAILED":
             display_message = "🔴 Synthesis failed - Text continues"
@@ -631,7 +631,7 @@ def get_tts_status_display(
         # Show playback indicator with different styles for cached vs new audio
         if is_cached:
             # Instant replay status with enhanced styling
-            return f"""
+            return """
             <div class="tts-status playing" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 8px; transition: all 0.3s ease-in-out;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div style="width: 0; height: 0; border-left: 8px solid #10b981; border-top: 6px solid transparent; border-bottom: 6px solid transparent;"></div>
@@ -1361,11 +1361,9 @@ def create_bitcoin_assistant_ui():
             if not has_tts_error:
                 tts_state.start_synthesis()
                 # Start with loading indicator for initial processing
-                loading_status = get_tts_status_display(False, is_loading=True)
+                get_tts_status_display(False, is_loading=True)
             else:
-                loading_status = get_tts_status_display(
-                    False, has_error=True, error_info=error_info
-                )
+                get_tts_status_display(False, has_error=True, error_info=error_info)
 
             # Query the assistant with streaming support (TTS enabled)
             answer, sources, audio_data, streaming_info = (

@@ -10,12 +10,11 @@ import asyncio
 import functools
 import logging
 import random
-import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 import aiohttp
 

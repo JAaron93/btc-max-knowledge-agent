@@ -5,7 +5,6 @@ Utility to generate secure password hashes for admin authentication
 """
 
 import getpass
-import hashlib
 import os
 import random
 import re

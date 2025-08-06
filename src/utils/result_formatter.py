@@ -85,7 +85,11 @@ class ResultValidator:
 
             # Type validation
             # Handle tuple types for isinstance check
-            type_check = expected_type if isinstance(expected_type, (type, tuple)) else type(expected_type)
+            type_check = (
+                expected_type
+                if isinstance(expected_type, (type, tuple))
+                else type(expected_type)
+            )
             if not isinstance(value, type_check):
                 if strict:
                     raise ValidationError(

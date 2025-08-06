@@ -18,11 +18,16 @@ from typing import Any, Dict, Optional
 import aiohttp
 import psutil
 
-from .multi_tier_audio_cache import (CacheConfig, MultiTierAudioCache,
-                                     get_audio_cache)
-from .tts_error_handler import (TTSAPIKeyError, TTSError, TTSNetworkError,
-                                TTSRateLimitError, TTSRetryExhaustedError,
-                                TTSServerError, get_tts_error_handler)
+from .multi_tier_audio_cache import CacheConfig, get_audio_cache
+from .tts_error_handler import (
+    TTSAPIKeyError,
+    TTSError,
+    TTSNetworkError,
+    TTSRateLimitError,
+    TTSRetryExhaustedError,
+    TTSServerError,
+    get_tts_error_handler,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -823,8 +828,6 @@ class TTSService:
 _tts_service: Optional[TTSService] = None
 
 
-import threading
-
 # Global TTS service instance
 _tts_service: Optional[TTSService] = None
 _lock = threading.Lock()
@@ -895,6 +898,6 @@ def _sync_cleanup_tts_service():
 
 
 # Register cleanup on module exit
-import atexit
+import atexit  # noqa: E402
 
 atexit.register(_sync_cleanup_tts_service)

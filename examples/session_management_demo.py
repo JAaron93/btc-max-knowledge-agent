@@ -8,9 +8,11 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Add project root to path only when running this demo directly to avoid E402
+if __name__ == "__main__":
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
 from src.web.session_manager import SessionManager
 
@@ -22,7 +24,8 @@ def demo_session_management():
     print("=" * 60)
 
     # Create session manager
-    manager = SessionManager(session_timeout_minutes=2)  # Short timeout for demo
+    # Short timeout for demo
+    manager = SessionManager(session_timeout_minutes=2)
 
     print("\n1. Creating multiple user sessions...")
 
@@ -35,14 +38,18 @@ def demo_session_management():
         user_sessions[user] = session_id
         print(f"   👤 {user}: Session {session_id[:8]}...")
 
-    print(f"\n📊 Active sessions: {manager.get_session_stats()['active_sessions']}")
+    active_sessions = manager.get_session_stats()["active_sessions"]
+    print(f"\n📊 Active sessions: {active_sessions}")
 
     print("\n2. Simulating conversations...")
 
     # Simulate conversations for each user
     conversations = {
         "Alice": [
-            ("What is Bitcoin?", "Bitcoin is a decentralized digital currency..."),
+            (
+                "What is Bitcoin?",
+                "Bitcoin is a decentralized digital currency...",
+            ),
             (
                 "How does mining work?",
                 "Mining is the process of validating transactions...",
@@ -62,7 +69,12 @@ def demo_session_management():
                 "Smart contracts are self-executing contracts...",
             ),
         ],
-        "Charlie": [("What is DeFi?", "DeFi stands for Decentralized Finance...")],
+        "Charlie": [
+            (
+                "What is DeFi?",
+                "DeFi stands for Decentralized Finance...",
+            )
+        ],
     }
 
     for user, convos in conversations.items():
@@ -84,9 +96,10 @@ def demo_session_management():
 
     # Show conversation context for Alice
     alice_session = manager.get_session(user_sessions["Alice"])
-    context = alice_session.get_conversation_context(max_turns=2)
+    max_turns = 2
+    context = alice_session.get_conversation_context(max_turns=max_turns)
 
-    print(f"\n   👤 Alice's recent context (last 2 turns):")
+    print(f"\n   👤 Alice's recent context (last {max_turns} turns):")
     for i, turn in enumerate(context, 1):
         print(f"      Turn {turn['turn_id']}: {turn['question'][:30]}...")
 
@@ -98,16 +111,21 @@ def demo_session_management():
         history_length = len(session.conversation_history)
         expected_length = len(conversations[user])
 
-        print(f"   👤 {user}: {history_length} turns (expected: {expected_length}) ✅")
+        print(
+            f"   👤 {user}: {history_length} turns " f"(expected: {expected_length}) ✅"
+        )
         if history_length == expected_length:
             print(
-                f"   👤 {user}: {history_length} turns (expected: {expected_length}) ✅"
+                f"   👤 {user}: {history_length} turns "
+                f"(expected: {expected_length}) ✅"
             )
         else:
             print(
-                f"   👤 {user}: {history_length} turns (expected: {expected_length}) ❌ ISOLATION FAILED"
+                f"   👤 {user}: {history_length} turns "
+                f"(expected: {expected_length}) ❌ ISOLATION FAILED"
             )
-            # Consider if demo should exit here or continue with degraded functionality
+            # Consider if demo should exit here or continue with
+            # degraded functionality
 
     print("\n6. Demonstrating session expiry...")
 
@@ -134,7 +152,7 @@ def demo_session_management():
             print(f"   ✅ {user}'s session is still active")
 
     active_after = manager.get_session_stats()["active_sessions"]
-    print(f"   📊 Sessions before cleanup: {active_before}, after: {active_after}")
+    print(f"   📊 Sessions before cleanup: {active_before}, " f"after: {active_after}")
 
     print("\n7. Creating new session after expiry...")
 
@@ -143,9 +161,8 @@ def demo_session_management():
     new_session = manager.get_session(new_session_id)
 
     print(f"   👤 Alice gets new session: {new_session_id[:8]}...")
-    print(
-        f"   📝 New session has {len(new_session.conversation_history)} conversation turns (should be 0)"
-    )
+    turns = len(new_session.conversation_history)
+    print(f"   📝 New session has {turns} conversation turns " f"(should be 0)")
 
     print("\n✅ Session Management Demo Complete!")
     print("\nKey Features Demonstrated:")

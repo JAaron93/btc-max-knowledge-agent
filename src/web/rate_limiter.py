@@ -7,6 +7,7 @@ Provides protection against enumeration attacks and abuse
 import logging
 import threading
 import time
+import hashlib
 from collections import defaultdict, deque
 from typing import Any, Dict, Optional
 
@@ -60,12 +61,8 @@ class RateLimiter:
             # Get request history for this client
             client_requests = self._requests[client_id]
 
-            # Remove requests outside the window
-            cutoff_time = current_time - self.window_seconds
-            while client_requests and client_requests[0] < cutoff_time:
-                client_requests.popleft()
-
-            import hashlib
+            # Get request history for this client
+            client_requests = self._requests[client_id]
 
             # Remove requests outside the window
             cutoff_time = current_time - self.window_seconds
@@ -80,14 +77,6 @@ class RateLimiter:
                 logger.warning(
                     f"Rate limit exceeded for client {client_hash}: "
                     f"{len(client_requests)} requests in {self.window_seconds}s"
-                )
-                return False
-            if len(client_requests) < self.max_requests:
-                client_requests.append(current_time)
-                return True
-            else:
-                logger.warning(
-                    f"Rate limit exceeded for client {client_id}: {len(client_requests)} requests in {self.window_seconds}s"
                 )
                 return False
 
@@ -164,8 +153,6 @@ class SessionRateLimiter:
 # Global rate limiter instance
 _session_rate_limiter: Optional[SessionRateLimiter] = None
 
-
-import threading
 
 _session_rate_limiter_lock = threading.Lock()
 

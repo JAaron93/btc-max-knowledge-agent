@@ -10,22 +10,20 @@ Supports SQLite, diskcache, and Redis backends with configurable policies.
 """
 
 import hashlib
-import json
 import logging
 import os
 import sqlite3
 import threading
 import time
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 # Optional imports for different cache backends
 try:
-    import diskcache
+    import diskcache  # noqa: F401
 
     DISKCACHE_AVAILABLE = True
 except ImportError:

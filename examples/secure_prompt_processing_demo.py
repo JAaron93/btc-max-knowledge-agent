@@ -9,7 +9,6 @@ violations are detected.
 
 import asyncio
 import logging
-from typing import List
 
 # Configure logging
 logging.basicConfig(
@@ -18,10 +17,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-from src.security.prompt_injection_detector import PromptInjectionDetector
+from src.security.prompt_injection_detector import PromptInjectionDetector  # noqa: E402
+
 # Import security components
-from src.security.prompt_processor import SecurePromptProcessor
-from src.web.session_manager import SessionManager
+from src.security.prompt_processor import SecurePromptProcessor  # noqa: E402
+from src.web.session_manager import SessionManager  # noqa: E402
 
 
 async def demonstrate_secure_prompt_processing():
@@ -69,7 +69,7 @@ async def demonstrate_secure_prompt_processing():
     )
 
     # Display results
-    logger.info(f"\n=== PROCESSING RESULTS ===")
+    logger.info("\n=== PROCESSING RESULTS ===")
     logger.info(f"High confidence detected: {result.high_confidence_detected}")
     logger.info(f"Detection index: {result.detection_index}")
     logger.info(f"Session terminated: {result.session_terminated}")
@@ -77,7 +77,7 @@ async def demonstrate_secure_prompt_processing():
     logger.info(f"Total prompts in list: {len(malicious_prompts)}")
 
     # Show details of each processed prompt
-    logger.info(f"\n=== PROMPT DETECTION DETAILS ===")
+    logger.info("\n=== PROMPT DETECTION DETAILS ===")
     for detection in result.detection_results:
         prompt_index = detection["prompt_index"]
         prompt = detection["prompt"]
@@ -90,17 +90,17 @@ async def demonstrate_secure_prompt_processing():
 
         if confidence >= HIGH_CONFIDENCE_THRESHOLD:
             logger.warning(
-                f"  - HIGH CONFIDENCE DETECTION - Session should be terminated"
+                "  - HIGH CONFIDENCE DETECTION - Session should be terminated"
             )
 
     # Verify session termination
     session_exists = session_manager.get_session(session_id) is not None
-    logger.info(f"\n=== SESSION STATUS ===")
+    logger.info("\n=== SESSION STATUS ===")
     logger.info(f"Session still exists: {session_exists}")
     logger.info(f"Session properly terminated: {not session_exists}")
 
     # Demonstrate guard behavior - try to process remaining prompts
-    logger.info(f"\n=== GUARD DEMONSTRATION ===")
+    logger.info("\n=== GUARD DEMONSTRATION ===")
     if (
         result.detection_index >= 0
         and result.detection_index < len(malicious_prompts) - 1
@@ -123,15 +123,13 @@ async def demonstrate_secure_prompt_processing():
             )
 
             if not should_continue:
-                logger.info(
-                    f"  - GUARD ACTIVATED: Session is None, skipping processing"
-                )
+                logger.info("  - GUARD ACTIVATED: Session is None, skipping processing")
             else:
                 logger.warning(
-                    f"  - GUARD FAILED: Processing continued despite terminated session"
+                    "  - GUARD FAILED: Processing continued despite terminated session"
                 )
 
-    logger.info(f"\n=== DEMONSTRATION COMPLETE ===")
+    logger.info("\n=== DEMONSTRATION COMPLETE ===")
 
 
 async def demonstrate_individual_prompt_guards():
@@ -140,7 +138,7 @@ async def demonstrate_individual_prompt_guards():
 
     This shows how the guard works for single prompt processing.
     """
-    logger.info(f"\n=== INDIVIDUAL PROMPT GUARD DEMONSTRATION ===")
+    logger.info("\n=== INDIVIDUAL PROMPT GUARD DEMONSTRATION ===")
 
     # Initialize components
     session_manager = SessionManager()

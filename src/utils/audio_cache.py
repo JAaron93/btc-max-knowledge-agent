@@ -7,7 +7,6 @@ with LRU eviction policy and SHA-256 hash-based keys.
 
 import hashlib
 import logging
-import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime

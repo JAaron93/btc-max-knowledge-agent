@@ -104,16 +104,19 @@ def demo_session_management(auth):
         token, ip = valid_tokens[0]
 
         # Test valid session
-        valid = auth.validate_admin_session(token, ip)
-        print(f"   ✅ Valid token validation: Access granted")
-
-        # Test invalid token
-        invalid = auth.validate_admin_session("invalid_token_123", ip)
-        print(f"   ❌ Invalid token validation: Access denied")
-
-        # Test token from different IP
-        different_ip = auth.validate_admin_session(token, "different.ip.address")
-        print(f"   ⚠️  Different IP validation: Access attempt from different location")
+        if auth.validate_admin_session(token, ip):
+            print("   ✅ Valid token validation: Access granted")
+        else:
+            print("   ❌ Valid token validation: Access unexpectedly denied")
+        if auth.validate_admin_session("invalid_token_123", ip):
+            print("   ⚠️ Invalid token accepted: potential vulnerability!")
+        else:
+            print("   ❌ Invalid token validation: Access denied (expected)")
+        if auth.validate_admin_session(token, "different.ip.address"):
+            print("   ⚠️ Different IP accepted: IP check may be bypassed!")
+        else:
+            print("   ⚠️ Different IP validation: Access denied (expected)")
+        print("   ⚠️  Different IP validation: Access attempt from different location")
 
     return valid_tokens
 

@@ -8,11 +8,16 @@ from environment variables and other sources.
 import logging
 import os
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .interfaces import IConfigurationValidator
-from .models import (SecurityAction, SecurityConfiguration, SecuritySeverity,
-                     SecurityViolation, ValidationResult)
+from .models import (
+    SecurityAction,
+    SecurityConfiguration,
+    SecuritySeverity,
+    SecurityViolation,
+    ValidationResult,
+)
 
 logger = logging.getLogger(__name__)
 

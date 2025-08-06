@@ -5,15 +5,14 @@ Demonstrates the comprehensive security measures implemented for session managem
 """
 
 import sys
-import time
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.web.rate_limiter import SessionRateLimiter
-from src.web.session_manager import SessionManager
+from src.web.rate_limiter import SessionRateLimiter  # noqa: E402
+from src.web.session_manager import SessionManager  # noqa: E402
 
 
 def demo_session_security():
@@ -34,12 +33,12 @@ def demo_session_security():
         session_ids.append(session_id)
         print(f"   • Session {i + 1}: {session_id}")
 
-    print(f"\n   ✅ Security Features:")
-    print(f"   • Length: 32 characters (256-bit equivalent)")
-    print(f"   • Format: Hexadecimal (0-9, a-f)")
-    print(f"   • Entropy: UUID4 + nanosecond timestamp + secure random bytes")
-    print(f"   • Hashing: SHA-256 for consistent format")
-    print(f"   • Collision Detection: Automatic regeneration on conflicts")
+    print("\n   ✅ Security Features:")
+    print("   • Length: 32 characters (256-bit equivalent)")
+    print("   • Format: Hexadecimal (0-9, a-f)")
+    print("   • Entropy: UUID4 + nanosecond timestamp + secure random bytes")
+    print("   • Hashing: SHA-256 for consistent format")
+    print("   • Collision Detection: Automatic regeneration on conflicts")
 
     print("\n2. 🚦 RATE LIMITING (ANTI-ENUMERATION PROTECTION)")
     print("-" * 55)
@@ -83,7 +82,7 @@ def demo_session_security():
     print(
         f"\n   📊 Results: {allowed_count} allowed, {denied_count} denied, {error_count} errors"
     )
-    print(f"   ✅ Rate limiting prevents session enumeration attacks")
+    print("   ✅ Rate limiting prevents session enumeration attacks")
 
     print("\n3. 🛡️ SESSION OWNERSHIP VALIDATION")
     print("-" * 55)
@@ -130,7 +129,7 @@ def demo_session_security():
 
         print(f"   • {scenario['name']:25s}: {result}")
 
-    print(f"\n   ✅ Ownership validation prevents unauthorized access")
+    print("\n   ✅ Ownership validation prevents unauthorized access")
 
     print("\n4. 📝 SECURITY LOGGING & MONITORING")
     print("-" * 55)
@@ -199,7 +198,7 @@ def demo_session_security():
     # Session manager stats
     try:
         session_stats = manager.get_session_stats()
-        print(f"\n   Session manager status:")
+        print("\n   Session manager status:")
         print(f"   • Active Sessions: {session_stats['active_sessions']}")
         print(f"   • Total Conversations: {session_stats['total_conversation_turns']}")
         print(

@@ -7,10 +7,9 @@ Provides secure access control for administrative endpoints
 import asyncio
 import logging
 import os
-import re
 import secrets
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -422,6 +421,15 @@ class AdminAuthenticator:
 
         return True
 
+# At the top of src/web/admin_auth.py, alongside the other imports:
+import asyncio
+import logging
+import os
+import random
+import secrets
+
+# …
+
     def _record_cleanup_restart(self) -> None:
         """Record a cleanup task restart and update monitoring state"""
         now = datetime.now()
@@ -429,8 +437,6 @@ class AdminAuthenticator:
         self._cleanup_last_start = now
 
         # Apply exponential backoff with jitter
-        import random
-
         jitter = random.uniform(0.8, 1.2)  # Add 20% jitter
         self._cleanup_backoff = min(
             self._cleanup_backoff * 2 * jitter, self._cleanup_max_backoff

@@ -13,8 +13,6 @@ from fastapi import FastAPI
 from .config import SecurityConfigurationManager
 from .middleware import create_security_middleware
 from .models import SecurityConfiguration
-from .monitor import \
-    SecurityMonitor  # This will be implemented in future tasks
 from .validator import SecurityValidator
 
 logger = logging.getLogger(__name__)
@@ -91,14 +89,13 @@ class SecurityIntegration:
             "/docs",
             "/openapi.json",
             "/redoc",
+            "/security/status",
+            "/security/health",
             "/favicon.ico",
-            "/static",
-            "/tts/status",  # TTS status endpoint
-            "/tts/streaming/status",  # Streaming status endpoint
         ]
 
-    # Allow configuration to override or extend exempt paths
-    return getattr(self.config, "exempt_paths", default_exempt_paths)
+        # Allow configuration to override or extend exempt paths
+        return getattr(self.config, "exempt_paths", default_exempt_paths)
 
     def apply_security_middleware(self) -> None:
         """Apply security middleware to the FastAPI application."""

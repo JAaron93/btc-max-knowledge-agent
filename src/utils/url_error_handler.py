@@ -10,7 +10,7 @@ import functools
 import logging
 import random
 import time
-from typing import Any, Callable, Optional, TypeVar, Union, List
+from typing import Any, Callable, List, Optional, TypeVar
 from urllib.parse import urlparse
 
 # Import our structured logging infrastructure

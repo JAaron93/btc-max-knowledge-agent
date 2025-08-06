@@ -10,18 +10,17 @@ This module provides utilities for processing audio data and extracting
 clean content for text-to-speech synthesis.
 """
 
-import atexit
-import base64
-import io
-import logging
-import os
-import re
-import tempfile
-import threading
-import time
-import weakref
-from typing import Any, Dict, Iterator, Optional, Union, Tuple
-from urllib.parse import urlparse
+import atexit  # noqa: E402
+import base64  # noqa: E402
+import io  # noqa: E402
+import logging  # noqa: E402
+import os  # noqa: E402
+import re  # noqa: E402
+import tempfile  # noqa: E402
+import threading  # noqa: E402
+import time  # noqa: E402
+import weakref  # noqa: E402
+from typing import Any, Dict, Iterator, Optional, Tuple  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

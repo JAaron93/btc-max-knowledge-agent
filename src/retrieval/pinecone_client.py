@@ -1,16 +1,20 @@
 import logging
-import re
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
 
 from pinecone import Pinecone, ServerlessSpec
 
 from btc_max_knowledge_agent.utils.config import Config
 from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
 from btc_max_knowledge_agent.utils.url_error_handler import (
-    MAX_QUERY_RETRIES, FallbackURLStrategy, GracefulDegradation,
-    URLRetrievalError, URLValidationError, exponential_backoff_retry,
-    query_retry_with_backoff, retry_url_validation)
+    MAX_QUERY_RETRIES,
+    FallbackURLStrategy,
+    GracefulDegradation,
+    URLRetrievalError,
+    URLValidationError,
+    exponential_backoff_retry,
+    query_retry_with_backoff,
+    retry_url_validation,
+)
 from utils.url_utils import sanitize_url_for_storage
 
 logger = logging.getLogger(__name__)

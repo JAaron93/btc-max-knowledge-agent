@@ -14,7 +14,7 @@ import os
 import sys
 import time
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 
 class LazyLogRecord:

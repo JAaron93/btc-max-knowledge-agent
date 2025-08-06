@@ -11,11 +11,16 @@ import re
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .interfaces import IPromptInjectionDetector
-from .models import (DetectionResult, SecurityAction, SecuritySeverity,
-                     SecurityViolation, ValidationResult)
+from .models import (
+    DetectionResult,
+    SecurityAction,
+    SecuritySeverity,
+    SecurityViolation,
+    ValidationResult,
+)
 
 
 class InjectionType(Enum):
