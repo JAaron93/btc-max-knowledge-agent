@@ -262,3 +262,8 @@ logs/
 .env.admin
 .env.staging
 admin_credentials.txt
+
+# Cache files
+cache/
+*.db
+*.cache
