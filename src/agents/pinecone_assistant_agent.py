@@ -21,8 +21,12 @@ class PineconeAssistantAgent:
         """
         if self.security_processor is not None:
             return self.security_processor
-        # Deferred import to avoid cycles only when DI not used
-        from src.security.prompt_processor import (  # type: ignore
+        # Deferred import to avoid cycles only when DI not used.
+        # mypy: The security module exposes a runtime-available callable but may not ship
+        # stub files in some environments, causing a false-positive import error.
+        # We intentionally ignore type checking here to keep DI-friendly lazy import,
+        # avoiding tight coupling while preserving runtime safety via call signature.
+        from src.security.prompt_processor import (  # type: ignore[import]
             secure_preprocess as secure_preprocess_prompt,
         )
         # Cache for subsequent calls
@@ -72,14 +76,9 @@ class PineconeAssistantAgent:
                 "Request content blocked due to security policy."
             )
 
-        # SANITIZE: replace text if provided
+        # SANITIZE or CONSTRAIN: use sanitized_text if present; otherwise original
         if getattr(sp_result, "action_taken", None) and (
-            sp_result.action_taken.name == "SANITIZE"
-        ):
-            processed_text = sp_result.sanitized_text or text
-        # CONSTRAIN: use sanitized_text if present; attach policy marker
-        elif getattr(sp_result, "action_taken", None) and (
-            sp_result.action_taken.name == "CONSTRAIN"
+            sp_result.action_taken.name in {"SANITIZE", "CONSTRAIN"}
         ):
             processed_text = sp_result.sanitized_text or text
         else:

@@ -25,6 +25,7 @@ class FakeDetector(IPromptInjectionDetector):
         ),
         injection_detected: bool = True,
         recommended_action: SecurityAction | None = None,
+        # kept for backward-compat in constructor signature; no longer used
         neutralized_query: str | None = None,
     ) -> None:
         self._result = DetectionResult(
@@ -34,7 +35,6 @@ class FakeDetector(IPromptInjectionDetector):
             injection_type=injection_type,
             risk_level=risk_level,
             recommended_action=recommended_action,
-            neutralized_query=neutralized_query,
         )
 
     async def detect_injection(

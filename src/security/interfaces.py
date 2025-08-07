@@ -1,10 +1,19 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from .sanitization_service import NeutralizedResult
 
 from .models import SecuritySeverity, SecurityAction
 from .prompt_injection_detector import InjectionType, DetectionResult
 
+@runtime_checkable
+class ISanitizationService(Protocol):
+    async def sanitize(
+        self,
+        original_text: str,
+        detection: DetectionResult,
+        policy_template: Optional[str],
+    ) -> NeutralizedResult: ...
 
 class ISecurityValidator(Protocol):
     def validate(self, result: DetectionResult) -> bool: ...
@@ -47,7 +56,7 @@ class SecurityAlertEvent:
     detected_patterns: List[str]
     injection_type: Optional[InjectionType]
     action_taken: SecurityAction
-    input_sha256_16: str
+    input_sha256_truncated: str  # First 16 characters of SHA256 hash
     details: Dict[str, Any]
 
 

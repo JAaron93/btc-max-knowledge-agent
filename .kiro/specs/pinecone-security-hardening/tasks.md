@@ -34,7 +34,7 @@ last-updated: "2025-07-26"
   - Write integration tests for middleware functionality
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 3. Build prompt injection detection and prevention
+- [x] 3. Build prompt injection detection and prevention
 - [x] 3.1 Create PromptInjectionDetector component
   - Implement pattern-based injection detection with ≥95% accuracy requirement
   - Add detection for specific patterns: "ignore previous instructions", "system:", "assistant:", role confusion, delimiter injection (`---`, `###`)
@@ -45,7 +45,7 @@ last-updated: "2025-07-26"
   - Write unit tests covering all specified injection patterns and accuracy validation
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [-] 3.2 Integrate injection detection with query processing
+- [x] 3.2 Integrate injection detection with query processing
   - Add injection detection to query preprocessing pipeline
   - Implement automatic query neutralization when threats detected
   - Create logging and alerting for injection attempts

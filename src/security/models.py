@@ -14,6 +14,8 @@ class SecuritySeverity(Enum):
     LOW = auto()
     MEDIUM = auto()
     HIGH = auto()
+    ERROR = auto()
+    CRITICAL = auto()
 
 
 @dataclass
@@ -52,8 +54,11 @@ class SecurityEvent:
 
 @dataclass
 class ValidationResult:
-    ok: bool
-    result: DetectionResult | None = None
+    is_valid: bool
+    confidence_score: float = 0.0
+    violations: list = field(default_factory=list)
+    recommended_action: SecurityAction = SecurityAction.ALLOW
+    violations_details: list = field(default_factory=list)
 
 
 class SecurityEventType(Enum):
@@ -77,34 +82,55 @@ class AuthResult(Enum):
 def _sanitize_thresholds(
     low: float, medium: float, high: float
 ) -> tuple[float, float, float]:
-    """Ensure thresholds are in ascending order and within [0,1]."""
+    """Validate thresholds are within [0,1] and ordered low <= medium <= high.
+
+    Raise ValueError if misconfigured instead of silently sorting so callers
+    can correct configuration issues explicitly.
+    """
     low = max(0.0, min(1.0, float(low)))
     medium = max(0.0, min(1.0, float(medium)))
     high = max(0.0, min(1.0, float(high)))
-    # enforce ascending order
+
     if not (low <= medium <= high):
-        # simple fix: sort
-        low, medium, high = sorted([low, medium, high])
+        raise ValueError(
+            f"Invalid thresholds order: expected low <= medium <= high "
+            f"but got low={low}, medium={medium}, high={high}"
+        )
     return low, medium, high
 
 
 def get_contextual_severity_for_event_type(
     event_type: str | Enum,
 ) -> SecuritySeverity:
-    """Return a default severity per event type; tests only need
-    basic mapping.
+    """Return a default severity per event type using a keyword→severity map.
+
+    Uses exact keyword matches to avoid unintended partial matches.
+    Falls back to LOW when no keyword is matched.
     """
     try:
-        et_raw = event_type.name if hasattr(event_type, "name") else str(event_type)
+        et_raw = (
+            event_type.name if hasattr(event_type, "name") else str(event_type)
+        )
     except Exception:
         et_raw = str(event_type)
-    et = et_raw.upper()
+    et_norm = et_raw.strip().upper()
 
-    # Simple defaults
-    if "ALERT" in et:
-        return SecuritySeverity.HIGH
-    if "RESPONSE" in et:
-        return SecuritySeverity.MEDIUM
+    keyword_map = {
+        "ALERT": SecuritySeverity.HIGH,
+        "RESPONSE": SecuritySeverity.MEDIUM,
+        "REQUEST": SecuritySeverity.LOW,
+    }
+
+    # Exact match first
+    if et_norm in keyword_map:
+        return keyword_map[et_norm]
+
+    # If an Enum-like composite value is passed (e.g., "SECURITY_ALERT"),
+    # prefer prefix token matching to avoid arbitrary substring matches.
+    first_token = et_norm.split("_", 1)[0]
+    if first_token in keyword_map:
+        return keyword_map[first_token]
+
     return SecuritySeverity.LOW
 
 
@@ -139,3 +165,9 @@ class TokenBucket:
             self.tokens -= n
             return True
         return False
+
+
+@dataclass
+class Violation:
+    violation_type: str
+    details: Dict[str, Any] = field(default_factory=dict)

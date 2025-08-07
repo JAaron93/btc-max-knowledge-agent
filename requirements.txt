@@ -17,3 +17,6 @@ markupsafe>=2.1.0
 libinjection-python>=3.10.0
 pymodsecurity>=1.0.4
 argon2-cffi>=25.0.0,<26.0.0
+
+# Tokenizer for accurate token counting
+tiktoken>=0.5.0

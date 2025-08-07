@@ -15,6 +15,7 @@ class HeuristicDetector(IPromptInjectionDetector):
     Behavior is identical to the previous inline detector used within
     prompt_processor.secure_preprocess.
     """
+
     async def detect_injection(
         self,
         text: str,
@@ -25,32 +26,28 @@ class HeuristicDetector(IPromptInjectionDetector):
         inj_type: Optional[InjectionType] = None
         score = 0.0
 
+        # Check for instruction override patterns
         if "ignore previous instructions" in lowered:
             patterns.append("instruction-override")
             inj_type = InjectionType.INSTRUCTION_OVERRIDE
-            score = 0.9
-        elif "system:" in lowered or "assistant:" in lowered:
+            score = max(score, 0.9)
+
+        # Check for role confusion patterns
+        if "system:" in lowered or "assistant:" in lowered:
             patterns.append("role-confusion")
-            inj_type = InjectionType.ROLE_CONFUSION
-            score = 0.6
+            if inj_type is None:  # Don't override higher priority type
+                inj_type = InjectionType.ROLE_CONFUSION
+            score = max(score, 0.6)
 
         severity = (
             SecuritySeverity.HIGH
             if score >= 0.85
-            else (
-                SecuritySeverity.MEDIUM
-                if score >= 0.5
-                else SecuritySeverity.LOW
-            )
+            else (SecuritySeverity.MEDIUM if score >= 0.5 else SecuritySeverity.LOW)
         )
         recommended = (
             SecurityAction.BLOCK
             if score >= 0.85
-            else (
-                SecurityAction.WARN
-                if score >= 0.5
-                else SecurityAction.ALLOW
-            )
+            else (SecurityAction.WARN if score >= 0.5 else SecurityAction.ALLOW)
         )
 
         return DetectionResult(
@@ -60,5 +57,4 @@ class HeuristicDetector(IPromptInjectionDetector):
             injection_type=inj_type,
             risk_level=severity,
             recommended_action=recommended,
-            neutralized_query=None,
         )

@@ -125,6 +125,7 @@ import logging
 import re
 import time
 import unicodedata
+import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -135,49 +136,22 @@ from .interfaces import (
     SecurityAlertEvent,
 )
 from .models import SecurityAction, SecuritySeverity
-from .prompt_injection_detector import DetectionResult, InjectionType
+from .prompt_injection_detector import DetectionResult
 from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
-from .heuristic_detector import HeuristicDetector
+from .sanitization_service import SanitizationService, NeutralizedResult
 
-# Prefer repository-available logging utility
+# Prefer repository-available logging utility (single attempt + fallback)
 try:
-    from ..btc_max_knowledge_agent.utils.optimized_logging import (
+    from ..btc_max_knowledge_agent.utils.optimized_logging import (  # type: ignore
         PerformanceOptimizedLogger,
-    )  # type: ignore
+    )
 except Exception:
     try:
         from ..utils.optimized_logging import (  # type: ignore
             PerformanceOptimizedLogger,
         )
     except Exception:
-        class PerformanceOptimizedLogger:  # type: ignore
-            def __init__(self, name: str) -> None:
-                self._logger = logging.getLogger(name)
-
-            def info(
-                self, msg: str, extra: Optional[Dict[str, Any]] = None
-            ) -> None:
-                self._logger.info(msg, extra=extra)
-
-            def debug(
-                self, msg: str, extra: Optional[Dict[str, Any]] = None
-            ) -> None:
-                self._logger.debug(msg, extra=extra)
-
-            def warning(
-                self, msg: str, extra: Optional[Dict[str, Any]] = None
-            ) -> None:
-                self._logger.warning(msg, extra=extra)
-
-            def error(
-                self, msg: str, extra: Optional[Dict[str, Any]] = None
-            ) -> None:
-                self._logger.error(msg, extra=extra)
+        PerformanceOptimizedLogger = None  # type: ignore[assignment]
 
 # Module-level loggers (always defined)
 from typing import Protocol, runtime_checkable
@@ -191,11 +165,16 @@ class _LoggerProtocol(Protocol):
 
 logger = logging.getLogger("security.prompt_preprocessor")
 
-# Provide a PerformanceOptimizedLogger when available, otherwise a standard logger
+# Provide a PerformanceOptimizedLogger when available, otherwise a standard
+# logger conforming to _LoggerProtocol
 try:
-    _perf_logger: _LoggerProtocol = PerformanceOptimizedLogger("security.prompt_preprocessor")  # type: ignore[assignment]
+    if PerformanceOptimizedLogger is not None:
+        _perf_logger: _LoggerProtocol = PerformanceOptimizedLogger(
+            "security.prompt_preprocessor"
+        )  # type: ignore[assignment]
+    else:
+        raise ImportError("PerformanceOptimizedLogger unavailable")
 except Exception:
-    # Fallback to a standard logger that conforms to _LoggerProtocol
     _perf_logger = logging.getLogger("security.prompt_preprocessor")
 
 # Default safe policy used by the preprocessor when no provider is given.
@@ -243,6 +222,8 @@ class SecurePromptPreprocessor:
         self.alerter = alerter
         self.policy_template_provider = policy_template_provider
         self._plog = logger or _perf_logger
+        # compose sanitization service (single instance)
+        self._sanitizer = SanitizationService(_DEFAULT_POLICY)
 
     async def secure_preprocess(
         self, text: str, context: Optional[Dict[str, Any]] = None
@@ -260,10 +241,18 @@ class SecurePromptPreprocessor:
             recommended=detection.recommended_action,
         )
 
-        sanitized_text, did_sanitize = self._sanitize(text)
-        # Ensure we produce a system wrapper string from policy provider or
-        # default minimal policy
-        system_wrapper = self._constrain(self.policy_template_provider)
+        # Use sanitization service to separate concerns
+        policy_tpl = None
+        if self.policy_template_provider:
+            try:
+                policy_tpl = self.policy_template_provider() or None
+            except Exception:
+                policy_tpl = None
+        # The service defaults action; we will override with decided action below
+        san_result = await self._sanitizer.sanitize(text, detection, policy_tpl)
+        sanitized_text = san_result.sanitized_text
+        # Ensure we produce a system wrapper string (service already returns one)
+        system_wrapper = san_result.system_wrapper
 
         detection_payload: Dict[str, Any] = {
             "injection_detected": detection.injection_detected,
@@ -309,7 +298,7 @@ class SecurePromptPreprocessor:
             "sha8": sha8,
             "ms": round(dur_ms, 3),
             "constrained": bool(system_wrapper),
-            "sanitized": bool(did_sanitize),
+            "sanitized": bool(sanitized_text),
         }
 
         # Level mapping per action:
@@ -323,7 +312,7 @@ class SecurePromptPreprocessor:
             # The pipeline returns WARN for non-blocking; treat as CONSTRAIN
             # severity mapping. If sanitization occurred, emit as info; else
             # warn.
-            log_level = "warning" if not did_sanitize else "info"
+            log_level = "warning" if not sanitized_text else "info"
 
         self._log_attempt(audit_payload, level=log_level)
 
@@ -351,7 +340,7 @@ class SecurePromptPreprocessor:
                     action_taken=action,
                     input_sha256_8=sha8,
                     details={
-                        "sanitized": did_sanitize,
+                        "sanitized": bool(sanitized_text),
                         "constrained": bool(system_wrapper),
                     },
                 )
@@ -369,7 +358,7 @@ class SecurePromptPreprocessor:
         return SecurePreprocessResult(
             allowed=(action != SecurityAction.BLOCK),
             action_taken=action,
-            sanitized_text=(sanitized_text if did_sanitize else None),
+            sanitized_text=sanitized_text,
             system_wrapper=system_wrapper,
             detection=detection_payload,
             audit=audit_payload,
@@ -443,7 +432,7 @@ class SecurePromptPreprocessor:
             r"(\[\[neutralized\]\]\s*){2,}", "[[neutralized]] ", sanitized
         )
 
-        return sanitized, (changed and (sanitized != original))
+        return sanitized, changed
 
     def _constrain(self, policy: Optional[Callable[[], str]]) -> str:
         if policy:
@@ -512,24 +501,30 @@ class SecurePromptPreprocessor:
 
 # Module-level lazy singleton and convenience function
 _DEFAULT_PREPROCESSOR: Optional["SecurePromptPreprocessor"] = None
+# Guard against concurrent lazy initialization
+_DEFAULT_PREPROCESSOR_LOCK = threading.Lock()
 
 
 class LogsOnlyAlerter(ISecurityAlerter):
     def __init__(self) -> None:
-        try:
-            self._alog = PerformanceOptimizedLogger("security.alerts")
-        except Exception:
-            # Fallback to std logging if optimized not present; conforms to _LoggerProtocol
-            self._alog = logging.getLogger("security.alerts")
+        self._alog = logging.getLogger("security.alerts")
 
     async def notify(
         self,
         event: SecurityAlertEvent,
-    ) -> None:  # noqa: ARG002
-        return
-
-
-# HeuristicDetector has been extracted to src/security/heuristic_detector.py
+    ) -> None:
+        # Log the security alert
+        payload = {
+            "timestamp": event.timestamp,
+            "session_id": event.session_id,
+            "severity": event.severity.name if event.severity else None,
+            "score": event.score,
+            "action": event.action_taken.name if event.action_taken else None,
+        }
+        if event.severity == SecuritySeverity.HIGH:
+            self._alog.error("Security alert", extra=payload)
+        else:
+            self._alog.warning("Security alert", extra=payload)
 
 
 class _NoopAlerter(ISecurityAlerter):
@@ -550,21 +545,24 @@ async def secure_preprocess(
     global _DEFAULT_PREPROCESSOR
 
     if _DEFAULT_PREPROCESSOR is None:
-        try:
-            sm: Optional[SessionManager] = SessionManager()
-        except Exception:
-            sm = None  # type: ignore
+        # Double-checked locking for thread-safe lazy init
+        with _DEFAULT_PREPROCESSOR_LOCK:
+            if _DEFAULT_PREPROCESSOR is None:
+                try:
+                    sm: Optional[SessionManager] = SessionManager()
+                except Exception:
+                    sm = None  # type: ignore
 
-        _DEFAULT_PREPROCESSOR = SecurePromptPreprocessor(
-            injection_detector=HeuristicDetector(),
-            session_manager=sm,  # type: ignore[arg-type]
-            alerter=_NoopAlerter(),
-            low_threshold=0.25,
-            medium_threshold=0.60,
-            high_threshold=0.85,
-            policy_template_provider=None,
-            logger=_perf_logger,
-        )
+                _DEFAULT_PREPROCESSOR = SecurePromptPreprocessor(
+                    injection_detector=HeuristicDetector(),
+                    session_manager=sm,  # type: ignore[arg-type]
+                    alerter=_NoopAlerter(),
+                    low_threshold=0.25,
+                    medium_threshold=0.60,
+                    high_threshold=0.85,
+                    policy_template_provider=None,
+                    logger=_perf_logger,
+                )
 
     return await _DEFAULT_PREPROCESSOR.secure_preprocess(text, context)
 
@@ -591,6 +589,28 @@ class SecurePromptProcessor:
     - Guards against processing additional prompts after session termination
     """
 
+    def _safe_init_preprocessor(self) -> Optional[SecurePromptPreprocessor]:
+        """
+        Best-effort initializer for the thin-wrapper preprocessor without
+        breaking imports if dependencies are unavailable.
+        """
+        try:
+            return SecurePromptPreprocessor(
+                injection_detector=self.injection_detector,
+                session_manager=self.session_manager,
+                alerter=None,
+                low_threshold=0.25,
+                medium_threshold=0.60,
+                high_threshold=0.85,
+                policy_template_provider=None,
+                logger=_perf_logger,
+            )
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                "Failed to initialize SecurePromptPreprocessor: %s", str(e)
+            )
+            return None
+
     def __init__(
         self,
         injection_detector: IPromptInjectionDetector,
@@ -612,32 +632,7 @@ class SecurePromptProcessor:
 
         # Thin wrapper using the new preprocessor; behavior preserved.
         # Allow DI of a pre-built preprocessor for testing and customization.
-        if preprocessor is not None:
-            self._preprocessor = preprocessor
-        else:
-            try:
-                self._preprocessor = SecurePromptPreprocessor(
-                    injection_detector=self.injection_detector,
-                    session_manager=self.session_manager,
-                    alerter=None,
-                    low_threshold=0.25,
-                    medium_threshold=0.60,
-                    high_threshold=0.85,
-                    policy_template_provider=None,
-                    logger=_perf_logger,
-                )
-            except Exception as e:
-                # Log the failure to build the default preprocessor to aid debugging,
-                # but keep the processor operable by falling back to None.
-                try:
-                    import logging
-                    logging.getLogger(__name__).warning(
-                        "Failed to initialize SecurePromptPreprocessor: %s", str(e)
-                    )
-                except Exception:
-                    # As a last resort, avoid crashing import paths
-                    print(f"[prompt_processor] Failed to init SecurePromptPreprocessor: {e}")
-                self._preprocessor = None
+        self._preprocessor = preprocessor if preprocessor is not None else self._safe_init_preprocessor()
 
     def set_preprocessor(self, preprocessor: Optional[SecurePromptPreprocessor]) -> None:
         """
@@ -645,6 +640,47 @@ class SecurePromptProcessor:
         Useful for tests to inject spies/mocks without accessing private attrs.
         """
         self._preprocessor = preprocessor
+
+    def _process_detection_result(
+        self,
+        *,
+        detection_results: List[Dict[str, Any]],
+        detection_data: Dict[str, Any],
+        prompt_idx: int,
+        prompt_text: str,
+        session_id_value: Optional[str],
+        threshold: float,
+    ) -> Tuple[bool, bool]:
+        """
+        Common handling for a single detection result:
+        - Append structured detection info to detection_results
+        - Evaluate confidence score against threshold
+        - Manage session termination when high confidence
+        Returns:
+          (high_confidence: bool, session_terminated: bool)
+        """
+        inj_detected = bool(detection_data.get("injection_detected", False))
+        conf = float(
+            detection_data.get("confidence_score")
+            or detection_data.get("confidence")
+            or 0.0
+        )
+        det_entry: Dict[str, Any] = {
+            "prompt_index": prompt_idx,
+            "prompt": prompt_text,
+            "injection_detected": inj_detected,
+            "confidence_score": conf,
+            "injection_type": detection_data.get("injection_type"),
+            "risk_level": detection_data.get("risk_level"),
+            "recommended_action": detection_data.get("recommended_action"),
+        }
+        detection_results.append(det_entry)
+
+        high_conf = conf >= threshold
+        if high_conf:
+            removed = self.session_manager.remove_session(session_id_value or "")
+            return True, bool(removed)
+        return False, False
 
     async def process_prompts_with_security(
         self,
@@ -681,56 +717,14 @@ class SecurePromptProcessor:
             }
         )
 
-        def _process_detection_result(
-            *,
-            detection_data: Dict[str, Any],
-            prompt_idx: int,
-            prompt_text: str,
-            session_id_value: Optional[str],
-            threshold: float,
-        ) -> Tuple[bool, bool]:
-            """
-            Common handling for a single detection result:
-            - Append structured detection info to detection_results
-            - Evaluate confidence score against threshold
-            - Manage session termination when high confidence
-            Returns:
-              (high_confidence: bool, session_terminated: bool)
-            """
-            inj_detected = bool(
-                detection_data.get("injection_detected", False)
-            )
-            conf = float(
-                detection_data.get("confidence_score")
-                or detection_data.get("confidence")
-                or 0.0
-            )
-            det_entry: Dict[str, Any] = {
-                "prompt_index": prompt_idx,
-                "prompt": prompt_text,
-                "injection_detected": inj_detected,
-                "confidence_score": conf,
-                "injection_type": detection_data.get("injection_type"),
-                "risk_level": detection_data.get("risk_level"),
-                "recommended_action": detection_data.get("recommended_action"),
-            }
-            detection_results.append(det_entry)
-
-            high_conf = conf >= threshold
-            if high_conf:
-                removed = self.session_manager.remove_session(
-                    session_id_value or ""
-                )
-                return True, bool(removed)
-            return False, False
-
         for i, prompt in enumerate(prompts):
-            logger.debug(f"Processing prompt {i + 1}/{len(prompts)}")
+            logger.debug("Processing prompt %d/%d", i + 1, len(prompts))
 
             if session is None:
                 logger.info(
-                    f"Session {session_id} is None, breaking prompt "
-                    f"processing loop at index {i}"
+                    "Session %s is None, breaking prompt processing loop at index %s",
+                    session_id,
+                    i,
                 )
                 break
 
@@ -754,7 +748,8 @@ class SecurePromptProcessor:
                             "recommended_action"
                         ),
                     }
-                    high_conf, terminated_now = _process_detection_result(
+                    high_conf, terminated_now = self._process_detection_result(
+                        detection_results=detection_results,
                         detection_data=det_norm3,
                         prompt_idx=i,
                         prompt_text=prompt,
@@ -778,22 +773,23 @@ class SecurePromptProcessor:
                             session_terminated = terminated_now
                         if session_terminated:
                             logger.info(
-                                f"Session {session_id} terminated after "
-                                f"high-confidence detection"
+                                "Session %s terminated after high-confidence detection",
+                                session_id,
                             )
                             session = None
                         else:
                             logger.warning(
-                                f"Failed to remove session {session_id} "
-                                f"from session manager"
+                                "Failed to remove session %s from session manager",
+                                session_id,
                             )
                         break
                     else:
                         session = self.session_manager.get_session(session_id)
                         if session is None:
                             logger.warning(
-                                f"Session {session_id} unexpectedly None "
-                                f"for benign prompt {i}"
+                                "Session %s unexpectedly None for benign prompt %s",
+                                session_id,
+                                i,
                             )
                             session_terminated = True
                             break
@@ -816,7 +812,8 @@ class SecurePromptProcessor:
                             else None
                         ),
                     }
-                    high_conf, terminated_now = _process_detection_result(
+                    high_conf, terminated_now = self._process_detection_result(
+                        detection_results=detection_results,
                         detection_data=det_norm2,
                         prompt_idx=i,
                         prompt_text=prompt,
@@ -850,7 +847,7 @@ class SecurePromptProcessor:
                             break
 
             except Exception as e:
-                logger.error(f"Error processing prompt {i}: {e}")
+                logger.error("Error processing prompt %s: %s", i, e)
                 detection_results.append(
                     {
                         "prompt_index": i,
@@ -868,6 +865,50 @@ class SecurePromptProcessor:
             total_prompts_processed=len(detection_results),
             detection_results=detection_results,
         )
+
+    def _process_detection_result(
+        self,
+        *,
+        detection_results: List[Dict[str, Any]],
+        detection_data: Dict[str, Any],
+        prompt_idx: int,
+        prompt_text: str,
+        session_id_value: Optional[str],
+        threshold: float,
+    ) -> Tuple[bool, bool]:
+        """
+        Common handling for a single detection result:
+        - Append structured detection info to detection_results
+        - Evaluate confidence score against threshold
+        - Manage session termination when high confidence
+
+        Returns:
+            (high_confidence: bool, session_terminated: bool)
+        """
+        inj_detected = bool(detection_data.get("injection_detected", False))
+        conf = float(
+            detection_data.get("confidence_score")
+            or detection_data.get("confidence")
+            or 0.0
+        )
+        det_entry: Dict[str, Any] = {
+            "prompt_index": prompt_idx,
+            "prompt": prompt_text,
+            "injection_detected": inj_detected,
+            "confidence_score": conf,
+            "injection_type": detection_data.get("injection_type"),
+            "risk_level": detection_data.get("risk_level"),
+            "recommended_action": detection_data.get("recommended_action"),
+        }
+        detection_results.append(det_entry)
+
+        high_conf = conf >= threshold
+        if high_conf:
+            removed = self.session_manager.remove_session(
+                session_id_value or ""
+            )
+            return True, bool(removed)
+        return False, False
 
     def validate_session_termination(self, session_id: str) -> bool:
         """
@@ -888,7 +929,8 @@ class SecurePromptProcessor:
         session = self.session_manager.get_session(session_id)
         if session is None:
             logger.info(
-                f"Session {session_id} is None, skipping prompt processing"
+                "Session %s is None, skipping prompt processing",
+                session_id,
             )
             return False, None
 
@@ -947,7 +989,7 @@ class SecurePromptProcessor:
             return True, detection_result
 
         except Exception as e:
-            logger.error(f"Error processing single prompt: {e}")
+            logger.error("Error processing single prompt: %s", e)
             return True, {
                 "prompt": prompt,
                 "error": str(e),
