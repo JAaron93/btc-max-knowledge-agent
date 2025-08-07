@@ -436,3 +436,126 @@ from src.security.demo_integration import create_secure_bitcoin_api
 # Create secure FastAPI app with all security components
 app = create_secure_bitcoin_api()
 ```
+
+## Secure Prompt Preprocessing
+
+This repository provides a centralized single‑prompt preprocessing pipeline that detects prompt injection attempts, determines an action using thresholds and severity, neutralizes content, constrains generation with a system policy wrapper, emits structured security logs, and dispatches alerts for critical events.
+
+- Entrypoint (module-level convenience): [`src.security.prompt_processor.secure_preprocess()`](src/security/prompt_processor.py)
+- Core class: [`src.security.prompt_processor.SecurePromptPreprocessor.__init__()`](src/security/prompt_processor.py)
+
+### Overview
+
+The secure_preprocess pipeline performs:
+- Detection: uses an `IPromptInjectionDetector` to return a rich [`DetectionResult`](src/security/prompt_injection_detector.py:27) including `confidence_score`, `risk_level` (`SecuritySeverity`), `injection_type`, and optional `recommended_action`.
+- Decision: maps score and severity to a `SecurityAction` via thresholds (details below). If the detector recommends a stricter action, the pipeline honors it.
+- Neutralization: conservatively sanitizes known injection markers (e.g., “ignore previous instructions”, role prefixes like “system:”, fenced code blocks, “call_tool:” tokens). No raw prompt text is ever logged.
+- Constraint: wraps generation with a system policy wrapper (from a provided policy provider or a safe default).
+- Telemetry: emits structured log records and, when warranted, security alerts.
+- Session termination: optionally ends the session on BLOCK if a `session_id` is available.
+
+### Thresholds and Actions
+
+Default thresholds (sanitized to ascending order within [0,1]):
+- low = 0.25
+- medium = 0.60
+- high = 0.85
+
+Mapping:
+- score < low → ALLOW
+- low ≤ score < medium → WARN
+- medium ≤ score < high → WARN
+- score ≥ high → BLOCK
+
+Nuances:
+- Severity escalation: if `severity == SecuritySeverity.HIGH` but computed action is ALLOW, it is raised to WARN.
+- Recommendation override: if the detector provides a stricter `recommended_action`, it is honored.
+- Action enum values used at runtime: `ALLOW`, `WARN`, `BLOCK` (see [`src.security.models.SecurityAction`](src/security/models.py:7)).
+- Severity enum values used at runtime: `LOW`, `MEDIUM`, `HIGH` (see [`src.security.models.SecuritySeverity`](src/security/models.py:13)). If other terms like “CRITICAL” appear in design docs, this repo maps that notion to `HIGH`.
+
+High/critical severity and BLOCK are treated as critical for alerting (see Alerting section).
+
+### Usage
+
+PEP 8‑style async usage pattern:
+
+```python
+from src.security.prompt_processor import secure_preprocess  # noqa: E402
+
+result = await secure_preprocess(
+    user_text,
+    context={
+        "session_id": sid,
+        "source_ip": ip,
+        "user_agent": ua,
+        "request_id": rid,
+    },
+)
+
+if result.action_taken.name == "BLOCK":
+    # Deny request; session may be terminated if session_id was provided.
+    return {"error": "Request blocked by security policy."}, 403
+
+# For WARN paths, sanitized_text and a system policy wrapper are provided.
+text_to_use = result.sanitized_text or user_text
+system_policy = result.system_wrapper  # always non-empty string
+
+# Apply system_policy at LLM call site as your system/guardrail wrapper.
+# Proceed with downstream handling using text_to_use.
+```
+
+Result contract: [`src.security.prompt_processor.SecurePreprocessResult`](src/security/prompt_processor.py:129)
+- allowed: bool (False only when action is BLOCK)
+- action_taken: `SecurityAction`
+- sanitized_text: Optional[str] (present only if changed)
+- system_wrapper: Optional[str] (policy wrapper string; present when available)
+- detection: Dict[str, Any] (safe; no raw input)
+- audit: Dict[str, Any] (safe diagnostics)
+
+### Logging
+
+Performance‑optimized structured logging to:
+- Logger name: "security.prompt_preprocessor" (see [`src.security.prompt_processor._perf_logger`](src/security/prompt_processor.py:118))
+
+Payload schema keys (exact):
+- ts, sid, rid, ua, ip
+- patterns (capped to 8)
+- score, sev, action
+- len (input length), sha256_8 (first 8 hex characters of a SHA‑256 over the first 2048 characters)
+- ms (duration in milliseconds)
+- constrained (bool), sanitized (bool)
+
+Reference build: [`src.security.prompt_processor.SecurePromptPreprocessor.secure_preprocess()`](src/security/prompt_processor.py:165)
+
+Log level mapping:
+- ALLOW → debug
+- BLOCK → error
+- WARN → info if sanitized, otherwise warning
+
+No raw prompts are logged. Only the sha256_8 fingerprint and metadata appear in the payload. The sha256_8 is computed as the first 8 hex characters of a SHA‑256 over at most the first 2048 characters. Patterns are capped to 8.
+
+### Alerting
+
+- Default alerter interface: [`src.security.interfaces.ISecurityAlerter.notify()`](src/security/interfaces.py:54)
+- Default implementation provided in this module: [`src.security.prompt_processor.LogsOnlyAlerter.notify()`](src/security/prompt_processor.py:436)
+- Alerts are emitted only when:
+  - `action_taken == BLOCK`, or
+  - severity is HIGH (critical mapping).
+
+Alert logger name (in default alerter): "security.alerts".
+The alert payload includes: ts, sid, rid, ip, sev, score, patterns (≤ 8), type, action, sha8.
+
+### Coexistence with SecurityValidationMiddleware
+
+- The middleware validates request structure and performs rate limiting.
+- The secure_preprocess pipeline focuses on LLM‑specific prompt injection defenses: detection, neutralization, constraint, logging, and alerting.
+- Use both components together: middleware at the HTTP boundary and secure_preprocess at the LLM prompt boundary.
+
+### Session Termination
+
+When action is BLOCK and the `context` contains `session_id`, the preprocessor attempts to terminate the session via `SessionManager.remove_session(session_id)` (if a session manager is available in the environment). This helps mitigate active adversarial sessions.
+
+### Additional Notes
+
+- The module also contains a legacy/batch wrapper `SecurePromptProcessor` that can leverage the new preprocessor while preserving prior control flow. See [`src.security.prompt_processor.SecurePromptProcessor`](src/security/prompt_processor.py:575).
+- The system policy wrapper is drawn from a provided template factory or a safe default. It is always an explicit string and should be applied as a system/guardrail prompt at LLM call sites.

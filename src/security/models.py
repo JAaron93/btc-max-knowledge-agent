@@ -1,17 +1,20 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Any, Dict
+
 
 class SecurityAction(Enum):
     ALLOW = auto()
     WARN = auto()
     BLOCK = auto()
 
+
 class SecuritySeverity(Enum):
     LOW = auto()
     MEDIUM = auto()
     HIGH = auto()
+
 
 @dataclass
 class DetectionResult:
@@ -22,6 +25,7 @@ class DetectionResult:
 
 class SecurityConfiguration:
     """Minimal stub for tests expecting SecurityConfiguration."""
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -32,15 +36,19 @@ class SecurityViolation(Enum):
     DATA_LEAK = auto()
     RATE_LIMIT_ABUSE = auto()
 
+
 # Threshold constants expected by tests
 DEFAULT_THRESHOLD_LOW = 0.2
 DEFAULT_THRESHOLD_MEDIUM = 0.5
 DEFAULT_THRESHOLD_HIGH = 0.8
 
+
 @dataclass
 class SecurityEvent:
     name: str
-    details: Optional[Dict[str, Any]] = None
+    # Use default_factory to avoid mutable default pitfalls and None checks
+    details: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class ValidationResult:
@@ -52,6 +60,7 @@ class SecurityEventType(Enum):
     REQUEST = auto()
     RESPONSE = auto()
     ALERT = auto()
+
 
 class AuthenticationStatus(Enum):
     UNKNOWN = auto()
@@ -65,7 +74,9 @@ class AuthResult(Enum):
     ERROR = auto()
 
 
-def _sanitize_thresholds(low: float, medium: float, high: float) -> tuple[float, float, float]:
+def _sanitize_thresholds(
+    low: float, medium: float, high: float
+) -> tuple[float, float, float]:
     """Ensure thresholds are in ascending order and within [0,1]."""
     low = max(0.0, min(1.0, float(low)))
     medium = max(0.0, min(1.0, float(medium)))
@@ -77,25 +88,29 @@ def _sanitize_thresholds(low: float, medium: float, high: float) -> tuple[float,
     return low, medium, high
 
 
-def get_contextual_severity_for_event_type(event_type) -> SecuritySeverity:
-    """Return a default severity per event type; tests only need basic mapping."""
+def get_contextual_severity_for_event_type(
+    event_type: str | Enum,
+) -> SecuritySeverity:
+    """Return a default severity per event type; tests only need
+    basic mapping.
+    """
     try:
-        et = event_type.name if hasattr(event_type, "name") else str(event_type)
+        et_raw = event_type.name if hasattr(event_type, "name") else str(event_type)
     except Exception:
-        et = str(event_type)
-    mapping = {
-        "ALERT": SecuritySeverity.CRITICAL if 'ALERT' in mapping else SecuritySeverity.HIGH
-    }
+        et_raw = str(event_type)
+    et = et_raw.upper()
+
     # Simple defaults
-    if 'ALERT' in et:
-        return SecuritySeverity.CRITICAL
-    if 'RESPONSE' in et:
+    if "ALERT" in et:
+        return SecuritySeverity.HIGH
+    if "RESPONSE" in et:
         return SecuritySeverity.MEDIUM
     return SecuritySeverity.LOW
 
 
 class ResourceMetrics:
     """Minimal metrics container used in tests."""
+
     def __init__(self, cpu: float = 0.0, mem: float = 0.0) -> None:
         self.cpu = cpu
         self.mem = mem
@@ -103,18 +118,22 @@ class ResourceMetrics:
 
 class SecurityConfigurationManager:
     """Minimal manager stub for tests expecting import surface."""
+
     def __init__(self, config=None) -> None:
         self.config = config
+
     def get_configuration(self):
         return self.config
 
 
 class TokenBucket:
-    """Minimal token bucket stub for rate limiting tests expecting symbol exposure."""
+    """Minimal token bucket stub for rate limiting tests expecting exposure."""
+
     def __init__(self, capacity: int = 10, refill_rate: float = 1.0) -> None:
         self.capacity = capacity
         self.refill_rate = refill_rate
         self.tokens = capacity
+
     def try_consume(self, n: int = 1) -> bool:
         if self.tokens >= n:
             self.tokens -= n
