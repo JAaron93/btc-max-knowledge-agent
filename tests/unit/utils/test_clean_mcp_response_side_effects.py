@@ -42,10 +42,26 @@ def test_no_side_effects():
     assert "content" in cleaned_result and isinstance(cleaned_result["content"], list)
     assert len(cleaned_result["content"]) == len(original_data["content"])
 
-    # 4) Content was actually cleaned (at least first item differs if cleanable)
-    original_first_text = original_data["content"][0]["text"]
-    cleaned_first_text = cleaned_result["content"][0]["text"]
-    assert original_first_text != cleaned_first_text, "Content does not appear to have been cleaned"
+    # 4) Content cleaning is effective when needed:
+    #    - Ensure structure/type preserved per item
+    #    - Allow already-clean items to remain unchanged
+    #    - Require that at least one item was modified by cleaning
+    original_contents = original_data["content"]
+    cleaned_contents = cleaned_result["content"]
+
+    assert len(original_contents) == len(cleaned_contents), "Content length changed unexpectedly"
+
+    any_item_changed = False
+    for orig_item, clean_item in zip(original_contents, cleaned_contents):
+        # Structure preserved
+        assert isinstance(clean_item, dict) and "type" in clean_item and "text" in clean_item, "Content item structure changed unexpectedly"
+        assert clean_item["type"] == orig_item["type"], "Content item 'type' changed unexpectedly"
+
+        # Track if any text changed due to cleaning
+        if clean_item["text"] != orig_item["text"]:
+            any_item_changed = True
+
+    assert any_item_changed, "Cleaner did not modify any content items; expected at least one item to be cleaned"
 
     # 5) Metadata preserved
     assert cleaned_result.get("metadata") == original_data.get("metadata"), "Metadata changed unexpectedly"

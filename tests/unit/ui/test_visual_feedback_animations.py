@@ -19,6 +19,7 @@ sys.path.insert(0, str(project_root))
 
 # Pytest marker: classify this module as unit tests
 import pytest  # noqa: E402
+
 pytestmark = [pytest.mark.unit]
 
 
@@ -192,6 +193,8 @@ def create_waveform_animation() -> str:
         </div>
     </div>
     """
+
+
 def create_playback_indicator(is_cached: bool = False) -> str:
     """Create playback indicator with different styles for cached vs new audio"""
     # Define conditional values for cached vs non-cached audio
@@ -205,12 +208,13 @@ def create_playback_indicator(is_cached: bool = False) -> str:
         </div>
         """
 
+
 def create_loading_indicator() -> str:
     """Create loading indicator for TTS processing state"""
     return (
-        "<div style=\"display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;\">"
-        "<div style=\"display: flex; align-items: center; gap: 8px;\">"
-        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;\">"
+        '<div style="display: flex; align-items: center; justify-content: center; padding: 10px; transition: all 0.3s ease-in-out;">'
+        '<div style="display: flex; align-items: center; gap: 8px;">'
+        '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both;">'
         "<style>"
         "@keyframes loading-dot {"
         "0%, 80%, 100% { transform: scale(0); opacity: 0.5; }"
@@ -218,15 +222,16 @@ def create_loading_indicator() -> str:
         "}"
         "</style>"
         "</div>"
-        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.32s;\"></div>"
-        "<div style=\"width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.16s;\"></div>"
+        '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></div>'
+        '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #3b82f6; animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></div>'
         "</div>"
-        "<span style=\"margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;\">Processing text...</span>"
+        '<span style="margin-left: 12px; color: #3b82f6; font-size: 14px; font-weight: 500;">Processing text...</span>'
         "</div>"
     )
 
 
 import pytest
+
 pytestmark = [pytest.mark.unit]
 
 # Marker usage example:
@@ -236,6 +241,7 @@ pytestmark = [pytest.mark.unit]
 # Marker usage example:
 # pytestmark = [pytest.mark.unit]
 # This module contains unit tests that validate HTML/CSS snippets and animation states
+
 
 def get_tts_status_display(
     is_synthesizing: bool,
@@ -287,38 +293,38 @@ def get_tts_status_display(
         # Consolidated error HTML structure (single source of truth)
         return (
             f"{css_keyframes}"
-            f"<div class=\"tts-status error\" "
-            f"style=\"display: flex; align-items: center; justify-content: center; padding: 10px; "
+            f'<div class="tts-status error" '
+            f'style="display: flex; align-items: center; justify-content: center; padding: 10px; '
             f"background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fca5a5; "
-            f"border-radius: 8px; transition: all 0.3s ease-in-out;\">"
-            f"<span style=\"color: #dc2626; font-size: 13px; cursor: help; font-weight: 500; "
-            f"animation: fade-in 0.3s ease-in-out;\">{display_message}</span>"
+            f'border-radius: 8px; transition: all 0.3s ease-in-out;">'
+            f'<span style="color: #dc2626; font-size: 13px; cursor: help; font-weight: 500; '
+            f'animation: fade-in 0.3s ease-in-out;">{display_message}</span>'
             f"</div>"
         )
     elif is_loading:
         # Show loading indicator for initial processing
         return (
-            "<div class=\"tts-status synthesizing\" "
-            "style=\"background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; "
-            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            '<div class="tts-status synthesizing" '
+            'style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; '
+            'border-radius: 8px; transition: all 0.3s ease-in-out;">'
             f"{create_loading_indicator()}"
             "</div>"
         )
     elif is_synthesizing:
         # Show waveform animation during synthesis
         return (
-            "<div class=\"tts-status synthesizing\" "
-            "style=\"background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; "
-            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            '<div class="tts-status synthesizing" '
+            'style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; '
+            'border-radius: 8px; transition: all 0.3s ease-in-out;">'
             f"{create_waveform_animation()}"
             "</div>"
         )
     elif is_playing:
         # Show playback indicator
         return (
-            "<div class=\"tts-status playing\" "
-            "style=\"background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; "
-            "border-radius: 8px; transition: all 0.3s ease-in-out;\">"
+            '<div class="tts-status playing" '
+            'style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; '
+            'border-radius: 8px; transition: all 0.3s ease-in-out;">'
             f"{create_playback_indicator(is_cached)}"
             "</div>"
         )
@@ -326,12 +332,12 @@ def get_tts_status_display(
         # Ready state with smooth transition
         return (
             f"{css_keyframes}"
-            f"<div class=\"tts-status ready\" "
-            f"style=\"display: flex; align-items: center; justify-content: center; padding: 10px; "
+            f'<div class="tts-status ready" '
+            f'style="display: flex; align-items: center; justify-content: center; padding: 10px; '
             f"background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 1px solid #d1d5db; "
-            f"border-radius: 8px; transition: all 0.3s ease-in-out;\">"
-            f"<span style=\"color: #6b7280; font-size: 13px; font-weight: 500; "
-            f"animation: fade-in 0.3s ease-in-out;\">[READY] Ready for voice synthesis</span>"
+            f'border-radius: 8px; transition: all 0.3s ease-in-out;">'
+            f'<span style="color: #6b7280; font-size: 13px; font-weight: 500; '
+            f'animation: fade-in 0.3s ease-in-out;">[READY] Ready for voice synthesis</span>'
             f"</div>"
         )
 
@@ -369,10 +375,11 @@ def test_waveform_animation():
     )
 
     # Verify animation contains required elements
-    assert "svg" in animation_html.lower(), f"Animation should contain SVG element, but got: {animation_html[:100]}..."
-    assert (
-        "animate" in animation_html.lower()
-    ), f"Animation should contain animate elements, but got: {animation_html[:100]}..."
+    assert "svg" in animation_html.lower(), (
+        f"Animation should contain SVG element, but got: {animation_html[:100]}..."
+    )
+    assert "animate" in animation_html.lower(), (
+        f"Animation should contain animate elements, but got: {animation_html[:100]}..."
     )
     assert "synthesizing speech" in animation_html.lower(), (
         "Animation should contain synthesis text"
@@ -523,7 +530,7 @@ def test_smooth_transitions():
     transition_pattern = r"transition:\s*all\s+0\.3s\s+ease-in-out"
     fade_in_pattern = r"animation:\s*fade-in\s+0\.3s\s+ease-in-out|fade-in"
 
-    for i, (state_name, state_html) in enumerate(states):
+    for state_name, state_html in states:
         # Validate HTML structure first
         html_analysis = validate_html_structure(state_html)
         assert html_analysis["is_valid"], (
@@ -536,7 +543,10 @@ def test_smooth_transitions():
         )
 
         # Check that Ready and Error states have fade-in animation
-        if state_name in ["Ready", "Error"]:  # Ready and Error states should have fade-in
+        if state_name in [
+            "Ready",
+            "Error",
+        ]:  # Ready and Error states should have fade-in
             assert re.search(fade_in_pattern, state_html), (
                 f"{state_name} state should have fade-in animation"
             )

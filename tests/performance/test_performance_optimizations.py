@@ -62,9 +62,20 @@ try:
 except RuntimeError as e:
     print(f"Error finding project root: {e}")
     # Fallback: try going up directories from current location
-    project_root = Path(
-        __file__
-    ).parent.parent.parent  # tests/performance -> tests -> project_root
+    fallback_path = Path(__file__).parent
+    # Try ascending up to 3 levels to find common project markers
+    for _ in range(3):
+        for marker in [".git", "setup.py", "pyproject.toml", "src"]:
+            if (fallback_path / marker).exists():
+                project_root = fallback_path
+                break
+        else:
+            fallback_path = fallback_path.parent
+            continue
+        break
+    else:
+        # Ultimate fallback if no markers found
+        project_root = Path(__file__).parent.parent.parent
     sys.path.insert(0, str(project_root))
     print(f"Using fallback project root: {project_root}")
 
@@ -129,9 +140,17 @@ def test_memory_monitoring():
         assert cleanup_results is not None, "Cleanup results should not be None"
     finally:
         # Explicitly cleanup resources
-        if hasattr(tts_service, "cleanup_resources"):
-            # Note: This would need to be made async if cleanup_resources is async
-            pass  # or implement sync cleanup method
+        # cleanup_resources is async; run it safely from this sync test via the event loop
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Schedule best-effort cleanup without blocking a running loop
+                loop.create_task(tts_service.cleanup_resources())
+            else:
+                loop.run_until_complete(tts_service.cleanup_resources())
+        except RuntimeError:
+            # No event loop present; create one for the cleanup
+            asyncio.run(tts_service.cleanup_resources())
 
     print("✅ Memory monitoring test completed")
 

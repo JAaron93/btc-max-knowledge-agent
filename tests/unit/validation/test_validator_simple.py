@@ -55,9 +55,8 @@ async def test_validator():
     library_status = validator.get_library_status()
     status_parts = []
 
-    # Format library status information using public API (dynamic over returned keys)
-    for lib_name in library_status.keys():
-        lib_info = library_status[lib_name]
+    # Format library status information using public API (iterate items for readability/efficiency)
+    for lib_name, lib_info in library_status.items():
         if isinstance(lib_info, dict) and "available" in lib_info:
             status = "OK" if lib_info["available"] else "UNAVAILABLE"
             status_parts.append(f"{lib_name}:{status}")

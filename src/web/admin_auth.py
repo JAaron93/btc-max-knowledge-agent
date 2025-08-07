@@ -29,7 +29,7 @@ import os
 import secrets
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 # Reasonable defaults for tests
 DEFAULT_SESSION_TIMEOUT_MINUTES = 30
@@ -86,9 +86,7 @@ class AdminAuthenticator:
     )
 
     # In-memory state
-    active_sessions: Dict[str, Dict[str, float | str]] = field(
-        default_factory=dict
-    )
+    active_sessions: Dict[str, Dict[str, float | str]] = field(default_factory=dict)
     failed_attempts: Dict[str, list[float]] = field(default_factory=dict)
     locked_ips: Dict[str, float] = field(default_factory=dict)
 
@@ -101,23 +99,31 @@ class AdminAuthenticator:
         if username != env_user:
             return False
 
-        # Import the hashing utility exactly like tests do to avoid dep drift
-        import importlib.util
-        from pathlib import Path
+        try:
+            # Import the hashing utility exactly like tests do to avoid dep drift
+            import importlib.util
+            from pathlib import Path
 
-        scripts_path = (
-            Path(__file__).resolve().parents[2] / "tests" / "scripts"
-        )
-        spec = importlib.util.spec_from_file_location(
-            "generate_admin_hash", scripts_path / "generate_admin_hash.py"
-        )
-        assert spec and spec.loader
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        verify_password = getattr(mod, "verify_password", None)
-        if not callable(verify_password):
+            scripts_path = Path(__file__).resolve().parents[2] / "tests" / "scripts"
+            hash_module_path = scripts_path / "generate_admin_hash.py"
+            if not hash_module_path.exists():
+                return False
+
+            spec = importlib.util.spec_from_file_location(
+                "generate_admin_hash", hash_module_path
+            )
+            if not spec or not spec.loader:
+                return False
+
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            verify_password = getattr(mod, "verify_password", None)
+            if not callable(verify_password):
+                return False
+            return bool(verify_password(password, env_hash))
+        except Exception:
+            # Log the exception in production scenarios
             return False
-        return bool(verify_password(password, env_hash))
 
     def _is_ip_locked(self, ip: str, now: Optional[float] = None) -> bool:
         if not ip:
@@ -136,11 +142,7 @@ class AdminAuthenticator:
             return
         now = now or _now()
         window_start = now - self.failure_window_seconds
-        attempts = [
-            t
-            for t in self.failed_attempts.get(ip, [])
-            if t >= window_start
-        ]
+        attempts = [t for t in self.failed_attempts.get(ip, []) if t >= window_start]
         attempts.append(now)
         self.failed_attempts[ip] = attempts
         if len(attempts) >= self.max_failures:
@@ -161,7 +163,7 @@ class AdminAuthenticator:
 
         # Success: clear recent failures for the IP
         if ip in self.failed_attempts:
-            self.failed_attempts.pop(ip, None)
+            del self.failed_attempts[ip]
 
         token = secrets.token_urlsafe(32)
         now = _now()
@@ -193,25 +195,36 @@ class AdminAuthenticator:
         return True
 
     def revoke_admin_session(self, token: str, ip: str) -> bool:
-        """Revoke active session."""
-        if token in self.active_sessions:
-            self.active_sessions.pop(token, None)
-            return True
-        return False
+        """
+        Revoke an active session.
+
+        Security note:
+        - We accept `ip` for API consistency with other methods.
+        - If you want stricter binding, enable IP verification below.
+        """
+        sess = self.active_sessions.get(token)
+        if not sess:
+            return False
+
+        # Optional IP verification: uncomment to require same-IP revocation
+        # If enabled, only the IP that created the session can revoke it.
+        # if ip and sess.get("ip") and sess["ip"] != ip:
+        #     return False
+
+        self.active_sessions.pop(token, None)
+        return True
 
     def cleanup_expired_sessions(self) -> int:
         """Remove expired tokens; return count removed."""
         now = _now()
         to_delete = [
-            t
-            for t, s in self.active_sessions.items()
-            if now >= float(s["expires_at"])
+            t for t, s in self.active_sessions.items() if now >= float(s["expires_at"])
         ]
         for t in to_delete:
             self.active_sessions.pop(t, None)
         return len(to_delete)
 
-    def get_admin_stats(self) -> Dict[str, object]:
+    def get_admin_stats(self) -> Dict[str, Any]:
         """Return a stats snapshot used by tests."""
         return {
             "active_admin_sessions": len(self.active_sessions),
@@ -219,9 +232,7 @@ class AdminAuthenticator:
             "token_expiry_hours": self.token_expiry_hours,
             "sessions": list(self.active_sessions.keys()),
             "rate_limiting": {
-                "failed_attempts": {
-                    k: len(v) for k, v in self.failed_attempts.items()
-                },
+                "failed_attempts": {k: len(v) for k, v in self.failed_attempts.items()},
                 "locked_ips": list(self.locked_ips.keys()),
                 "max_failures": self.max_failures,
                 "window_seconds": self.failure_window_seconds,

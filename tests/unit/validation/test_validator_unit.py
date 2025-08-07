@@ -80,25 +80,29 @@ class TestSecurityValidator:
             assert isinstance(lib_info, dict)
             assert "available" in lib_info
             assert isinstance(lib_info["available"], bool)
-    
-        @pytest.mark.asyncio
-        async def test_input_length_validation_edge_cases(self):
-            """Edge cases for input length validation: empty and single-character inputs."""
-            context = {"source_ip": "127.0.0.1"}
-    
-            # Empty string
-            result_empty = await self.validator.validate_input("", context)
-            empty_length_violations = [
-                v for v in result_empty.violations if v.violation_type == "input_length_exceeded"
-            ]
-            assert len(empty_length_violations) == 0
-    
-            # Single character
-            result_single = await self.validator.validate_input("a", context)
-            single_length_violations = [
-                v for v in result_single.violations if v.violation_type == "input_length_exceeded"
-            ]
-            assert len(single_length_violations) == 0
+
+    @pytest.mark.asyncio
+    async def test_input_length_validation_edge_cases(self):
+        """Edge cases for input length validation: empty and single-character inputs."""
+        context = {"source_ip": "127.0.0.1"}
+
+        # Empty string
+        result_empty = await self.validator.validate_input("", context)
+        empty_length_violations = [
+            v
+            for v in result_empty.violations
+            if v.violation_type == "input_length_exceeded"
+        ]
+        assert len(empty_length_violations) == 0
+
+        # Single character
+        result_single = await self.validator.validate_input("a", context)
+        single_length_violations = [
+            v
+            for v in result_single.violations
+            if v.violation_type == "input_length_exceeded"
+        ]
+        assert len(single_length_violations) == 0
 
     @pytest.mark.asyncio
     async def test_input_length_validation_within_limit(self):
@@ -193,9 +197,9 @@ class TestSecurityValidator:
                 and expected_pattern in v.violation_type
             ]
 
-            assert (
-                len(fallback_violations) > 0
-            ), f"Expected fallback pattern '{expected_pattern}' not detected in '{test_input}'"
+            assert len(fallback_violations) > 0, (
+                f"Expected fallback pattern '{expected_pattern}' not detected in '{test_input}'"
+            )
             assert fallback_violations[0].confidence_score > 0.0
             assert fallback_violations[0].detected_pattern is not None
 
@@ -243,9 +247,9 @@ class TestSecurityValidator:
 
         # Test with single score (should return the same score)
         single_result = self.validator._calculate_overall_confidence([0.8])
-        assert (
-            abs(single_result - 0.8) < 0.001
-        ), f"Single score should return the same value, got {single_result}"
+        assert abs(single_result - 0.8) < 0.001, (
+            f"Single score should return the same value, got {single_result}"
+        )
 
         # Test with multiple scores (weighted average)
         scores = [0.9, 0.8, 0.7]
@@ -275,9 +279,9 @@ class TestSecurityValidator:
         identical_result = self.validator._calculate_overall_confidence(
             identical_scores
         )
-        assert (
-            abs(identical_result - 0.6) < 0.001
-        ), "Identical scores should return the same value"
+        assert abs(identical_result - 0.6) < 0.001, (
+            "Identical scores should return the same value"
+        )
 
         # Test with extreme values to verify higher scores are favored
         extreme_scores = [0.9, 0.1]  # High and low confidence
@@ -292,9 +296,9 @@ class TestSecurityValidator:
 
         # Verify the exact calculation for extreme case
         extreme_expected = (0.9 * 0.9 + 0.1 * 0.1) / (0.9 + 0.1)  # ≈ 0.82
-        assert (
-            abs(extreme_result - extreme_expected) < 0.001
-        ), f"Expected {extreme_expected:.4f}, got {extreme_result:.4f}"
+        assert abs(extreme_result - extreme_expected) < 0.001, (
+            f"Expected {extreme_expected:.4f}, got {extreme_result:.4f}"
+        )
 
     def test_recommended_action_mixed_violations(self):
         """Ensure highest severity is prioritized when multiple violations exist."""

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SessionManager: minimal, test-friendly session store
-for FastAPI-backed services.
+SessionManager: Thread-safe, in-memory session management
+for FastAPI-backed services with TTL expiration support.
 
 Provides simple CRUD operations on in-memory sessions with basic metadata and
 expiry handling. Designed to satisfy imports from security.prompt_processor.
@@ -24,6 +24,9 @@ class SessionData:
     ttl_seconds: Optional[int]
     data: Dict[str, Any]
 
+# Default TTL for sessions (1 hour) to centralize configuration
+DEFAULT_SESSION_TTL_SECONDS = 3600
+
 @dataclass
 class Session:
     """Lightweight session container."""
@@ -33,7 +36,7 @@ class Session:
     data: Dict[str, Any] = field(default_factory=dict)
     # Optional expiry seconds; if 0 or None, session does not
     # expire automatically
-    ttl_seconds: Optional[int] = 60 * 60  # default 1 hour
+    ttl_seconds: Optional[int] = DEFAULT_SESSION_TTL_SECONDS  # default 1 hour
 
     def touch(self) -> None:
         self.last_accessed_at = time.time()
@@ -143,7 +146,8 @@ class SessionManager:
                 alive.append((sid, sess))
 
             # Apply pagination after cleanup
-            sliced = alive[skip: max(skip, 0) + max(limit, 0)]
+            # Python slicing handles negative and out-of-bounds indices gracefully.
+            sliced = alive[skip: skip + limit]
             return [
                 {
                     "session_id": sid,
@@ -201,17 +205,48 @@ class SessionManager:
 
 # Simple module-level singleton accessor expected by tests
 _default_session_manager: Optional[SessionManager] = None
+_default_session_manager_factory: Optional[Callable[[], SessionManager]] = None
+
+
+def reset_session_manager() -> None:
+    """
+    Reset the module-level singleton so tests can recreate a fresh instance.
+
+    This avoids test cross-contamination when different factories are desired.
+    """
+    global _default_session_manager, _default_session_manager_factory
+    _default_session_manager = None
+    _default_session_manager_factory = None
 
 
 def get_session_manager(factory: Optional[Callable[[], SessionManager]] = None) -> SessionManager:
     """
     Return a singleton SessionManager instance.
 
-    Optional factory allows tests to inject a custom implementation.
+    Behavior:
+      - If no instance exists, create one using the provided factory (if any) or the default SessionManager.
+      - If an instance exists and a new factory is provided (different from the last one),
+        replace the singleton with a new instance created by that factory to honor test isolation.
+      - Tests that need full control can also call reset_session_manager() explicitly.
     """
-    global _default_session_manager
+    global _default_session_manager, _default_session_manager_factory
+
+    # If we already have an instance but caller provides a (different) factory,
+    # recreate the singleton to ensure isolation for tests using different setups.
+    if _default_session_manager is not None and factory is not None:
+        if _default_session_manager_factory is None or factory is not _default_session_manager_factory:
+            _default_session_manager = factory()
+            _default_session_manager_factory = factory
+            return _default_session_manager
+
     if _default_session_manager is None:
-        _default_session_manager = factory() if factory else SessionManager()
+        if factory:
+            _default_session_manager = factory()
+            _default_session_manager_factory = factory
+        else:
+            _default_session_manager = SessionManager()
+            _default_session_manager_factory = None
+
     return _default_session_manager
 
 

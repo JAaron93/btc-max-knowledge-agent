@@ -1,5 +1,82 @@
 # 🪙 Bitcoin Knowledge Assistant
 
+<!-- Table of Contents -->
+- [Getting started](#getting-started)
+- [🚀 Features](#-features)
+  - [Core Functionality](#core-functionality)
+  - [Security & Reliability](#security--reliability)
+  - [Developer Experience](#developer-experience)
+- [🆕 What's New](#-whats-new)
+- [📋 Prerequisites](#-prerequisites)
+- [🛠️ Installation](#️-installation)
+  - [Development Setup](#development-setup)
+  - [Production Setup](#production-setup)
+  - [Benefits of Editable Installation](#benefits-of-editable-installation)
+- [🚀 Quick Start](#-quick-start)
+  - [Development Mode](#development-mode)
+  - [Manual Launch](#manual-launch)
+- [🏭 Production Deployment](#-production-deployment)
+  - [Using Gunicorn](#using-gunicorn)
+  - [Using Systemd (Linux)](#using-systemd-linux)
+  - [Using Nginx (Reverse Proxy)](#using-nginx-reverse-proxy)
+- [📡 API Endpoints](#-api-endpoints)
+  - [Core Endpoints](#core-endpoints)
+  - [Session Management Endpoints](#session-management-endpoints)
+  - [Admin Endpoints (Authentication Required)](#admin-endpoints-authentication-required)
+  - [Session Security](#session-security)
+  - [Query Example](#query-example)
+  - [Session Management Examples](#session-management-examples)
+  - [Admin API Examples](#admin-api-examples)
+- [🎨 Web Interface Features](#-web-interface-features)
+  - [Main Interface](#main-interface)
+  - [System Monitoring](#system-monitoring)
+  - [Sample Questions](#sample-questions)
+- [🔧 Configuration](#-configuration)
+  - [Environment Variables](#environment-variables)
+    - [Core Application Variables](#core-application-variables)
+    - [Security Configuration Variables](#security-configuration-variables)
+    - [Development and Testing Variables](#development-and-testing-variables)
+  - [Gunicorn Configuration](#gunicorn-configuration)
+- [📊 Monitoring & Logs](#-monitoring--logs)
+  - [Log Files (Production)](#log-files-production)
+  - [Health Monitoring](#health-monitoring)
+- [🛡️ Security Features](#️-security-features)
+  - [Core Security Components](#core-security-components)
+  - [Advanced Security System](#advanced-security-system)
+  - [Dynamic Severity Assessment](#dynamic-severity-assessment)
+  - [Security Configuration](#security-configuration)
+- [🔗 URL Metadata Storage System](#-url-metadata-storage-system)
+  - [Overview](#overview)
+  - [Key Features](#key-features)
+  - [URL Metadata Schema](#url-metadata-schema)
+  - [Security Considerations](#security-considerations)
+  - [Error Handling and Retry Mechanisms](#error-handling-and-retry-mechanisms)
+  - [Monitoring and Logging](#monitoring-and-logging)
+  - [Migration Guide for Existing Deployments](#migration-guide-for-existing-deployments)
+  - [Testing and Validation](#testing-and-validation)
+  - [Performance Considerations](#performance-considerations)
+  - [Best Practices](#best-practices)
+- [🧪 Testing](#-testing)
+  - [Prerequisites](#prerequisites)
+  - [Running Tests](#running-tests)
+  - [Environment-Specific Test Runs](#environment-specific-test-runs)
+  - [Test Environment Control](#test-environment-control)
+  - [Testing Individual Components](#testing-individual-components)
+  - [Integration Tests](#integration-tests)
+  - [API Testing](#api-testing)
+  - [Test URL Validation System](#test-url-validation-system)
+  - [Test URL Metadata System](#test-url-metadata-system)
+  - [Development Workflow Improvements](#development-workflow-improvements)
+  - [CI/CD Integration](#cicd-integration)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [📈 Performance Optimization](#-performance-optimization)
+  - [Production Recommendations](#production-recommendations)
+  - [Scaling Options](#scaling-options)
+- [🤝 Contributing](#-contributing)
+  - [Developer Documentation](#developer-documentation)
+- [📄 License](#-license)
+- [🆘 Support](#-support)
+
 Quick links
 - Development guide: docs/guides/development.md
 - Changelog: docs/changelogs/CHANGELOG.md
@@ -21,8 +98,8 @@ Project conventions
 - Tests live under tests/{unit,integration,e2e,performance,ui,security}
 - Pytest is configured via pytest.ini (testpaths=tests, pythonpath=src)
 - Local runners:
-  - python run_tests.py [--unit|--integration|--e2e|--performance|--ui|--security] [-k expr] [--collect-only]
-  - ./run_tests.sh [same flags]
+  - python -m pytest -q
+  - pytest tests/ -v
 
 Documentation
 - All documentation is consolidated under docs/

@@ -185,13 +185,15 @@ def main():
 
     passed = 0
     for test_name, result in results:
-        if result is None:
-            status = "⏭️ SKIPPED"
-        else:
-            status = "✅ PASSED" if result else "❌ FAILED"
-        print(f"{test_name}: {status}")
-        if result:
-            passed += 1
+        passed = 0
+        for test_name, result in results:
+            if result is None:
+                status = "⏭️ SKIPPED"
+            else:
+                status = "✅ PASSED" if result else "❌ FAILED"
+            print(f"{test_name}: {status}")
+            if result is True:  # Explicitly check for True to avoid counting None
+                passed += 1
 
     # Count skipped for clarity
     skipped = sum(1 for _, r in results if r is None)
@@ -199,7 +201,9 @@ def main():
     print(f"\nOverall: {passed}/{total} tests passed, {skipped} skipped")
 
     if passed == total - skipped and skipped > 0:
-        print("ℹ️  All executed tests passed; some tests were skipped due to missing dependencies.")
+        print(
+            "ℹ️  All executed tests passed; some tests were skipped due to missing dependencies."
+        )
         return True
     elif passed == total:
         print("🎉 All TTS UI streaming tests passed!")

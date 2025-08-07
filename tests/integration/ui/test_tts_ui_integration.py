@@ -8,11 +8,27 @@ from pathlib import Path
 
 import gradio as gr
 
-# Add project root to path
+# Add project root to path with safe fallback and depth limit
 project_root = Path(__file__).resolve()
-while not (project_root / "src").exists() and project_root != project_root.parent:
+max_hops = 10  # safety limit to avoid infinite/very deep traversal
+hops = 0
+while not (project_root / "src").exists() and project_root != project_root.parent and hops < max_hops:
     project_root = project_root.parent
-sys.path.insert(0, str(project_root))
+    hops += 1
+
+if (project_root / "src").exists():
+    sys.path.insert(0, str(project_root))
+else:
+    # Fallback: use repository root two levels up from tests/integration/ui, or raise error
+    fallback_root = Path(__file__).resolve().parents[3] if len(Path(__file__).resolve().parents) >= 4 else Path(__file__).resolve().parent
+    if (fallback_root / "src").exists():
+        sys.path.insert(0, str(fallback_root))
+    else:
+        # As a last resort, raise a clear error to surface misconfiguration
+        raise RuntimeError(
+            f"Could not locate project root containing 'src' after {hops} hops from {Path(__file__).resolve()}. "
+            "Ensure tests are run within the repository and that the 'src' directory exists."
+        )
 
 
 def test_ui_creation():

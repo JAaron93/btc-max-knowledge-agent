@@ -12,8 +12,19 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add project root to path (navigate up from tests/integration/tts/ to project root)
-project_root = Path(__file__).parent.parent.parent.parent
+
+# Add project root to `sys.path` by walking up until we hit a repo marker
+def _find_project_root(
+    start: Path, markers=("pyproject.toml", ".git", "setup.cfg")
+) -> Path:
+    for p in [start, *start.parents]:
+        if any((p / m).exists() for m in markers):
+            return p
+    # Fallback to current heuristic
+    return start.parents[3]
+
+
+project_root = _find_project_root(Path(__file__).resolve())
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "src"))
 

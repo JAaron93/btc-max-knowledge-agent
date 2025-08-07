@@ -45,27 +45,22 @@ def test_tts_enabled_disabled():
         }
 
         try:
-            response = requests.post(
-                f"{API_BASE_URL}/query", json=payload, timeout=30
-            )
+            response = requests.post(f"{API_BASE_URL}/query", json=payload, timeout=30)
             if response.status_code == 200:
                 data = response.json()
                 has_audio = data.get("audio_data") is not None
                 tts_enabled = data.get("tts_enabled", False)
 
                 if enable_tts:
-                    print(
-                        f"   ✅ TTS enabled: Audio data present = {has_audio}"
-                    )
+                    print(f"   ✅ TTS enabled: Audio data present = {has_audio}")
                 else:
                     print(
                         "   ✅ TTS disabled: Audio data present = "
                         f"{has_audio}, TTS enabled = {tts_enabled}"
                     )
 
-                validation_ok = (
-                    (has_audio == expect_audio)
-                    and (tts_enabled == expect_tts_enabled)
+                validation_ok = (has_audio == expect_audio) and (
+                    tts_enabled == expect_tts_enabled
                 )
                 if validation_ok:
                     print(f"   ✅ Requirement {req_number} satisfied")
@@ -94,16 +89,11 @@ def test_tts_enabled_disabled():
     )
 
     # Overall combined result (printed for visibility)
-    overall_ok = all(
-        [status_ok_1, validation_ok_1, status_ok_2, validation_ok_2]
-    )
+    overall_ok = all([status_ok_1, validation_ok_1, status_ok_2, validation_ok_2])
     if overall_ok:
         print("   ✅ Combined result: TTS enable/disable behavior validated")
     else:
-        print(
-            "   ❌ Combined result: One or more TTS enable/disable checks "
-            "failed"
-        )
+        print("   ❌ Combined result: One or more TTS enable/disable checks failed")
     return overall_ok
 
 
@@ -127,9 +117,7 @@ def test_volume_control():
         }
 
         try:
-            response = requests.post(
-                f"{API_BASE_URL}/query", json=payload, timeout=30
-            )
+            response = requests.post(f"{API_BASE_URL}/query", json=payload, timeout=30)
             if response.status_code == 200:
                 data = response.json()
                 has_audio = data.get("audio_data") is not None
@@ -171,12 +159,10 @@ def test_volume_control():
                                 )
                                 all_ok = False
                     # Note: DSP volume verification needs audio analysis
-                    print(
-                        "   ✅ Requirement 2.5 satisfied: Volume parameter "
-                        "accepted"
-                    )
+                    print("   ✅ Requirement 2.5 satisfied: Volume parameter accepted")
                 else:
                     # If no audio generated when TTS is enabled, mark failure
+                    print(f"   ❌ Volume {volume}: No audio generated when TTS enabled")
                     all_ok = False
             else:
                 print(f"   ❌ API error: {response.status_code}")

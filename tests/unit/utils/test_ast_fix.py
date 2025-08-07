@@ -36,8 +36,8 @@ def test_complex_pinecone_client_calls():
 
         # Assert change detection correctness
         if changes_expected:
-            assert changes and any("PineconeClient" in c or "api_key" in c for c in changes), (
-                f"Expected changes for input but none or unrelated changes were reported.\nOriginal:\n{original}\nChanges:{changes}"
+            assert changes and any("api_key" in c for c in changes), (
+                f"Expected api_key-related changes for input but none or unrelated changes were reported.\nOriginal:\n{original}\nChanges:{changes}"
             )
         else:
             assert not changes, f"Did not expect changes but got: {changes}"
@@ -62,12 +62,16 @@ def test_comparison_with_old_regex():
     assert new_result == 'client = PineconeClient(index="test")', (
         f"AST approach did not produce expected output. Got: {new_result}"
     )
-    assert changes and any("PineconeClient" in c or "api_key" in c for c in changes), (
-        "AST approach should report that api_key was removed"
+    assert changes and any("api_key" in c for c in changes), (
+        "AST approach should report that api_key was removed or modified"
     )
 
-    # Optional: ensure the old regex result differs from expected to demonstrate brittleness
-    assert old_result != new_result, "Old regex unexpectedly matched AST result; review test case or pattern"
+    # Demonstrate regex brittleness: it should produce incorrect output
+    expected_ast_result = 'client = PineconeClient(index="test")'
+    assert old_result != expected_ast_result, (
+        f"Old regex unexpectedly produced correct result. "
+        f"Expected AST: {expected_ast_result}, Regex got: {old_result}"
+    )
 
 
 # No __main__ block; tests are discovered and run by pytest.

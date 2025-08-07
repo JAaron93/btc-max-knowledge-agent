@@ -162,8 +162,7 @@ async def main():
     try:
         await test_circuit_breaker_basic()
         await test_circuit_breaker_failure_during_recovery()
-        # Note: timeout test would take too long, so we'll skip it in this demo
-        # await test_timeout_handling()
+        await test_timeout_handling()
 
         logger.info("\n=== All Tests Completed ===")
 
