@@ -156,12 +156,14 @@ except Exception:
 # Module-level loggers (always defined)
 from typing import Protocol, runtime_checkable
 
+
 @runtime_checkable
 class _LoggerProtocol(Protocol):
     def info(self, msg: str, extra: Optional[Dict[str, Any]] = None) -> None: ...
     def debug(self, msg: str, extra: Optional[Dict[str, Any]] = None) -> None: ...
     def warning(self, msg: str, extra: Optional[Dict[str, Any]] = None) -> None: ...
     def error(self, msg: str, extra: Optional[Dict[str, Any]] = None) -> None: ...
+
 
 logger = logging.getLogger("security.prompt_preprocessor")
 
@@ -259,13 +261,9 @@ class SecurePromptPreprocessor:
             "confidence_score": detection.confidence_score,
             "detected_patterns": list(detection.detected_patterns or []),
             "injection_type": (
-                detection.injection_type.name
-                if detection.injection_type
-                else None
+                detection.injection_type.name if detection.injection_type else None
             ),
-            "risk_level": (
-                detection.risk_level.name if detection.risk_level else None
-            ),
+            "risk_level": (detection.risk_level.name if detection.risk_level else None),
             "recommended_action": (
                 detection.recommended_action.name
                 if detection.recommended_action
@@ -320,8 +318,7 @@ class SecurePromptPreprocessor:
             # Alerts for BLOCK or when severity is HIGH
             # Note: "CRITICAL" in external sources is treated as HIGH here
             should_alert = (
-                action.name == "BLOCK"
-                or detection.risk_level == SecuritySeverity.HIGH
+                action.name == "BLOCK" or detection.risk_level == SecuritySeverity.HIGH
             )
             if should_alert:
                 evt = SecurityAlertEvent(
@@ -379,10 +376,7 @@ class SecurePromptPreprocessor:
         else:
             action = SecurityAction.ALLOW
 
-        if (
-            severity == SecuritySeverity.HIGH
-            and action == SecurityAction.ALLOW
-        ):
+        if severity == SecuritySeverity.HIGH and action == SecurityAction.ALLOW:
             # Upgrade ALLOW to WARN when severity is HIGH
             action = SecurityAction.WARN
 
@@ -445,9 +439,9 @@ class SecurePromptPreprocessor:
 
     def _hash_truncated(self, text: str) -> str:
         truncated = (text or "")[:2048]
-        return hashlib.sha256(
-            truncated.encode("utf-8", errors="ignore")
-        ).hexdigest()[:8]
+        return hashlib.sha256(truncated.encode("utf-8", errors="ignore")).hexdigest()[
+            :8
+        ]
 
     async def _maybe_terminate_session(
         self,
@@ -528,9 +522,7 @@ class LogsOnlyAlerter(ISecurityAlerter):
 
 
 class _NoopAlerter(ISecurityAlerter):
-    async def notify(
-        self, event: SecurityAlertEvent
-    ) -> None:  # noqa: ARG002, E501
+    async def notify(self, event: SecurityAlertEvent) -> None:  # noqa: ARG002, E501
         return
 
 
@@ -568,6 +560,7 @@ async def secure_preprocess(
 
 
 # Legacy/batch processor (thin wrapper uses SecurePromptPreprocessor)
+
 
 # Lightweight result container for batch processing
 @dataclass
@@ -632,9 +625,13 @@ class SecurePromptProcessor:
 
         # Thin wrapper using the new preprocessor; behavior preserved.
         # Allow DI of a pre-built preprocessor for testing and customization.
-        self._preprocessor = preprocessor if preprocessor is not None else self._safe_init_preprocessor()
+        self._preprocessor = (
+            preprocessor if preprocessor is not None else self._safe_init_preprocessor()
+        )
 
-    def set_preprocessor(self, preprocessor: Optional[SecurePromptPreprocessor]) -> None:
+    def set_preprocessor(
+        self, preprocessor: Optional[SecurePromptPreprocessor]
+    ) -> None:
         """
         Setter to replace or disable the internal SecurePromptPreprocessor.
         Useful for tests to inject spies/mocks without accessing private attrs.
@@ -737,12 +734,8 @@ class SecurePromptProcessor:
                         "injection_detected": sp_result.detection.get(
                             "injection_detected"
                         ),
-                        "confidence_score": sp_result.detection.get(
-                            "confidence_score"
-                        ),
-                        "injection_type": sp_result.detection.get(
-                            "injection_type"
-                        ),
+                        "confidence_score": sp_result.detection.get("confidence_score"),
+                        "injection_type": sp_result.detection.get("injection_type"),
                         "risk_level": sp_result.detection.get("risk_level"),
                         "recommended_action": sp_result.detection.get(
                             "recommended_action"
@@ -758,19 +751,12 @@ class SecurePromptProcessor:
                         if sp_result.action_taken != SecurityAction.BLOCK
                         else 0.0,
                     )
-                    if (
-                        high_conf
-                        or sp_result.action_taken == SecurityAction.BLOCK
-                    ):
+                    if high_conf or sp_result.action_taken == SecurityAction.BLOCK:
                         high_confidence_detected = True
                         detection_index = i
-                        if sp_result.action_taken == SecurityAction.BLOCK:
-                            removed = self.session_manager.remove_session(
-                                session_id
-                            )
-                            session_terminated = removed
-                        else:
-                            session_terminated = terminated_now
+                        # Session termination is handled by _process_detection_result
+                        # when high_conf is True; avoid duplicate termination attempts.
+                        session_terminated = terminated_now
                         if session_terminated:
                             logger.info(
                                 "Session %s terminated after high-confidence detection",
@@ -802,9 +788,7 @@ class SecurePromptProcessor:
                         "confidence_score": result.confidence_score,
                         "injection_type": result.injection_type,
                         "risk_level": (
-                            result.risk_level.value
-                            if result.risk_level
-                            else None
+                            result.risk_level.value if result.risk_level else None
                         ),
                         "recommended_action": (
                             result.recommended_action.value
@@ -866,50 +850,6 @@ class SecurePromptProcessor:
             detection_results=detection_results,
         )
 
-    def _process_detection_result(
-        self,
-        *,
-        detection_results: List[Dict[str, Any]],
-        detection_data: Dict[str, Any],
-        prompt_idx: int,
-        prompt_text: str,
-        session_id_value: Optional[str],
-        threshold: float,
-    ) -> Tuple[bool, bool]:
-        """
-        Common handling for a single detection result:
-        - Append structured detection info to detection_results
-        - Evaluate confidence score against threshold
-        - Manage session termination when high confidence
-
-        Returns:
-            (high_confidence: bool, session_terminated: bool)
-        """
-        inj_detected = bool(detection_data.get("injection_detected", False))
-        conf = float(
-            detection_data.get("confidence_score")
-            or detection_data.get("confidence")
-            or 0.0
-        )
-        det_entry: Dict[str, Any] = {
-            "prompt_index": prompt_idx,
-            "prompt": prompt_text,
-            "injection_detected": inj_detected,
-            "confidence_score": conf,
-            "injection_type": detection_data.get("injection_type"),
-            "risk_level": detection_data.get("risk_level"),
-            "recommended_action": detection_data.get("recommended_action"),
-        }
-        detection_results.append(det_entry)
-
-        high_conf = conf >= threshold
-        if high_conf:
-            removed = self.session_manager.remove_session(
-                session_id_value or ""
-            )
-            return True, bool(removed)
-        return False, False
-
     def validate_session_termination(self, session_id: str) -> bool:
         """
         Validate that a session has been properly terminated.
@@ -946,9 +886,7 @@ class SecurePromptProcessor:
 
         try:
             if self._preprocessor is not None:
-                sp_result = await self._preprocessor.secure_preprocess(
-                    prompt, context
-                )
+                sp_result = await self._preprocessor.secure_preprocess(prompt, context)
                 detection_result = {
                     "prompt": prompt,
                     "injection_detected": bool(
@@ -957,29 +895,19 @@ class SecurePromptProcessor:
                     "confidence_score": float(
                         sp_result.detection.get("confidence_score", 0.0)
                     ),
-                    "injection_type": sp_result.detection.get(
-                        "injection_type"
-                    ),
+                    "injection_type": sp_result.detection.get("injection_type"),
                     "risk_level": sp_result.detection.get("risk_level"),
-                    "recommended_action": sp_result.detection.get(
-                        "recommended_action"
-                    ),
+                    "recommended_action": sp_result.detection.get("recommended_action"),
                 }
                 return True, detection_result
 
-            result = await self.injection_detector.detect_injection(
-                prompt, context
-            )
+            result = await self.injection_detector.detect_injection(prompt, context)
             detection_result = {
                 "prompt": prompt,
                 "injection_detected": result.injection_detected,
                 "confidence_score": result.confidence_score,
                 "injection_type": result.injection_type,
-                "risk_level": (
-                    result.risk_level.value
-                    if result.risk_level
-                    else None
-                ),
+                "risk_level": (result.risk_level.value if result.risk_level else None),
                 "recommended_action": (
                     result.recommended_action.value
                     if result.recommended_action

@@ -1,5 +1,5 @@
 import pytest
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Callable, TypedDict
 
 from src.security.prompt_processor import SecurePromptPreprocessor
 from src.security.models import SecurityAction, SecuritySeverity
@@ -14,8 +14,6 @@ class FakeDetector:
         self,
         score: float = 0.2,
         patterns=None,
-        # kept for backward-compat in constructor signature; no longer used
-        neutralized_query: str | None = None,
         # Additional optional knobs to satisfy tests constructing FakeDetector
         injection_detected: bool | None = None,
         confidence_score: float | None = None,
@@ -26,8 +24,6 @@ class FakeDetector:
         # Core fields
         self.score = score
         self.patterns = patterns or []
-        # retained for test compatibility but no production usage
-        self.neutralized_query = neutralized_query
         # Accept extra kwargs used by tests; fall back to sensible defaults
         self._inj_detected = (
             bool(injection_detected)
@@ -61,11 +57,12 @@ class FakeDetector:
 
 
 # Per-test spy logger fixture to ensure consistent, isolated capture
-from typing import Tuple, Callable, TypedDict
+
 
 class SpyLogger(TypedDict):
     calls: List[Tuple[str, Dict[str, Any]]]
     log: Callable[[Dict[str, Any], str], None]
+
 
 @pytest.fixture
 def spy_logger() -> SpyLogger:
@@ -125,7 +122,7 @@ async def test_secure_preprocess_allows_and_returns_sanitized_text(
     spy_logger: "SpyLogger",
 ) -> None:
     # Arrange
-    detector = FakeDetector(score=0.2, neutralized_query="cleaned")
+    detector = FakeDetector(score=0.2)
     preprocessor = SecurePromptPreprocessor(detector)
     # Monkeypatch logger for this test to capture (level, payload) tuples
     monkeypatch.setattr(preprocessor, "_log_attempt", spy_logger["log"])
@@ -137,8 +134,8 @@ async def test_secure_preprocess_allows_and_returns_sanitized_text(
     # Assert
     assert result.allowed is True
     assert result.action_taken == SecurityAction.ALLOW
-    assert result.sanitized_text == "cleaned"
-    assert result.system_wrapper is None
+    assert result.sanitized_text is None
+    assert isinstance(result.system_wrapper, str)
     # Verify logging similar to the first test
     assert len(spy_logger["calls"]) >= 1
     assert isinstance(spy_logger["calls"][-1], tuple)

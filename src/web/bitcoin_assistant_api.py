@@ -73,7 +73,18 @@ def _get_agent():
     if _AGENT_INSTANCE is None:
         if PineconeAssistantAgent is None:
             return None
-        _AGENT_INSTANCE = PineconeAssistantAgent()
+        try:
+            from btc_max_knowledge_agent.utils.config import Config
+            use_h = getattr(Config, "USE_HYPERBOLIC", False)
+            if use_h:
+                from src.agents.hyperbolic_agent import (
+                    HyperbolicKnowledgeAgent,
+                )
+                _AGENT_INSTANCE = HyperbolicKnowledgeAgent()  # type: ignore
+            else:
+                _AGENT_INSTANCE = PineconeAssistantAgent()
+        except Exception:
+            _AGENT_INSTANCE = PineconeAssistantAgent()
     return _AGENT_INSTANCE
 
 
@@ -144,11 +155,19 @@ async def chat_endpoint(  # type: ignore[no-redef]
     # Forward to agent; if CONSTRAIN, agent sets policy_applied flag
     # internally
     if PineconeAssistantAgent is None:
-        return {"result": [{"text": processed_text, "score": 1.0, "id": "stub"}]}
+        return {
+            "result": [
+                {"text": processed_text, "score": 1.0, "id": "stub"}
+            ]
+        }
 
     agent = _get_agent()
     if agent is None:
-        return {"result": [{"text": processed_text, "score": 1.0, "id": "stub"}]}
+        return {
+            "result": [
+                {"text": processed_text, "score": 1.0, "id": "stub"}
+            ]
+        }
     results = await agent.query(
         processed_text,
         top_k=top_k,
@@ -165,7 +184,7 @@ async def chat_endpoint(  # type: ignore[no-redef]
 try:
     app.include_router(router)  # type: ignore[attr-defined]
 except Exception as e:
-    # Do not fail silently; log the exception to aid debugging in non-FastAPI environments
+    # Do not fail silently; log the exception to aid debugging
     try:
         import logging
 

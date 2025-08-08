@@ -1,7 +1,10 @@
-"""
-Agents for handling interactions with external services and AI models.
+"""Agents package for the BTC Max Knowledge Agent.
+
+This package exposes individual agent modules as submodules, e.g.:
+- btc_max_knowledge_agent.agents.pinecone_assistant_agent
+- btc_max_knowledge_agent.agents.hyperbolic_agent
+
+Avoid heavy imports at package import time to minimize side effects.
 """
 
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
-
-__all__ = ("PineconeAssistantAgent",)
+__all__ = ()

@@ -449,7 +449,15 @@ This repository provides a centralized single‑prompt preprocessing pipeline th
 The secure_preprocess pipeline performs:
 - Detection: uses an `IPromptInjectionDetector` to return a rich [`DetectionResult`](src/security/prompt_injection_detector.py:27) including `confidence_score`, `risk_level` (`SecuritySeverity`), `injection_type`, and optional `recommended_action`.
 - Decision: maps score and severity to a `SecurityAction` via thresholds (details below). If the detector recommends a stricter action, the pipeline honors it.
-- Neutralization: conservatively sanitizes known injection markers identified by internal heuristics and threat intelligence. No raw prompt text is ever logged.
+- Neutralization: conservatively sanitizes known injection markers identified by internal heuristics and threat intelligence. Common injection markers include:
+  - **Role prefixes**: `system:`, `assistant:`, `user:`
+  - **Instruction override patterns**: "ignore previous instructions", "forget all prior rules"
+  - **Role manipulation**: "you are now", "act as", "pretend to be"
+  - **Delimiter injections**: `---`, `###`, fenced code blocks
+  - **Configuration access**: `.env`, config file references
+  - **Tool invocation patterns**: `call_tool:`, function call syntax
+  
+  For the complete canonical list of patterns, see the [`neutralize_injection()`](prompt_injection_detector.py:446) method in the PromptInjectionDetector class. No raw prompt text is ever logged.
 - Constraint: wraps generation with a system policy wrapper (from a provided policy provider or a safe default).
 - Telemetry: emits structured log records and, when warranted, security alerts.
 - Session termination: optionally ends the session on BLOCK if a `session_id` is available.

@@ -24,7 +24,7 @@ from .models import (
 
 class InjectionType(Enum):
     SYSTEM_PROMPT_ACCESS = "system_prompt_access"
-    INSTRUCTION_OVERRIDE = "INSTRUCTION_OVERRIDE"
+    INSTRUCTION_OVERRIDE = "instruction_override"
     ROLE_CONFUSION = "role_confusion"
     DELIMITER_INJECTION = "delimiter_injection"
     OTHER = "other"
@@ -190,6 +190,19 @@ class PromptInjectionDetector:
             return int(char_count / 3.5)
         else:
             return int(char_count / 3.8)
+
+    def count_tokens(self, text: str) -> int:
+        """
+        Public method to count tokens in text.
+        Uses tiktoken for accuracy when available, falls back to character-based approximation.
+        
+        Args:
+            text: The text to count tokens for
+            
+        Returns:
+            The estimated number of tokens
+        """
+        return self._count_tokens(text)
 
     async def detect_injection(
         self, query: Optional[str], context: Optional[Dict[str, Any]] = None
@@ -562,13 +575,13 @@ class PromptInjectionDetector:
             action = SecurityAction.BLOCK
 
         # Additional explicit patterns for higher accuracy (tests expect these)
-        if hasattr(self, "_re_probe_prompts") and self._re_probe_prompts.search(text):
+        if self._re_probe_prompts.search(text):
             patterns.append("system_prompt_probe")
             injection_type = injection_type or InjectionType.SYSTEM_PROMPT_ACCESS
             severity = SecuritySeverity.CRITICAL
             confidence = max(confidence, 0.9)
             action = SecurityAction.BLOCK
-        if hasattr(self, "_re_jailbreak_mode") and (
+        if (
             self._re_jailbreak_mode.search(text) or self._re_developer_mode.search(text)
         ):
             patterns.append("jailbreak_activation")
@@ -576,7 +589,7 @@ class PromptInjectionDetector:
             severity = SecuritySeverity.CRITICAL
             confidence = max(confidence, 0.9)
             action = SecurityAction.BLOCK
-        if hasattr(self, "_re_disable_restrictions") and (
+        if (
             self._re_disable_restrictions.search(text)
             or self._re_override_programming.search(text)
         ):

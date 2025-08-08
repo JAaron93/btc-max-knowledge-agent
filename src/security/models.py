@@ -56,9 +56,10 @@ class SecurityEvent:
 class ValidationResult:
     is_valid: bool
     confidence_score: float = 0.0
-    violations: list = field(default_factory=list)
+    violations: list["Violation"] = field(default_factory=list)
     recommended_action: SecurityAction = SecurityAction.ALLOW
-    violations_details: list = field(default_factory=list)
+    # Structured details corresponding to entries in `violations` (same order)
+    violations_details: list[Dict[str, Any]] = field(default_factory=list)
 
 
 class SecurityEventType(Enum):
@@ -169,5 +170,5 @@ class TokenBucket:
 
 @dataclass
 class Violation:
-    violation_type: str
+    violation_type: SecurityViolation
     details: Dict[str, Any] = field(default_factory=dict)
