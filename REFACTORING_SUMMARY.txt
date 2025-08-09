@@ -1,0 +1,1 @@
+✅ Successfully refactored scripts/clean_mcp_response.py imports

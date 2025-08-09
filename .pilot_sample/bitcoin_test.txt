@@ -1,0 +1,16 @@
+# Bitcoin Knowledge Base - Test
+
+## Test Document
+
+### Document Metadata
+**Source:** test
+**Category:** test
+**Source URL:** https://example.com
+**Original Article:** [test](https://example.com)
+**Direct Link:** <https://example.com>
+
+### Content
+Test content
+
+--------------------------------------------------------------------------------
+

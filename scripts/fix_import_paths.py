@@ -5,6 +5,7 @@ Script to fix import path issues in test files.
 This script identifies and fixes common import path problems that cause test failures.
 """
 
+import argparse
 import ast
 import re
 from pathlib import Path
@@ -48,9 +49,9 @@ class PineconeClientTransformer(ast.NodeTransformer):
 class ImportPathFixer:
     """Fixes import path issues in test files."""
 
-    def __init__(self):
-        self.test_dir = Path("tests")
-        self.src_dir = Path("src")
+    def __init__(self, test_dir: str = "tests", src_dir: str = "src"):
+        self.test_dir = Path(test_dir)
+        self.src_dir = Path(src_dir)
 
         # Define import path mappings for common issues
         self.import_fixes = {
@@ -71,25 +72,6 @@ class ImportPathFixer:
             r'patch\("src\.utils\.url_utils\.is_private_ip"\)': 'patch("src.utils.url_utils.is_secure_url")',
             # Data collector fixes
             r"process_and_add_chunks": "process_documents",
-        }
-
-        # Define expected vs actual attribute mappings
-        self.attribute_fixes = {
-            # PineconeAssistantAgent fixes
-            "src.agents.pinecone_assistant_agent": {
-                "Pinecone": None,  # Remove - doesn't exist
-                "PineconeClient": "from src.retrieval.pinecone_client import PineconeClient",
-            },
-            # URL utils fixes
-            "src.utils.url_utils": {
-                "normalize_url": "normalize_url_format",
-                "is_private_ip": "is_secure_url",
-            },
-            # Data collector fixes
-            "knowledge.data_collector.BitcoinDataCollector": {
-                "_fetch_data": "collect_from_sources",
-                "process_and_add_chunks": "process_documents",
-            },
         }
 
     def scan_test_files(self) -> List[Path]:
@@ -222,6 +204,7 @@ class ImportPathFixer:
             changes.append("Fixed upload ops failure key")
 
         # Fix datetime patching for monitoring
+        original_content = content
         content = content.replace(
             'patch("src.monitoring.url_metadata_monitor.datetime")',
             'patch("datetime.datetime")',
@@ -230,7 +213,7 @@ class ImportPathFixer:
             'patch("btc_max_knowledge_agent.monitoring.url_metadata_monitor.datetime")',
             'patch("datetime.datetime")',
         )
-        if "datetime patching" in content:
+        if content != original_content:
             changes.append("Fixed datetime patching")
 
         return content, changes
@@ -398,7 +381,7 @@ class ImportPathFixer:
         # Add missing URL utilities
         url_utils_path = self.src_dir / "utils" / "url_utils.py"
         if url_utils_path.exists():
-            with open(url_utils_path, "r") as f:
+            with open(url_utils_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Add normalize_url function if missing
@@ -425,7 +408,7 @@ class ImportPathFixer:
         # Generate missing functions
         missing_functions = self.generate_missing_functions()
         for file_path, functions in missing_functions.items():
-            with open(file_path, "a") as f:
+            with open(file_path, "a", encoding="utf-8") as f:
                 for func in functions:
                     f.write(func)
             results[file_path] = results.get(file_path, []) + [
@@ -437,9 +420,24 @@ class ImportPathFixer:
 
 def main():
     """Main function to run import path fixes."""
-    print("🔧 Starting Import Path Fixes...")
+    parser = argparse.ArgumentParser(
+        description="Fix import path issues in test files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--tests-dir", default="tests", help="Directory containing test files"
+    )
+    parser.add_argument(
+        "--src-dir", default="src", help="Directory containing source files"
+    )
 
-    fixer = ImportPathFixer()
+    args = parser.parse_args()
+
+    print("🔧 Starting Import Path Fixes...")
+    print(f"📁 Tests directory: {args.tests_dir}")
+    print(f"📁 Source directory: {args.src_dir}")
+
+    fixer = ImportPathFixer(test_dir=args.tests_dir, src_dir=args.src_dir)
     results = fixer.apply_fixes()
 
     if results:
@@ -451,8 +449,7 @@ def main():
     else:
         print("\n✅ No import path issues found!")
 
-    import logging
-    logging.info("🎯 Import path fixes completed!")
+    print("🎯 Import path fixes completed!")
 
 
 if __name__ == "__main__":

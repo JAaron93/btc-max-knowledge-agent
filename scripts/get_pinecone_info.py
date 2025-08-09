@@ -5,6 +5,7 @@ Script to help you find your Pinecone Assistant information
 
 import os
 import re
+from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
@@ -85,6 +86,21 @@ def test_assistant_host():
 
     if not host.startswith("https://"):
         host = "https://" + host
+
+    # Validate the URL format
+    try:
+        parsed_url = urlparse(host)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            print(f"❌ Invalid URL format: {host}")
+            print("   Please provide a valid URL (e.g., https://example.com)")
+            return None
+        if parsed_url.scheme not in ["http", "https"]:
+            print(f"❌ Invalid URL scheme: {parsed_url.scheme}")
+            print("   Only HTTP and HTTPS URLs are supported")
+            return None
+    except Exception as e:
+        print(f"❌ Error parsing URL: {e}")
+        return None
 
     api_key = os.getenv("PINECONE_API_KEY")
 

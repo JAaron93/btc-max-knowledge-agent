@@ -5,10 +5,13 @@ Demonstration script for PineconeAssistantAgent URL metadata functionality
 Prerequisites:
     Install the package in development mode first:
     pip install -e .
+
+Usage:
+    python examples/demo_pinecone_assistant_url_metadata.py
 """
 
-from src.agents.pinecone_assistant_agent import PineconeAssistantAgent
-from src.knowledge.data_collector import BitcoinDataCollector
+from btc_max_knowledge_agent.agents.pinecone_assistant_agent import PineconeAssistantAgent
+from btc_max_knowledge_agent.knowledge.data_collector import BitcoinDataCollector
 
 
 def demo_url_metadata_functionality():

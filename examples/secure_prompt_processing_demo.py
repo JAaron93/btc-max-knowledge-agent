@@ -5,6 +5,10 @@ Demonstration of secure prompt processing with session termination guards.
 This example shows how to use the SecurePromptProcessor to handle multiple
 prompts with automatic session termination after high-confidence security
 violations are detected.
+
+Usage:
+    Run from the project root directory using:
+    python -m examples.secure_prompt_processing_demo
 """
 
 import asyncio
@@ -17,11 +21,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-from src.security.prompt_injection_detector import PromptInjectionDetector  # noqa: E402
-
 # Import security components
-from src.security.prompt_processor import SecurePromptProcessor  # noqa: E402
-from src.web.session_manager import SessionManager  # noqa: E402
+# Note: Run this script using: python -m examples.secure_prompt_processing_demo
+from src.security.prompt_injection_detector import PromptInjectionDetector
+from src.security.prompt_processor import SecurePromptProcessor
+from src.web.session_manager import SessionManager
 
 
 async def demonstrate_secure_prompt_processing():
@@ -114,12 +118,13 @@ async def demonstrate_secure_prompt_processing():
             )
 
             # This should return False due to session guard
-            should_continue, detection_result = (
-                await processor.process_single_prompt_with_guard(
-                    prompt=remaining_prompt,
-                    session_id=session_id,
-                    context={"source_ip": "192.168.1.1"},
-                )
+            (
+                should_continue,
+                detection_result,
+            ) = await processor.process_single_prompt_with_guard(
+                prompt=remaining_prompt,
+                session_id=session_id,
+                context={"source_ip": "192.168.1.1"},
             )
 
             if not should_continue:

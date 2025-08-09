@@ -485,6 +485,7 @@ curl -H "Authorization: Bearer your_admin_token" \
 | `TEST_UTILS_AUTO_SETUP` | Auto-setup src path in test utilities | 1 (enabled) |
 | `FASTAPI_DEBUG` | Enable FastAPI debug mode | false |
 | `LOG_LEVEL` | Application log level | INFO |
+| `RAG_API_URL` | API endpoint for RAG system testing | http://localhost:8000/query |
 
 > **Note**: For production deployments, it's recommended to set host values to specific hostnames or IP addresses and configure appropriate firewall rules.
 
@@ -852,6 +853,8 @@ python validate_integration.py
 ```
 
 ### API Testing
+
+#### Manual API Testing
 ```bash
 # Test API health
 curl http://localhost:8000/health
@@ -861,6 +864,44 @@ curl -X POST http://localhost:8000/query \
      -H "Content-Type: application/json" \
      -d '{"question": "What is Bitcoin?"}'
 ```
+
+#### Automated RAG System Testing
+The project includes a comprehensive test script for the RAG system:
+
+**Dependencies:** The test script requires the `requests` library, which is included in the main project dependencies (`requirements.txt`). No additional installation is needed if you've installed the project requirements.
+
+```bash
+# Run RAG system test with default localhost endpoint
+python tests/test_rag_system.py
+
+# Run with verbose output for detailed error information
+python tests/test_rag_system.py --verbose
+
+# Run with debug mode to see request details and endpoint info
+python tests/test_rag_system.py --debug
+
+# Run with custom endpoint via command line
+python tests/test_rag_system.py --endpoint "http://staging-server:8000/query"
+
+# Run RAG system test with custom endpoint via environment variable
+export RAG_API_URL="http://staging-server:8000/query"
+python tests/test_rag_system.py
+
+# Run RAG system test with production endpoint
+export RAG_API_URL="https://api.example.com/query"
+python tests/test_rag_system.py --verbose --debug
+```
+
+##### Command Line Options
+- `--verbose` / `-v`: Enable verbose output with detailed error information
+- `--debug` / `-d`: Enable debug mode to show request details and endpoint info
+- `--endpoint`: Override the API endpoint URL (alternative to environment variable)
+- `--help` / `-h`: Show all available options
+
+##### Environment Configuration
+- `RAG_API_URL`: API endpoint for RAG system testing (defaults to `http://localhost:8000/query`)
+- The test script automatically displays which endpoint is being used
+- Supports different environments (development, staging, production)
 
 ### Test URL Validation System
 

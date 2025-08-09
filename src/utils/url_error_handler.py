@@ -14,7 +14,7 @@ from typing import Any, Callable, List, Optional, TypeVar
 from urllib.parse import urlparse
 
 # Import our structured logging infrastructure
-from utils.url_metadata_logger import log_retry
+from src.utils.url_metadata_logger import log_retry
 
 logger = logging.getLogger(__name__)
 

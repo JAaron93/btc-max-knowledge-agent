@@ -1,0 +1,15 @@
+# Bitcoin Knowledge Base - Layer2
+
+## Lightning Network Overview
+
+### Document Metadata
+**Source:** lightning.network
+**Category:** layer2
+**Source URL:** Not available
+**Original Article:** Source link not provided
+
+### Content
+The Lightning Network is a "Layer 2" payment protocol layered on top of Bitcoin. It enables fast transactions between participating nodes and has been proposed as a solution to the bitcoin scalability problem. It features a peer-to-peer system for making micropayments of cryptocurrency through a network of bidirectional payment channels without delegating custody of funds. Normal use of the Lightning Network consists of opening a payment channel by committing a funding transaction to the relevant base blockchain, followed by making any number of Lightning Network transactions that update the tentative distribution of the channel's funds without broadcasting those to the blockchain, optionally followed by closing the payment channel by broadcasting the final version of the settlement transaction to distribute the channel's funds.
+
+--------------------------------------------------------------------------------
+

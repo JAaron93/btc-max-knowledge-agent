@@ -1,0 +1,16 @@
+# Bitcoin Knowledge Base - Regulation
+
+## GENIUS Act - Blockchain Innovation
+
+### Document Metadata
+**Source:** legislative
+**Category:** regulation
+**Source URL:** https://www.congress.gov/bill/118th-congress/house-bill/6572
+**Original Article:** [legislative](https://www.congress.gov/bill/118th-congress/house-bill/6572)
+**Direct Link:** <https://www.congress.gov/bill/118th-congress/house-bill/6572>
+
+### Content
+The GENIUS Act (Generating Entrepreneurial Networks to Improve Understanding and Success) is legislation aimed at promoting blockchain technology innovation and cryptocurrency adoption in the United States. The act focuses on creating regulatory clarity for blockchain businesses, supporting research and development in distributed ledger technologies, and fostering innovation in the digital asset space. It aims to position the United States as a leader in blockchain technology while ensuring consumer protection and maintaining financial stability.
+
+--------------------------------------------------------------------------------
+

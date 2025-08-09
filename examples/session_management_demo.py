@@ -111,13 +111,10 @@ def demo_session_management():
         history_length = len(session.conversation_history)
         expected_length = len(conversations[user])
 
-        print(
-            f"   👤 {user}: {history_length} turns " f"(expected: {expected_length}) ✅"
-        )
+        print(f"   👤 {user}: {history_length} turns (expected: {expected_length}) ✅")
         if history_length == expected_length:
             print(
-                f"   👤 {user}: {history_length} turns "
-                f"(expected: {expected_length}) ✅"
+                f"   👤 {user}: {history_length} turns (expected: {expected_length}) ✅"
             )
         else:
             print(
@@ -152,7 +149,7 @@ def demo_session_management():
             print(f"   ✅ {user}'s session is still active")
 
     active_after = manager.get_session_stats()["active_sessions"]
-    print(f"   📊 Sessions before cleanup: {active_before}, " f"after: {active_after}")
+    print(f"   📊 Sessions before cleanup: {active_before}, after: {active_after}")
 
     print("\n7. Creating new session after expiry...")
 
@@ -162,7 +159,7 @@ def demo_session_management():
 
     print(f"   👤 Alice gets new session: {new_session_id[:8]}...")
     turns = len(new_session.conversation_history)
-    print(f"   📝 New session has {turns} conversation turns " f"(should be 0)")
+    print(f"   📝 New session has {turns} conversation turns (should be 0)")
 
     print("\n✅ Session Management Demo Complete!")
     print("\nKey Features Demonstrated:")

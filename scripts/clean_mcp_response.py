@@ -9,64 +9,110 @@ import re
 
 # Import the new result formatter
 try:
-    from src.utils.result_formatter import MCPResponseFormatter
+    from btc_max_knowledge_agent.utils.result_formatter import MCPResponseFormatter
 except ImportError:
-    # Fallback if import fails
+    # Fallback if import fails or package not installed
     MCPResponseFormatter = None
 
 
+# Pre-compiled regex patterns for performance optimization
+# Line ending normalization
+WINDOWS_LINE_ENDINGS = re.compile(r"\r\n")
+MAC_LINE_ENDINGS = re.compile(r"\r")
+
+# PDF extraction fixes
+CAMEL_CASE_FIX = re.compile(r"([a-z])([A-Z])")
+LETTER_NUMBER_SPACING = re.compile(r"([a-z])(\d)")
+NUMBER_LETTER_SPACING = re.compile(r"(\d)([A-Z])")
+
+# Word fixes
+HYPHENATED_WORDS = re.compile(r"([a-z])-\s*\n\s*([a-z])")
+EXCESSIVE_SPACES = re.compile(r" {2,}")
+EXCESSIVE_NEWLINES = re.compile(r"\n{3,}")
+TRAILING_WHITESPACE = re.compile(r"[ \t]+$", re.MULTILINE)
+BROKEN_WORDS = re.compile(r"([a-z])\s*\n\s*([a-z])")
+
+# Punctuation spacing
+SPACE_BEFORE_PUNCTUATION = re.compile(r"\s+([,.;:!?])")
+PUNCTUATION_LETTER_SPACING = re.compile(r"([,.;:!?])([A-Za-z])")
+
+# Additional PDF text extraction fixes
+CAMEL_CASE_DETAILED = re.compile(r"([a-z])([A-Z][a-z])")
+WORD_NUMBER_SPACING = re.compile(r"(\w)(\d+)")
+NUMBER_WORD_SPACING = re.compile(r"(\d+)([A-Za-z])")
+
+# Encoding fixes
+APOSTROPHE_FIX = re.compile(r"â\x80\x99")
+OPENING_QUOTE_FIX = re.compile(r"â\x80\x9c")
+CLOSING_QUOTE_FIX = re.compile(r"â\x80\x9d")
+EN_DASH_FIX = re.compile(r"â\x80\x93")
+EM_DASH_FIX = re.compile(r"â\x80\x94")
+ELLIPSIS_FIX = re.compile(r"â\x80\xa6")
+
+# Control characters and PDF artifacts
+CONTROL_CHARS = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
+FORM_FEED = re.compile(r"\x0c")
+ESCAPED_LINE_BREAKS = re.compile(r"\\r\\n")
+ESCAPED_NEWLINES = re.compile(r"\\n")
+ESCAPED_TABS = re.compile(r"\\t")
+
+
 def clean_text_content(text):
-    """Clean text content using regex patterns"""
+    """Clean text content using pre-compiled regex patterns"""
 
     # Remove excessive whitespace and normalize line breaks
-    text = re.sub(r"\r\n", "\n", text)  # Convert Windows line endings
-    text = re.sub(r"\r", "\n", text)  # Convert old Mac line endings
+    text = WINDOWS_LINE_ENDINGS.sub("\n", text)  # Convert Windows line endings
+    text = MAC_LINE_ENDINGS.sub("\n", text)  # Convert old Mac line endings
 
     # Fix common PDF extraction issues
-    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)  # Add space between camelCase
-    text = re.sub(r"([a-z])(\d)", r"\1 \2", text)  # Add space between letter and number
-    text = re.sub(r"(\d)([A-Z])", r"\1 \2", text)  # Add space between number and letter
+    text = CAMEL_CASE_FIX.sub(r"\1 \2", text)  # Add space between camelCase
+    text = LETTER_NUMBER_SPACING.sub(
+        r"\1 \2", text
+    )  # Add space between letter and number
+    text = NUMBER_LETTER_SPACING.sub(
+        r"\1 \2", text
+    )  # Add space between number and letter
 
     # Fix hyphenated words split across lines
-    text = re.sub(r"([a-z])-\s*\n\s*([a-z])", r"\1\2", text)
+    text = HYPHENATED_WORDS.sub(r"\1\2", text)
 
     # Remove excessive spaces
-    text = re.sub(r" {2,}", " ", text)
+    text = EXCESSIVE_SPACES.sub(" ", text)
 
     # Fix paragraph breaks
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = EXCESSIVE_NEWLINES.sub("\n\n", text)
 
     # Remove trailing whitespace from lines
-    text = re.sub(r"[ \t]+$", "", text, flags=re.MULTILINE)
+    text = TRAILING_WHITESPACE.sub("", text)
 
     # Fix broken words at line endings (common in PDFs)
-    text = re.sub(r"([a-z])\s*\n\s*([a-z])", r"\1\2", text)
+    text = BROKEN_WORDS.sub(r"\1\2", text)
 
     # Fix spacing around punctuation
-    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
-    text = re.sub(r"([,.;:!?])([A-Za-z])", r"\1 \2", text)
+    text = SPACE_BEFORE_PUNCTUATION.sub(r"\1", text)
+    text = PUNCTUATION_LETTER_SPACING.sub(r"\1 \2", text)
 
     # Fix common PDF text extraction issues
-    text = re.sub(r"([a-z])([A-Z][a-z])", r"\1 \2", text)  # camelCase fixes
-    text = re.sub(r"(\w)(\d+)", r"\1 \2", text)  # word-number spacing
-    text = re.sub(r"(\d+)([A-Za-z])", r"\1 \2", text)  # number-word spacing
+    text = CAMEL_CASE_DETAILED.sub(r"\1 \2", text)  # camelCase fixes
+    text = WORD_NUMBER_SPACING.sub(r"\1 \2", text)  # word-number spacing
+    text = NUMBER_WORD_SPACING.sub(r"\1 \2", text)  # number-word spacing
 
     # Fix common encoding issues
-    text = re.sub(r"â\x80\x99", "'", text)  # Fix apostrophes
-    text = re.sub(r"â\x80\x9c", '"', text)  # Fix opening quotes
-    text = re.sub(r"â\x80\x9d", '"', text)  # Fix closing quotes
-    text = re.sub(r"â\x80\x93", "–", text)  # Fix en-dash
-    text = re.sub(r"â\x80\x94", "—", text)  # Fix em-dash
-    text = re.sub(r"â\x80\xa6", "...", text)  # Fix ellipsis
+    text = APOSTROPHE_FIX.sub("'", text)  # Fix apostrophes
+    text = OPENING_QUOTE_FIX.sub('"', text)  # Fix opening quotes
+    text = CLOSING_QUOTE_FIX.sub('"', text)  # Fix closing quotes
+    text = EN_DASH_FIX.sub("–", text)  # Fix en-dash
+    text = EM_DASH_FIX.sub("—", text)  # Fix em-dash
+    text = ELLIPSIS_FIX.sub("...", text)  # Fix ellipsis
 
     # Remove control characters except newlines and tabs
-    text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", text)
+    text = CONTROL_CHARS.sub("", text)
 
     # Fix common PDF artifacts
-    text = re.sub(r"\x0c", "\n", text)  # Form feed to newline
-    text = re.sub(r"\\r\\n", "\n", text)  # Escaped line breaks
-    text = re.sub(r"\\n", "\n", text)  # Escaped newlines
-    text = re.sub(r"\\t", "\t", text)  # Escaped tabs
+    text = FORM_FEED.sub("\n", text)  # Form feed to newline
+    text = ESCAPED_LINE_BREAKS.sub("\n", text)  # Escaped line breaks
+    text = ESCAPED_NEWLINES.sub("\n", text)  # Escaped newlines
+    text = ESCAPED_TABS.sub("\t", text)  # Escaped tabs
 
     return text.strip()
 
@@ -179,21 +225,3 @@ def clean_mcp_response(response_data):
         response_copy["content"] = cleaned_content
 
     return response_copy
-
-
-def test_cleaning():
-    """Test the cleaning functions with sample data"""
-
-    # Sample messy text from PDF
-    sample_text = """Bitcoin is a peer-to-peer electronic cash system that allows online\\npayments to be sent directly from one party to another without going through a\\nfinancial institution. Digital signatures provide part of the solution, but the main\\nbenefits are lost if a trusted third party is still required to prevent double-spending.\\nWe propose a solution to the double-spending problem using a peer-to-peer network.\\nThe network timestamps transactions by hashing them into an ongoing chain of\\nhash-based proof-of-work, forming a record that cannot be changed without redoing\\nthe proof-of-work. The longest chain not only serves as proof of the sequence of\\nevents witnessed, but proof that it came from the largest pool of CPU power."""
-
-    print("🧪 Testing Text Cleaning")
-    print("=" * 50)
-    print("Original:")
-    print(sample_text)
-    print("\nCleaned:")
-    print(clean_text_content(sample_text))
-
-
-if __name__ == "__main__":
-    test_cleaning()

@@ -2,11 +2,11 @@
 bind = "0.0.0.0:8000"
 workers = 4
 worker_class = "uvicorn.workers.UvicornWorker"
-worker_connections = 1000
+worker_connections = 1000  # Appropriate for Uvicorn workers handling async requests
 max_requests = 1000
 max_requests_jitter = 100
-timeout = 30
-keepalive = 2
+timeout = 60  # Standard recommended timeout for infrastructure compatibility
+keepalive = 5  # Standard recommended keepalive for connection reuse
 preload_app = True
 reload = False
 

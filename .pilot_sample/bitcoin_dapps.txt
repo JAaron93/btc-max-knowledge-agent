@@ -1,0 +1,16 @@
+# Bitcoin Knowledge Base - Dapps
+
+## Decentralized Applications (dApps) Overview
+
+### Document Metadata
+**Source:** educational
+**Category:** dapps
+**Source URL:** https://ethereum.org/en/dapps/
+**Original Article:** [educational](https://ethereum.org/en/dapps/)
+**Direct Link:** <https://ethereum.org/en/dapps/>
+
+### Content
+Decentralized applications (dApps) are digital applications that run on a blockchain or peer-to-peer network of computers instead of a single computer. dApps are outside the purview and control of a single authority. dApps can be developed for a variety of purposes including gaming, finance, and social media. The key characteristics of dApps include: decentralization (no single point of failure), open source code, cryptographic security, and token incentives. Popular dApp categories include DeFi (Decentralized Finance), NFT marketplaces, gaming platforms, and social networks.
+
+--------------------------------------------------------------------------------
+

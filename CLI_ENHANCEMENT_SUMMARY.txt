@@ -1,0 +1,26 @@
+✅ CLI Arguments Enhancement Complete:
+
+1. Added argparse import for CLI argument parsing
+
+2. Enhanced __init__ method:
+   - Changed from hard-coded paths to parameters
+   - Added default values for backward compatibility
+   - def __init__(self, test_dir: str = 'tests', src_dir: str = 'src')
+
+3. Enhanced main() function:
+   - Added --tests-dir argument (default: 'tests')
+   - Added --src-dir argument (default: 'src') 
+   - Added help system with argparse
+   - Shows directory paths being used
+
+4. Testing verified:
+   - Help system works: python fix_import_paths.py --help
+   - Default usage works: python fix_import_paths.py
+   - Custom dirs work: python fix_import_paths.py --tests-dir tests/unit --src-dir src
+   - Programmatic usage preserved: ImportPathFixer(test_dir='custom', src_dir='custom')
+
+Benefits:
+- Flexible directory configuration
+- Backward compatibility maintained
+- Professional CLI
+- Reusable across different project structures

@@ -20,7 +20,7 @@ def main():
     # Check if we're in the project root
     if not Path("pyproject.toml").exists():
         print("❌ Error: Run this script from the project root directory")
-        return 1
+        sys.exit(1)
 
     print("\n📦 Step 1: Install the project in development mode")
     print("Command: pip install -e .")
@@ -38,7 +38,7 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"❌ Installation failed: {e}")
         print(f"Error output: {e.stderr}")
-        return 1
+        sys.exit(1)
 
     print("\n🧪 Step 2: Run tests with proper imports")
     print("Command: python -m pytest -q  # pytest.ini sets testpaths=tests")

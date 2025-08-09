@@ -57,7 +57,7 @@ def main():
         for assistant in assistants:
             if "bitcoin" in assistant.get("name", "").lower():
                 bitcoin_assistant = assistant
-                print(f"✅ Found existing Bitcoin assistant: " f"{assistant['name']}")
+                print(f"✅ Found existing Bitcoin assistant: {assistant['name']}")
                 break
 
         # Step 4: Create assistant if needed
@@ -71,7 +71,7 @@ def main():
                 print("❌ Failed to create assistant. Exiting.")
                 return
         else:
-            print(f"\n4. Using existing assistant: " f"{bitcoin_assistant['name']}")
+            print(f"\n4. Using existing assistant: {bitcoin_assistant['name']}")
 
         assistant_id = bitcoin_assistant["id"]
 
@@ -81,9 +81,11 @@ def main():
         total_chunks = (len(documents) + chunk_size - 1) // chunk_size
 
         print(
-            f"📦 Splitting into {total_chunks} chunks of up to "
-            f"{chunk_size} documents each"
+            f"📦 Splitting into {total_chunks} chunks of up to {chunk_size} documents each"
         )
+
+        failed_batches = []
+        successful_batches = 0
 
         for i in range(0, len(documents), chunk_size):
             chunk = documents[i : i + chunk_size]
@@ -98,15 +100,37 @@ def main():
 
             if not success:
                 print(f"❌ Failed to upload batch {batch_num}/{total_chunks}.")
-                print(f"   Batch contained documents {i + 1} to " f"{i + len(chunk)}.")
-                print(
-                    "   Stopping upload process to prevent partial " "data corruption."
+                print(f"   Batch contained documents {i + 1} to {i + len(chunk)}.")
+                print("   Continuing with remaining batches...")
+                failed_batches.append(
+                    {
+                        "batch_num": batch_num,
+                        "start_doc": i + 1,
+                        "end_doc": i + len(chunk),
+                        "doc_count": len(chunk),
+                    }
                 )
-                return
+            else:
+                print(f"✅ Successfully uploaded batch {batch_num}/{total_chunks}")
+                successful_batches += 1
 
-            print(f"✅ Successfully uploaded batch {batch_num}/{total_chunks}")
+        # Summary of upload results
+        if failed_batches:
+            print(f"\n⚠️  Upload completed with some failures:")
+            print(f"   ✅ Successful batches: {successful_batches}/{total_chunks}")
+            print(f"   ❌ Failed batches: {len(failed_batches)}/{total_chunks}")
+            print(f"\n📋 Failed batch details:")
+            for batch in failed_batches:
+                print(
+                    f"   - Batch {batch['batch_num']}: documents {batch['start_doc']}-{batch['end_doc']} ({batch['doc_count']} docs)"
+                )
 
-        print(f"🎉 All {len(documents)} documents uploaded successfully!")
+            print(f"\n🔄 To retry failed batches, you can:")
+            print(f"   1. Re-run this script (it will use the existing assistant)")
+            print(f"   2. Check network connectivity and API limits")
+            print(f"   3. Review the assistant's document count in Pinecone Console")
+        else:
+            print(f"🎉 All {len(documents)} documents uploaded successfully!")
 
         # Step 6: Test the assistant
         print("\n6. Testing the assistant...")
@@ -144,9 +168,7 @@ def main():
         print(f"📚 Documents uploaded: {len(documents)}")
         print(f"💾 Assistant info saved to: {DATA_DIR / 'assistant_info.json'}")
         print("\n🔧 MCP Integration:")
-        print(
-            "- Your Pinecone Assistant MCP is configured in " ".kiro/settings/mcp.json"
-        )
+        print("- Your Pinecone Assistant MCP is configured in .kiro/settings/mcp.json")
         print("- You can now use MCP tools to interact with your assistant")
         print("- The assistant is ready for Bitcoin and blockchain questions!")
 

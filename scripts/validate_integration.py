@@ -8,8 +8,6 @@ validates URL metadata flow, logging, monitoring, and performance.
 
 import argparse
 import json
-
-# Add src to Python path to enable direct imports
 import queue
 import sys
 import threading
@@ -17,36 +15,22 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-
-# Add src directory to Python path using pathlib for robust path resolution
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-src_dir = Path(__file__).parent / "src"
-src_dir = (
-    src_dir.resolve()
-)  # Normalize path to avoid duplicate entries from different representations
+# Proper package imports (requires editable install: pip install -e ".[dev]")
+from btc_max_knowledge_agent.utils.config import Config
+from btc_max_knowledge_agent.utils.result_formatter import QueryResultFormatter
+from btc_max_knowledge_agent.utils.url_error_handler import (
+    MAX_QUERY_RETRIES,
+    GracefulDegradation,
+)
+from btc_max_knowledge_agent.utils.url_metadata_logger import URLMetadataLogger
+from btc_max_knowledge_agent.utils.url_utils import URLValidator
+from btc_max_knowledge_agent.monitoring import URLMetadataMonitor
 
-# Check if directory exists before adding to sys.path
-if src_dir.exists() and str(src_dir) not in sys.path:
-    sys.path.insert(0, str(src_dir))
-
-# Direct imports from modules
-from src.utils.config import Config
-from src.utils.result_formatter import QueryResultFormatter
-from src.utils.url_error_handler import MAX_QUERY_RETRIES
-
-# Try to import GracefulDegradation, with fallback to mock
-try:
-    from src.utils.url_error_handler import GracefulDegradation
-except ImportError:
-    GracefulDegradation = None
-from src.utils.url_metadata_logger import URLMetadataLogger
-from src.utils.url_utils import URLValidator
-
-# Try to import additional components, with fallbacks
+# Try to import additional components, with fallbacks where appropriate
 try:
     from btc_max_knowledge_agent.retrieval import PineconeClient
 except ImportError:
@@ -55,38 +39,16 @@ except ImportError:
         def __init__(self):
             pass
 
-        def upsert_vectors(self, vectors):
+        def upsert_vectors(self, _vectors):
             return True
 
-        def query(self, vector, top_k=5):
+        def query(self, _vector, _top_k=5):
             return [{"id": "mock_id", "metadata": {}}]
 
-        def delete_vectors(self, ids):
+        def delete_vectors(self, _ids):
             return True
 
-
-try:
     from btc_max_knowledge_agent.knowledge import BitcoinDataCollector
-except ImportError:
-    # Mock data collector
-    class BitcoinDataCollector:
-        def __init__(self):
-            pass
-
-
-try:
-    from btc_max_knowledge_agent.monitoring import URLMetadataMonitor
-except ImportError:
-    # Mock monitoring
-    class URLMetadataMonitor:
-        def __init__(self):
-            pass
-
-        def record_validation(self, url, success, duration_ms, error_type=None):
-            pass
-
-        def generate_hourly_summary(self):
-            return {"total_events": 0, "errors": 0}
 
 
 # Mock classes for missing components
@@ -97,8 +59,11 @@ class PineconeAssistantAgent:
         self.assistant_id = assistant_id
         self.pinecone_index_name = pinecone_index_name
 
-    def query(self, query_text, metadata_filters=None):
+    def query(self, _query_text, _metadata_filters=None):
         return {"response": "Mock response", "sources": []}
+
+    def process_query(self, _query_text, _metadata_filters=None):
+        return self.query(_query_text, _metadata_filters)
 
 
 class GracefulDegradationMock:
@@ -107,7 +72,7 @@ class GracefulDegradationMock:
     def __init__(self):
         pass
 
-    def handle_failure(self, operation, fallback=None):
+    def handle_failure(self, _operation, fallback=None):
         return fallback() if fallback else None
 
     def safe_url_operation(
@@ -124,7 +89,7 @@ class GracefulDegradationMock:
                         for fallback in fallback_strategies:
                             try:
                                 return fallback()
-                            except:
+                            except Exception:
                                 continue
                     return None
                 time.sleep(0.5)  # Wait before retry
@@ -819,7 +784,7 @@ class IntegrationValidator:
         # Save report
         report_file = f"validation_report_{self.correlation_id[:8]}.json"
         try:
-            with open(report_file, "w") as f:
+            with open(report_file, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, default=str)
             print(f"\nDetailed report saved to: {report_file}")
         except IOError as e:

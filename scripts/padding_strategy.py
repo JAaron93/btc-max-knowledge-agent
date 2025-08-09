@@ -31,7 +31,15 @@ class SecurePaddingStrategy:
         if not charset:
             raise ValueError("Charset cannot be empty")
 
-        self.charset = charset
+        # Normalize charset by removing duplicates while preserving order
+        seen = set()
+        normalized_chars = []
+        for char in charset:
+            if char not in seen:
+                seen.add(char)
+                normalized_chars.append(char)
+
+        self.charset = "".join(normalized_chars)
 
     def add_padding(self, base_password: str, target_length: int) -> str:
         """
@@ -148,14 +156,14 @@ if __name__ == "__main__":
     print("End Padding Examples:")
     for i in range(3):
         padded = padding_strategy.add_padding(base_password, target_length)
-        print(f"  {i+1}: {padded}")
+        print(f"  {i + 1}: {padded}")
     print()
 
     # Demonstrate distributed padding
     print("Distributed Padding Examples:")
     for i in range(3):
         padded = padding_strategy.add_padding_distributed(base_password, target_length)
-        print(f"  {i+1}: {padded}")
+        print(f"  {i + 1}: {padded}")
     print()
 
     # Show entropy analysis

@@ -4,9 +4,6 @@ Upload Bitcoin documents to Pinecone Assistant via web interface
 """
 
 import os
-
-# Remove.  Install the project with:
-#   pip install -e .
 import re
 import sys
 from urllib.parse import urlparse
@@ -153,7 +150,7 @@ def create_upload_files():
         f.write("## Source Attribution\n\n")
         url_count = sum(1 for doc in documents if doc.get("url", "").strip())
         f.write(f"- **Documents with Source URLs**: {url_count}/{len(documents)}\n")
-        f.write(f"- **URL Coverage**: {(url_count/len(documents)*100):.1f}%\n\n")
+        f.write(f"- **URL Coverage**: {(url_count / len(documents) * 100):.1f}%\n\n")
 
         # Add key concepts summary
         f.write("## Key Concepts Summary\n\n")

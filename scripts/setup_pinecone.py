@@ -5,8 +5,13 @@ Setup script for Pinecone RAG system with Bitcoin knowledge base
 Prerequisites:
     Install the package in development mode first:
     pip install -e .
+
+Usage:
+    python scripts/setup_pinecone.py
+    python scripts/setup_pinecone.py --max-articles 100 --index-name my-bitcoin-index
 """
 
+import argparse
 import logging
 import sys
 
@@ -28,14 +33,53 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def parse_arguments():
+    """Parse command-line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Setup Bitcoin Knowledge Base with Pinecone",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    python scripts/setup_pinecone.py
+    python scripts/setup_pinecone.py --max-articles 100
+    python scripts/setup_pinecone.py --index-name my-bitcoin-index --max-articles 25
+        """,
+    )
+
+    parser.add_argument(
+        "--max-articles",
+        type=int,
+        default=50,
+        help="Maximum number of news articles to collect (default: %(default)s)",
+    )
+
+    parser.add_argument(
+        "--index-name",
+        type=str,
+        help="Pinecone index name to use (default: from environment or PineconeClient default)",
+    )
+
+    return parser.parse_args()
+
 def main():
+    # Parse command-line arguments
+    args = parse_arguments()
+    
     print("🚀 Setting up Bitcoin Knowledge Base with Pinecone")
     print("=" * 50)
+    print(f"📊 Configuration:")
+    print(f"   Max articles: {args.max_articles}")
+    if args.index_name:
+        print(f"   Index name: {args.index_name}")
+    print()
 
     try:
         # Initialize components
         print("1. Initializing Pinecone client...")
-        pinecone_client = PineconeClient()
+        if args.index_name:
+            pinecone_client = PineconeClient(index_name=args.index_name)
+        else:
+            pinecone_client = PineconeClient()
 
         print("2. Creating Pinecone index...")
         pinecone_client.create_index()
@@ -44,7 +88,7 @@ def main():
         collector = BitcoinDataCollector()
 
         print("4. Collecting Bitcoin and blockchain documents...")
-        documents = collector.collect_all_documents(max_news_articles=50)
+        documents = collector.collect_all_documents(max_news_articles=args.max_articles)
 
         if not documents:
             print("❌ No documents collected. Exiting.")
@@ -82,11 +126,11 @@ def main():
             print(
                 "Setup completed successfully, but please verify query results later."
             )
-        print("Top 3 results:")
-        for i, result in enumerate(results, 1):
-            print(f"   {i}. {result['title']} (score: {result['score']:.3f})")
-
-    except (RequestException, ConnectionError, Timeout, HTTPError) as e:
+        else:
+            print("Top 3 results:")
+            for i, result in enumerate(results, 1):
+                print(f"   {i}. {result['title']} (score: {result['score']:.3f})")  
+  except (RequestException, ConnectionError, Timeout, HTTPError) as e:
         logger.error(f"Network/API error during setup: {e}")
         logger.error(
             "This may indicate network connectivity issues or API service problems"

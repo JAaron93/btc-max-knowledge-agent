@@ -5,11 +5,12 @@ Demonstration of the PineconeResponse type safety improvement.
 
 import os
 import sys
+from pathlib import Path
 
-# Add src to path
-src_path = "src"
-if os.path.exists(src_path):
-    sys.path.insert(0, src_path)
+# Add src to path using absolute path derived from script location
+src_path = Path(__file__).resolve().parent.parent / "src"
+if src_path.exists():
+    sys.path.insert(0, str(src_path))
 else:
     print(f"Warning: {src_path} directory not found")
 
@@ -87,7 +88,7 @@ def demonstrate_type_safety_improvement():
             for field in fields:
                 field_type = annotations.get(field, "Unknown")
                 if field_type == "Unknown":
-                    print(f"    - {field}: ⚠️  Field not found in " "PineconeResponse")
+                    print(f"    - {field}: ⚠️  Field not found in PineconeResponse")
                 else:
                     print(f"    - {field}: {field_type}")
             print()

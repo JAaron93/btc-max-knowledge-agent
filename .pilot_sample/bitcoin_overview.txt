@@ -1,0 +1,39 @@
+# Bitcoin and Blockchain Knowledge Base
+
+This knowledge base contains comprehensive information about:
+
+## Topics Covered
+
+- **Bitcoin Fundamentals**: Core concepts, whitepaper, technology
+- **Blockchain Technology**: Distributed ledgers, consensus, security
+- **Lightning Network**: Layer-2 scaling, payment channels
+- **Decentralized Applications (dApps)**: Smart contracts, DeFi
+- **Regulation**: GENIUS Act and cryptocurrency legislation
+- **News & Updates**: Latest developments in the Bitcoin ecosystem
+
+## Document Categories
+
+- **Test**: 1 documents
+
+**Total Documents**: 1
+**Last Updated**: 2025-08-06 11:44:42
+
+## Source Attribution
+
+- **Documents with Source URLs**: 1/1
+- **URL Coverage**: 100.0%
+
+## Key Concepts Summary
+
+### Bitcoin
+Bitcoin is a peer-to-peer electronic cash system that allows online payments without financial institutions. It uses blockchain technology for security and decentralization.
+
+### Lightning Network
+A Layer-2 payment protocol on Bitcoin enabling fast, low-cost transactions through payment channels.
+
+### dApps
+Decentralized applications running on blockchain networks, offering services without central control.
+
+### GENIUS Act
+Legislation promoting blockchain innovation and cryptocurrency adoption in the United States.
+

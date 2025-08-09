@@ -75,11 +75,13 @@ def _get_agent():
             return None
         try:
             from btc_max_knowledge_agent.utils.config import Config
+
             use_h = getattr(Config, "USE_HYPERBOLIC", False)
             if use_h:
                 from src.agents.hyperbolic_agent import (
                     HyperbolicKnowledgeAgent,
                 )
+
                 _AGENT_INSTANCE = HyperbolicKnowledgeAgent()  # type: ignore
             else:
                 _AGENT_INSTANCE = PineconeAssistantAgent()
@@ -98,8 +100,8 @@ def _get_request_id(req: Request) -> Optional[str]:  # type: ignore
 # Define a minimal payload shape without pydantic to keep import-light
 # Clients send: {"text": "..."} and optionally {"top_k": 5}
 # Router is always defined when APIRouter is importable or stubbed.
-@router.post("/chat")  # type: ignore[misc]
-async def chat_endpoint(  # type: ignore[no-redef]
+@router.post("/query")  # type: ignore[misc]
+async def query_endpoint(  # type: ignore[no-redef]
     request: Request,  # type: ignore[name-defined]
     payload: Dict[str, Any] = Body(  # type: ignore[name-defined]
         default={}
@@ -155,19 +157,11 @@ async def chat_endpoint(  # type: ignore[no-redef]
     # Forward to agent; if CONSTRAIN, agent sets policy_applied flag
     # internally
     if PineconeAssistantAgent is None:
-        return {
-            "result": [
-                {"text": processed_text, "score": 1.0, "id": "stub"}
-            ]
-        }
+        return {"result": [{"text": processed_text, "score": 1.0, "id": "stub"}]}
 
     agent = _get_agent()
     if agent is None:
-        return {
-            "result": [
-                {"text": processed_text, "score": 1.0, "id": "stub"}
-            ]
-        }
+        return {"result": [{"text": processed_text, "score": 1.0, "id": "stub"}]}
     results = await agent.query(
         processed_text,
         top_k=top_k,
@@ -180,6 +174,7 @@ async def chat_endpoint(  # type: ignore[no-redef]
     # Do not include system policy wrapper contents in response
     return {"result": results, "request_id": request_id}
 
+
 # Mount router if FastAPI real
 try:
     app.include_router(router)  # type: ignore[attr-defined]
@@ -188,9 +183,14 @@ except Exception as e:
     try:
         import logging
 
-        logging.getLogger(__name__).warning(
-            "Failed to include API router: %s", str(e)
-        )
+        logging.getLogger(__name__).warning("Failed to include API router: %s", str(e))
     except Exception:
         # Fallback to print if logging is unavailable
         print(f"[bitcoin_assistant_api] Failed to include API router: {e}")
+
+
+# Add health check endpoint for launcher script
+@app.get("/health")  # type: ignore[attr-defined]
+async def health_check():
+    """Health check endpoint for monitoring and launcher scripts."""
+    return {"status": "healthy", "service": "bitcoin_assistant_api"}

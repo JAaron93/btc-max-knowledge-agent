@@ -1,0 +1,1690 @@
+# Bitcoin Knowledge Base - News
+
+## How to day trade crypto using ChatGPT and Grok
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/how-to-day-trade-crypto-using-ai-chatgpt-grok?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/how-to-day-trade-crypto-using-ai-chatgpt-grok?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/how-to-day-trade-crypto-using-ai-chatgpt-grok?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 07:48:56 +0100
+
+### Content
+Key takeaways
+
+Grok detects real-time sentiment spikes from X that often precede short-term price movements, but not all spikes are reliable.
+
+ChatGPT turns those signals into trade plans, helping structure entries, exits and risk parameters based on technical and fundamental context.
+
+AI tools don’t replace judgment. You’ll learn how to add volume filters, whale flow checks and confirmation rules to avoid emotional or manipulated trades.
+
+Post-trade journaling with ChatGPT helps you improve win rate, avoid repeat mistakes and build a system around reflection, not just reaction.
+
+The rules of day trading are changing fast. What once took hours of analysis can now happen in seconds, thanks to a new class of AI tools.
+
+This article explains how traders are quietly using platforms like ChatGPT and Grok to gain an edge in the 24/7 world of crypto, sometimes in ways you wouldn’t expect.
+
+What is day trading in crypto?
+
+Day trading in crypto means entering and exiting trades within the same day, sometimes within minutes, to capitalize on small, rapid price changes. It’s a short-term hustle, focused on momentum, volume and speed, not long-term holds.
+
+Here’s how it works:
+
+Spotting the setup Traders work on 5‑minute to 1‑hour charts, watching for breakout patterns. Indicators like RSI, MACD, or sudden volume surges often confirm these moves.
+
+Defining the trade
+
+Entry: Just above a breakout or chart resistance.
+
+Stop-loss: Tightly below recent support or breakout level.
+
+Take-profit: Based on resistance zones, Fibonacci targets, or a fixed reward-to-risk ratio (e.g., 2:1 or 3:1).
+
+Day traders aim to profit from short-term intraday price movements, typically opening and closing positions within one trading day. This style relies heavily on technical analysis, discipline and strict risk management.
+
+Why crypto day trading is different
+
+Crypto markets are far more volatile and 24/7. Order books can be thin, and social media sentiment plays a huge role. That’s where tools like Grok (for early sentiment alerts) and ChatGPT (for structuring setups) matter; they help cut through noise and make decisions faster.
+
+For instance, in early June 2025, Solana’s DeFi activity surged, and its total value locked (TVL) climbed above $9 billion, a sign of real momentum. Traders could have used Grok to detect early trend shifts and ChatGPT to help structure trade setups, including entry planning, stop placement and profit targets.
+
+How to identify trending crypto day trading opportunities with Grok
+
+Grok, accessible on X (x.com or X apps), grok.com, or Grok apps, helps traders spot crypto trends via real-time sentiment, market data and news analysis.
+
+Whether you’re looking for breakout tokens, technical entries or early scam warnings, Grok can help you spot opportunities with speed and precision.
+
+Here are three actionable ways to use Grok in your crypto day-trading strategy:
+
+1. Track X sentiment for token hype
+
+How it works: Grok scans X posts for token mention spikes or sentiment shifts, signaling potential pumps (e.g., $WIF up 7x in mentions often predicts a rally).
+
+Access:
+
+Free: 10 messages/2 hours, three image analyses/day. Suitable for one or two daily token checks; may miss fast-moving hype.
+
+Paid: X Premium ($8/mo, $84/yr), Premium+ ($16/mo, $168/yr), or SuperGrok (pricing available at https://x.ai/grok) allows frequent queries. Premium+ Think mode refines sentiment analysis.
+
+Example prompt:
+
+“What’s the X sentiment on Pi coin?”
+
+Here is the output:
+
+Grok reports mixed X sentiment on Pi Coin: bulls see $1–$1.25 potential with strong community and Chainlink boost, while bears warn of $0.40 drop due to unlocks, centralization, and KYC issues.
+
+2. Check technical indicators (via Grok.com)
+
+How it works: Grok pulls real-time data (e.g., RSI) from sources like CoinMarketCap to time trades (e.g., BTC’s RSI at 62 signals bullish momentum).
+
+Access:
+
+Free: 10 messages/2 hours, limits to 1–2 daily indicator checks; suits swing traders.
+
+Paid: Higher quotas allow multiple checks (e.g., BTC, ETH hourly). Premium+ DeepSearch boosts web-based TA.
+
+Example prompt:
+
+“What’s Bitcoin’s RSI as of July 9, 2025? Please give me short answer with proper justification.”
+
+According to Grok, Bitcoin’s RSI is 54 on July 9, 2025, using a 14-day timeframe, indicating neutral momentum (see image below).
+
+3. Verify token legitimacy
+
+How it works: Grok cross-references X sentiment and web data (e.g., white papers, community feedback) to flag potential scams or assess fundamentals. This is critical for memecoins like $GROK, which has been linked to scam concerns.
+
+Access:
+
+Free: Query limits may slow down checking multiple tokens.
+
+Paid: Higher quotas enable verifying several tokens or deeper analysis (e.g., “Check $GROK’s contract for red flags”)
+
+Example prompt:
+
+“Is Bittensor (TAO) a scam token?”
+
+Based on the above prompt, Grok reports mixed X sentiment on Bittensor (TAO): bulls see $1,000–$10,000 potential by 2030 for its AI marketplace, but bears highlight centralization, insider token control, hacks, and governance issues, urging caution.
+
+Day trading insights from Grok use cases
+
+Sentiment spikes often precede price action; monitoring X mentions can help identify early momentum in tokens.
+
+Social media hype is a valid signal, especially in memecoin trading, but should be paired with other indicators.
+
+RSI and other technical tools provide context, and combining sentiment with real-time indicators improves timing and trade setup.
+
+Grok can surface mixed sentiment, helping traders see both bullish potential and downside risks (e.g., Pi Coin or TAO).
+
+Fundamental checks are critical; Grok’s scam detection flags risks like centralization, unlocks, or governance issues.
+
+Real-time data enables rapid decision-making, valuable in fast-moving day trading environments.
+
+Structured prompts help refine trade plans; Grok can assist in formulating entry, stop-loss, and exit strategies.
+
+Limitations of Grok (and why they matter)
+
+The free tier has strict limits on query frequency and scope.
+
+Sentiment analysis can misread tone or lack real-time reactivity during high-volatility events.
+
+No direct trading integration; it’s an insight tool, not a trading platform.
+
+Prompt quality affects output; vague or general prompts can lead to unhelpful results.
+
+May not catch all red flags, especially for brand-new or obscure tokens with limited data.
+
+Lag in data refresh or indicator updates can affect trade timing in highly volatile markets.
+
+How to use ChatGPT to structure crypto trades
+
+Once you’ve identified a credible signal using Grok, the next step is turning it into a structured trade. That’s where ChatGPT becomes a powerful assistant, helping you define entries, stops, exits and even reflect on trades afterward.
+
+Using the TAO example discussed above, here’s how ChatGPT can help:
+
+Example 1: Trade the bullish momentum with caution
+
+Use case: The Grok output highlights bullish sentiment driven by TAO’s user base, integrations and long-term growth potential.
+
+How to trade it (with ChatGPT):
+
+Ask ChatGPT: “Based on current bullish sentiment around TAO, what short-term price action would confirm momentum for a day trade?”
+
+Example 2: Fade the rally on bearish risk factors
+
+Use case: Grok points to serious concerns, such as token centralization, governance opacity and past hacks.
+
+How to trade it (with ChatGPT):
+
+Ask ChatGPT:
+
+“Given bearish sentiment and risk factors for TAO, what are safe conditions for a short setup today?”
+
+Limits of AI in trading: What it still can’t do
+
+AI is transforming how traders operate, but it’s not a crystal ball. Tools like Grok and ChatGPT can scan sentiment, summarize market noise, and help structure plans faster than any human. But speed isn’t the same as certainty, and automation doesn’t eliminate risk.
+
+Here’s the reality: AI is only as good as its data and the person using it.
+
+Grok might detect a sentiment surge, but it can’t always tell if it’s genuine momentum or coordinated hype. ChatGPT might help draft a perfect trade plan, but it can’t pull the trigger, manage slippage or feel the market shift in real time.
+
+AI doesn’t have skin in the game.
+
+It doesn’t feel FOMO, panic or greed. That’s a strength and a weakness. Without human judgment, AI tools can mislead just as easily as they can guide. Poor prompts, outdated data or overreliance on sentiment can turn a good idea into a bad trade. And while they can reflect on past performance, they don’t learn from experience the way a seasoned trader does, unless you build that loop yourself.
+
+So yes, AI is powerful. But it’s not infallible.
+
+And it certainly isn’t a substitute for strategy, discipline or risk management.
+
+Use it as an edge, not a crutch.
+
+Because in the end, every trade still comes down to you.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Sharplink Gaming’s expanded $6B share offering could buy 1% of ETH
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/sharplink-expanded-6b-share-offering-buy-1-percent-eth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/sharplink-expanded-6b-share-offering-buy-1-percent-eth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/sharplink-expanded-6b-share-offering-buy-1-percent-eth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 07:01:09 +0100
+
+### Content
+Joseph Lubin-backed SharpLink Gaming has drastically increased the equity it intends to sell to scoop up more Ether — and has added $515 million of Ether (ETH) to its treasury in just the last nine days.
+
+In a prospectus supplement filed with the US Securities and Exchange Commission on Thursday, SharpLink said it has increased the amount of common stock it can sell by an extra $5 billion, up from $1 billion under its initial May 30 filing.
+
+Similar to its prior prospectus, SharpLink said it will use the majority of the proceeds to acquire Ether.
+
+“We intend to contribute substantially all of the cash proceeds that we receive to acquire Ether [...] We also intend to use the proceeds from this offering for working capital needs, general corporate purposes, operating expenses and core affiliate marketing operations.”
+
+If SharpLink were to use $6 billion to buy ETH for its treasury today, it would hold nearly 1.38% of ETH’s circulating supply.
+
+ETH acquisition continues
+
+On Monday, SharpLink became the largest corporate holder of ETH, and in a more recent X post, SharpLink hinted that it intends to hold 1 million ETH for its treasury.
+
+As of Tuesday, the company held more than 280,000 ETH in its reserve, with approximately 99.7% of the asset being staked.
+
+SharpLink has generated 415 ETH, worth $1.49 million, as a staking reward between June 2 and July 15.
+
+Related: SharpLink buys 10,000 ETH from Ethereum Foundation as Ether reclaims $3K
+
+Following the regulatory filing of its increased share offering, SharpLink bought another 32,892 ETH, worth $115 million.
+
+The company has now purchased $515 million worth of ETH in the past nine days, according to Lookonchain.
+
+Galaxy Research noted that SharpLink surpassing the Ethereum Foundation’s total ETH holding acts as a positive catalyst for the ecosystem.
+
+Stock dips
+
+Sharplink Gaming (SBET) stock ended Thursday’s trading session at $36.40, a decrease of 2.62%. The stock further fell after the bell and ended the after-hours trading session with a cut of 4.95% at $34.60, according to Google Finance.
+
+SBET is up 350% year-to-date; however, the stock is down 54% from its May 29 high of $79.21.
+
+In the March quarter, SharpLink saw its revenue decline 24% year-on-year, while its net profit margin decreased by 110% during the quarter.
+
+--------------------------------------------------------------------------------
+
+## Dave Portnoy dumped his XRP two weeks ago: ‘I want to cry’
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/dave-portnoy-xrp-holdings-sold-price-surge-crypto-rally?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/dave-portnoy-xrp-holdings-sold-price-surge-crypto-rally?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/dave-portnoy-xrp-holdings-sold-price-surge-crypto-rally?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 06:56:37 +0100
+
+### Content
+Barstool Sports founder Dave Portnoy is kicking himself for selling off most of his XRP just weeks before the cryptocurrency reached new year-to-date highs on Thursday.
+
+“I would’ve made millions, and I want to cry. I don’t own it anymore, even though I was the leader of the XRP army,” Portnoy said in a video posted to X on Thursday.
+
+His comments came shortly after XRP (XRP) broke its yearly high of $3.29 and surged to $3.60, marking a 19.61% gain in the past 24 hours at the time of publication, according to Nansen data.
+
+Dave Portnoy expresses deep regret about selling XRP at $2.40
+
+“I sold XRP when it went up to $2.40 because the guy that told me to buy it told me to sell it because he thought Circle would compete with them and was unhappy with it,” Portnoy explained.
+
+On July 2, Ripple Labs, which is associated with the XRP token, applied for a national bank charter in the United States, just two days after stablecoin issuer Circle did the same.
+
+At Consensus 2025, Portnoy admitted he didn’t have “some grand belief” in XRP; he bought it out of FOMO, just in case it turned into the next Bitcoin (BTC).
+
+Crypto market rallies on positive crypto legislation news
+
+Thursday’s XRP rally saw approximately $68.16 million in XRP short positions liquidated over the past 24 hours, according to CoinGlass data.
+
+It came as part of a broader crypto market upswing that began on July 9, after Bitcoin surged past its May high of $112,000.
+
+Related: XRP is about to hit $200B market cap for first time; price nears record
+
+However, Thursday saw a standout moment for the industry, following a series of legislative wins in the US House of Representatives.
+
+In a Thursday House session, lawmakers voted 294-134 to pass the Digital Asset Market Clarity (CLARITY) Act, a bill aimed at establishing a market structure for cryptocurrencies; 308-122 in favor of the Guiding and Establishing National Innovation for US Stablecoins (GENIUS) Act; and 219-210 for the Anti-CBDC Surveillance State Act.
+
+Magazine: ‘Slaughterbot’ drones in Ukraine, MechaHitler becomes sexy waifu: AI Eye
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Satoshi-era Bitcoin whale shifts second 40K BTC pile to Galaxy Digital
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/bitcoin-whale-moves-last-btc-galaxy-digital?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/bitcoin-whale-moves-last-btc-galaxy-digital?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/bitcoin-whale-moves-last-btc-galaxy-digital?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 06:46:14 +0100
+
+### Content
+A Satoshi-era Bitcoin whale with 80,201 Bitcoin has shifted the other 40,192 Bitcoin, worth $4.77 billion, to Galaxy Digital, joining a 40,009 BTC transfer to the asset manager on Tuesday.
+
+Blockchain onchain data service Onchain Lens was among the first to notice the new transfer. This means the whale has shifted 80,201 to Galaxy Digital in the last four days, equating to $9.6 billion at current prices.
+
+During this time, at least 6,000 Bitcoin (BTC) were sent to crypto exchanges Binance and Bybit, blockchain intelligence platform Nansen shows.
+
+Whale could be securing “jaw-dropping profits”
+
+Blockchain analytics service Lookonchain noticed the whale on July 4, when it started shifting holdings around for the first time in 14 years. It had amassed the bulk of its Bitcoin across two deposits: 20,000 in Bitcoin on April 2, 2011, and 60,009 on May 4, 2021.
+
+Speaking to Cointelegraph, Kadan Stadelmann, chief technology officer of Komodo Platform, said nobody can say for sure what the whale’s motivation is, speculating they might have decided it was a good time to “secure jaw-dropping profits.”
+
+Bitcoin crossed just over $122,000 on Monday, reaching a new all-time high again, making the whales’ full stack of Bitcoin worth over $9.7 billion at the time.
+
+“The whale may simply want stability for their family or plan to start a new venture. Maybe they are going to fund off-grid projects that align with the self-reliance vision of Bitcoin,” Stadelmann speculated.
+
+Alternatively, Stadelmann suggests the whale could have “mixed feelings” about Bitcoin's increasing institutional adoption, regulatory pressures and integration into the traditional financial system, given “the original crypto-anarchist ethos.”
+
+Bitcoin might not be sold
+
+Previously, some of the whales’ deposits to Galaxy Digital have been sent to crypto exchanges, sparking speculation that a sell-off was on the cards.
+
+However, Stadelmann said that doesn’t necessarily mean the whole stash will be liquidated, as the whale could be doing “housekeeping toward a more secure wallet strategy,” or rethinking how they hodl.
+
+Related: Massive OG Bitcoin whale shifts another $4.7B of BTC to new wallet
+
+“The whale could be investing in a new Bitcoin venture, and leveraging their BTC to do so. They could also be using Galaxy as an intermediary to distribute BTC to smaller wallets,” Stadelmann said.
+
+Pseudonymous crypto trader Marty Party said in an X post on Thursday that Galaxy Digital might have bought the Bitcoin.
+
+“IMO: They bought all 80k, sold some and will hold some, and use the proceeds to benefit their businesses. Well played. The 80k is off the market,” he said.
+
+Largest Bitcoin hodler 11th richest in the world
+
+Bitcoin’s creator, Satoshi Nakamoto, became the 11th richest person in the world after Bitcoin tapped $120,000 on Sunday.
+
+Nakamoto is believed to hold 1.096 million Bitcoin across thousands of wallets, worth over $131 billion, which in theory, makes them number 11 on Forbes’ richest billionaires list.
+
+--------------------------------------------------------------------------------
+
+## GENIUS Act heads to Trump’s desk: Here’s what will change
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/genius-act-heads-donald-trump-signing-what-will-change?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/genius-act-heads-donald-trump-signing-what-will-change?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/genius-act-heads-donald-trump-signing-what-will-change?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 06:26:54 +0100
+
+### Content
+President Donald Trump is a signature away from enacting a bill to regulate stablecoins that will dictate how issuers of the tokens must be regulated to serve the US market.
+
+The US House passed three crypto bills on Thursday, including the GENIUS Act, a backronym for “Guiding and Establishing National Innovation for US Stablecoins Act.”
+
+The bill originated from the Senate, so it now only needs Trump’s signature to become law, which is expected to take place at 2:30 pm Friday in Washington, DC, during a “signing ceremony,” according to reporter Eleanor Terrett.
+
+The law will come into effect 18 months after Trump signs it, or 120 days after the so-called “primary federal payment stablecoin regulators,” including the Treasury and Federal Reserve, issue final regulations implementing the GENIUS Act.
+
+Here’s what the GENIUS Act is expected to change.
+
+Stablecoin issuers will want to be banks
+
+Logan Payne, a crypto-focused lawyer at Winston & Strawn, told Cointelegraph that the GENIUS Act creates an incentive for stablecoin issuers to seek a banking license.
+
+He said a new stablecoin licence under the GENIUS Act limits a company’s activities to “purely stablecoin issuance,” but most stablecoin issuers do more than that.
+
+“Pretty much every stablecoin issuer in the United States issuing under US law right now engages in activities outside the scope of that license,” Payne said.
+
+Even if an issuer gets a GENIUS Act-approved license, Payne said they’d still need state-level money transmission licenses to operate nationally.
+
+That creates an incentive for stablecoin issuers to apply for a national trust bank charter with the Office of the Comptroller of the Currency (OCC), like Circle and Ripple have done, “which allows for them to engage in stablecoin issuance plus a wider range of activities, but without having to get state-to-state licenses,” he said.
+
+Interest on stablecoins will be killed
+
+A contentious part of the bill to some crypto users is a section that bans stablecoin issuers, both foreign and regulated under US law, from giving holders and users interest or yield.
+
+Yield offerings are one of the biggest marketing devices for stablecoins to pull in users. Some offer yield natively for holders while others, like Circle’s USDC (USDC), reward those holding the stablecoin on exchanges such as Coinbase and Kraken.
+
+“I would be unsurprised to see a lot of those arrangements change or be modified moving forward,” Payne said.
+
+DeFi will have “a lot of uncertainty”
+
+Payne said that the GENIUS Act could inject uncertainty into decentralized finance (DeFi) over how platforms are to handle stablecoins.
+
+“How GENIUS will impact DeFi is intentionally a bit unaddressed, for now at least,” he said. “There’s still going to be a lot of uncertainty, but in a general policy environment, if it continues, we’ll start to have some of the answers being given over time.”
+
+Payne said “additional legislation and then also regulation that fills in some of the gaps that will address DeFi” will come over the next few years. One is the CLARITY Act, a bill that classifies types of digital assets and which authorities will regulate them, which the House passed to the Senate on Thursday.
+
+Expect monthly reserve reports
+
+The GENIUS Act says permitted stablecoin issuers must back their tokens 1:1 with reserves of US dollars or other monetary products such as Treasury bills.
+
+The issuers will have to publish the composition of those reserves publicly and have them “examined by a registered public accounting firm,” along with submitting a certification of the accuracy of the reports to their federal or state regulatory body.
+
+Non-approved issuers barred, foreign stablecoins given exemptions
+
+Three years after the bill is signed, it will outlaw any stablecoins that don’t come from an approved issuer from being offered in the US.
+
+It will also be illegal for foreign-issued stablecoins to be offered in the US unless the issuer of that stablecoin can and will comply with the bill’s legal requirements.
+
+The bill gives a host of carve-outs for foreign stablecoin issuers, including if the Treasury determines that the country in which they’re based has a comparable regulatory regime.
+
+Related: Legacy finance discovers stablecoins as JPMorgan, Citigroup consider market entry
+
+If that’s the case, foreign issuers can serve the US market if they successfully register with the OCC, which will answer within 30 days, and hold sufficient reserves in a US financial institution to cover their US customers.
+
+Multiple agencies to regulate stablecoins in the US
+
+The bill allows multiple types of regulated entities, such as banks, credit unions and nonbanks, to issue stablecoins and creates a dual federal and state legal framework to police them.
+
+These entities, depending on their type, will be regulated by either the National Credit Union Administration, the Federal Deposit Insurance Corporation, the Office of the Comptroller of the Currency, the Treasury or the Federal Reserve.
+
+Notably, entities can choose to be regulated at the state level if they don’t have over $10 billion in issued stablecoins, but a state does not have to create a stablecoin regulator.
+
+--------------------------------------------------------------------------------
+
+## Crypto market cap nears $4T, just behind the biggest company in the world
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/crypto-market-cap-nears-4-trillion-amid-rally-crypto-legislation?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/crypto-market-cap-nears-4-trillion-amid-rally-crypto-legislation?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/crypto-market-cap-nears-4-trillion-amid-rally-crypto-legislation?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 04:59:56 +0100
+
+### Content
+Total crypto market capitalization is within striking distance of the $4 trillion milestone, driven by a daily surge in Bitcoin, Ether, XRP and other cryptocurrencies as three major crypto bills were passed in the US House.
+
+A $4 trillion market cap would place cryptocurrencies just behind Nvidia, the biggest publicly-listed company in the world, which crossed a $4 trillion market cap for the first time on July 9 and is now at $4.2 trillion.
+
+Binance-owned CoinMarketCap shows peak crypto market capitalization figures at $3.8 trillion, while TradingView has the number at $3.9 trillion, higher than the previous peak of $3.73 trillion in December.
+
+However, some trackers like CoinGecko have already shown that crypto market capitalization has crossed the milestone.
+
+ETH and XRP driving market gains
+
+Bitcoin (BTC) topped $120,000 again on Thursday following a minor daily gain, but Ether (ETH) and XRP (XRP) are surging after the US House passed three key crypto bills ahead of the August recess.
+
+Ether prices rose 8% to top $3,600 for the first time since early January, culminating in a 40% gain for the asset over the past fortnight.
+
+Meanwhile, the Ripple cross-border token XRP skyrocketed almost 20% on the day to a year-to-date high of $3.64 in early trading on Friday.
+
+Related: XRP is about to hit $200B market cap for first time; price nears record
+
+More gains to come, say analysts
+
+“Traders see digital asset prices surge from regulatory and institutional support,” director at LVRG Research, Nick Ruck, told Cointelegraph.
+
+“We’re optimistic that this growth will continue as institutions race to advance integration with the crypto industry.”
+
+Markets boosted by US regulations
+
+“Bitcoin and other cryptocurrencies surged as traders entered a risk-on mode due to bullish regulatory and institutional developments,” added Nassar Al Achkar, chief strategy officer at CoinW crypto exchange.
+
+“The passing of the GENIUS Act and Trump’s plan to open the US retirement market to crypto investments could unlock trillions in institutional capital.”
+
+--------------------------------------------------------------------------------
+
+## BTC Digital ditches Bitcoin for Ethereum in ‘transformative’ shift
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/btc-digital-announces-pivot-to-ethereum-in-strategic-shift?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/btc-digital-announces-pivot-to-ethereum-in-strategic-shift?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/btc-digital-announces-pivot-to-ethereum-in-strategic-shift?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 04:04:02 +0100
+
+### Content
+Blockchain technology and mining company BTC Digital has gone all-in on Ethereum in a strategic shift and the closure of a $6 million financing round.
+
+The firm, listed under the ticker BTCT on the Nasdaq, announced a “transformative, strategic shift” to fully embrace Ether (ETH) as its “core asset and operational foundation” on Thursday.
+
+The company revealed that it has added a new $1 million Ether position and going forward intends to convert all existing and future Bitcoin (BTC) holdings into ETH to build a “long‑term, productive on‑chain asset pool and to anchor its mid‑ and long‑term growth around the Ethereum ecosystem.”
+
+“Ethereum has emerged as the premier platform for decentralized finance, real‑world asset tokenization, and scalable smart‑contract innovation,” said BTC Digital CEO Siguang Peng.
+
+The firm aims to accumulate “tens of millions of dollars” in ETH reserves by year-end and plans to generate returns through ETH staking, DeFi participation, real-world asset projects, and stablecoins.
+
+Big plans for Ethereum stash
+
+BTC Digital said it is transitioning from a mining-focused business model to a “production-asset-driven digital asset operator.”
+
+Key strategic initiatives include building ETH-backed yield pools, developing stablecoin infrastructure, and expanding partnerships across the Ethereum ecosystem, including DeFi, NFTs, and layer-2 scaling solutions.
+
+Related: Ethereum investors pile into ETH amid massive weekly surge
+
+“By centering our digital‑asset strategy on Ethereum, BTCT is creating a robust framework for long‑term value creation, diversified yield sources, and innovative financial products,” added Peng.
+
+There was little reaction in the firm’s stock, which dipped slightly on Thursday, to end the day at $3.44, according to Google Finance.
+
+Further upsides expected
+
+Ether prices tapped a six-month high of $3,600, their highest level since early January, in early trading on Friday. The asset is now up a whopping 40% over the past fortnight.
+
+“Investors are increasingly buying into reserve strategies for Bitcoin and Ethereum, while the US is set to pass landmark legislation that will empower the development of stablecoins and DeFi,” LVRG Research director Nick Ruck told Cointelegraph.
+
+“The reversal of fortunes ETH has experienced compared to a few months ago is staggering, and we will almost certainly see further upside, driven in part by the passing of the CLARITY and GENIUS Acts,” said Nic Puckrin, investor and founder of The Coin Bureau, in a note shared with Cointelegraph.
+
+Ethereum treasury expansion
+
+The firm joins the ranks of Joe Lubin’s gaming firm SharpLink, Tom Lee’s BitMine, digital asset platform Bit Digital, and Blockchain Technology Consensus Solutions, which have all announced Ethereum treasuries recently.
+
+These four companies alone hold around 714,000 ETH, worth around $2.4 billion at current market prices, according to StrategicEthReserves.XYZ.
+
+--------------------------------------------------------------------------------
+
+## Ether rockets 47% in a month as hedge fund says ‘rapid reversal’ unlikely
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/ether-price-correction-unlikely-macro-catalysts-hedge-fund-forecast?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/ether-price-correction-unlikely-macro-catalysts-hedge-fund-forecast?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/ether-price-correction-unlikely-macro-catalysts-hedge-fund-forecast?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 03:54:30 +0100
+
+### Content
+Ether’s meteoric rally to $3,600 on Thursday is unlikely to retreat as long as two key macro conditions continue to hold, a hedge fund executive says.
+
+“All the hard data that arrived this week argues against a rapid reversal,” crypto hedge fund ZX Squared Capital partner Felix Xu told Cointelegraph on Thursday.
+
+ETFs are booming, and Fed uncertainty is bullish for Ether
+
+Xu pointed to the growing inflows into US spot Ether (ETH) exchange-traded funds (ETFs) as a significant catalyst for Ether’s continued price uptrend, pointing to Wednesday’s $727 million inflows, the largest single-day inflow since Ether ETF trading began in July 2024.
+
+“Those coins go straight into cold custody and are, by definition, not available for immediate resale,” Xu said. He also pointed to the uncertainty around the US Federal Reserve as another bullish catalyst for Ether.
+
+“Macro conditions are mixed rather than toxic,” he added. Xu explained that while June’s Consumer Price Index (CPI) did “tick higher,” ongoing pressure from US President Donald Trump on Federal Reserve Chair Jerome Powell is increasingly bullish for crypto.
+
+“Trump keeps urging the Fed to slash rates by up to three percentage points, a reminder that policy risk still tilts dovish for risk assets,” he said.
+
+“Unless both ETF inflows abruptly stall and the Fed turns sharply hawkish at the same time, the probability of a full retrace like the 30 % wash-out of October 2024 looks low.”
+
+Ether is trading at $3,609 at the time of publication, up 43% over the past 30 days, according to Nansen.
+
+However, Xu says the chances of Ether hitting $10,000 by the end of this year are slim, despite forecasts from several analysts.
+
+“A $10K target implies a 190% move in a little over five months — something ETH has achieved only twice, during the 2017 ICO frenzy and the 2020-21 DeFi boom,” Xu said.
+
+Ether $10,000 price tag may be “a stretch”
+
+That kind of move is a stretch,” he added, but said the possibility is open as long as strong ETF inflows continue, staking is added to the Ether ETF, investor sentiment shifts to a more risk-on environment, and Ethereum gains wider adoption as a network:
+
+“Accelerating real-world use of the Ethereum stack: restaking, booming layer-2 rollups, and fresh application verticals that lock more ETH out of circulation and tighten supply.”
+
+“Should any of those engines stall, the rally could top out well short of five digits, but if they fire in unison, a surprise sprint to $10K can’t be ruled out,” he said.
+
+Echoing a similar sentiment, Sapien co-founder Trevor Koverko told Cointelegraph that a $10,000 per Ether price tag is speculative but not entirely off the table.
+
+Related: Ether holding $3K opens door to 1,100% ‘vertical phase’ rally: Analyst
+
+“It’s an ambitious move, but not impossible to assume that ETH could even approach a $10k valuation if we continue to see strong macro tailwinds, broader ETF adoption, and the continued narrative shift toward Ethereum being the backbone of the next financial system,” Koverko said.
+
+“ETH feels a lot less like a speculative bet now versus a programmable digital asset,” he added.
+
+Cointelegraph recently reported that crypto trader Mikybull Crypto forecasts Ether’s price to top somewhere between $7,000 and $10,000, based on the RSI index.
+
+Magazine: ‘Slaughterbot’ drones in Ukraine, MechaHitler becomes sexy waifu: AI Eye
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Trump eyes executive order to open up retirement funds to crypto: FT
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/donald-trump-executive-order-401k-crypto-investments?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/donald-trump-executive-order-401k-crypto-investments?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/donald-trump-executive-order-401k-crypto-investments?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Fri, 18 Jul 2025 02:36:46 +0100
+
+### Content
+US President Donald Trump is reportedly set to sign an executive order that could allow American 401(k) retirement plans to invest in alternative assets outside of stocks and bonds, such as cryptocurrencies.
+
+The executive order could be signed sometime this week, the Financial Times reported on Thursday, citing three people who have been briefed on the plans.
+
+The new 401(k) investment options could run across a broad spectrum of assets, including digital assets, metals and funds focused on infrastructure deals, corporate takeovers and private loans.
+
+The executive order would instruct Washington regulatory agencies to investigate the best path forward for 401(k) plans to start investing in crypto, and investigate any remaining obstacles to making it a reality, according to the Financial Times.
+
+Trump has the final say on whether it’s official
+
+However, in a statement to Cointelegraph, White House spokesman Kush Desai said nothing should be deemed as official unless it comes from Trump himself.
+
+“President Trump is committed to restoring prosperity for everyday Americans and safeguarding their economic future,” he said.
+
+“No decisions should be deemed official, however, unless they come from President Trump himself.”
+
+In May, the US Labor Department rescinded guidance issued during the Biden administration that limited the inclusion of cryptocurrency in 401(k) retirement plans.
+
+Meanwhile, in April, Cointelegraph reported that financial services company Fidelity, which has $5.9 trillion in assets under management, introduced a new retirement account allowing Americans to invest in crypto.
+
+Standard 401(k) focuses on stocks and bonds
+
+A 401(k) is a retirement savings plan offered by many US employers that allows employees to save and invest a portion of their paycheck in the funds before taxes are taken out.
+
+Typically, investments focus on mutual funds, exchange-traded funds, stocks and bonds, depending on the plan. The 401(k) market held $8.9 trillion in assets as of Sept. 30, 2024, in more than 715,000 plans.
+
+Related: 20% of Gen Z, Alpha sees crypto as retirement alternative: Report
+
+At a state level, in March, North Carolina lawmakers already introduced bills in the House and Senate that could see the state’s treasurer allocate up to 5% of various state retirement funds into crypto like Bitcoin (BTC).
+
+Other countries are looking at crypto in retirement plans
+
+In November last year, the United Kingdom-based pension specialist Cartwright reported that an “unnamed scheme” had made a 3% allocation of Bitcoin into its pension fund.
+
+Meanwhile, Japan’s Government Pension Investment Fund was also considering Bitcoin as a potential diversification tool in March last year.
+
+--------------------------------------------------------------------------------
+
+## Trump’s court pick would bring crypto baggage to the bench
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/trump-court-pick-eric-tung-crypto?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/trump-court-pick-eric-tung-crypto?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/trump-court-pick-eric-tung-crypto?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 23:55:00 +0100
+
+### Content
+Eric Tung, a corporate lawyer with a track record of representing crypto firms, is poised to join one of the most influential federal courts in the United States.
+
+On Tuesday, US President Donald Trump sent Tung’s nomination to the Senate to be a US Circuit Judge for the Ninth Circuit, which covers Arizona, Idaho, Montana, Oregon, Washington, Nevada, California, Alaska and Hawaii.
+
+Tung, a partner at the law firm Jones Day since 2019, has had clients that include digital currency companies.
+
+Court records show that Tung represented the advocacy group Blockchain Association while at Jones Day in a case filed by six Tornado Cash users against the US Treasury Department. He also represented an investor filing a lawsuit against HDR Global Trading Limited, the parent company of the BitMEX exchange.
+
+Should he be confirmed as a federal judge, he would likely cover appeals in cases involving Silicon Valley-based businesses that file in the jurisdiction, which would include many cryptocurrency companies.
+
+Watchdog flags deregulatory push
+
+Tung’s appointment has drawn criticism, with watchdog organization Accountable.US saying the potential judge could support deregulating digital assets as part of the Trump administration’s crypto agenda.
+
+The president has already radically changed leadership at financial agencies overseeing digital assets such as the US Securities and Exchange Commission, and has his pick under consideration in the Senate to lead the Commodity Futures Trading Commission.
+
+“Tung has built his career representing crypto firms seeking to avoid government regulation,” said the watchdog, in a Thursday notice.
+
+“He served as counsel for a stablecoin provider in a brief arguing standalone sales of stablecoins are not securities. He represented the Blockchain Association in a brief opposing regulation of immutable smart contracts. While representing an investment firm backing crypto companies, he argued for looser liability on a crypto tool.”
+
+Cointelegraph reached out to Tung for comment but had not received a response at the time of publication.
+
+Related: Court ends Coin Center-US Treasury appeal over Tornado Cash
+
+Significant crypto cases have passed through the Ninth Circuit
+
+Any federal judge overseeing appeals can have considerable influence over how civil and criminal cases are handled in the future. Many technology companies, including those involved with crypto and blockchain, file in the Ninth Circuit when appropriate.
+
+In 2024, a panel of three judges in the circuit partially reversed a class-action lawsuit alleging that Binance.US had manipulated the price of Hex (HEX). Nvidia, the semiconductor company based in California, went through the Ninth Circuit in a 2018 case brought by some of its shareholders over undisclosed sales to crypto miners.
+
+As of Tuesday, Tung’s nomination had been received by the Senate and referred to the Committee on the Judiciary. It’s unclear when the chamber will consider a vote on the potential federal judge, as both the House of Representatives and the Senate have been focused on passing three bills related to digital assets.
+
+--------------------------------------------------------------------------------
+
+## US to investigate Brazil’s digital payment system
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/u-s-investigates-brazil-s-digital-trade-practices-amid-pix-dominance?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/u-s-investigates-brazil-s-digital-trade-practices-amid-pix-dominance?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/u-s-investigates-brazil-s-digital-trade-practices-amid-pix-dominance?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 23:40:00 +0100
+
+### Content
+The United States has launched a formal investigation into Brazil’s digital trade practices, with a spotlight on Pix, the country’s instant payment system that has rapidly displaced private-sector competitors.
+
+The probe, announced on Tuesday by US Trade Representative Jamieson Greer, will examine whether Brazil’s digital and trade policies unfairly disadvantage US companies.
+
+Greer said the investigation will review Brazil’s “tariff and non-tariff barriers,” saying the country offers preferential treatment to other trade partners while disadvantaging US exporters.
+
+Another focus is Brazil’s alleged penalization of American tech firms that refuse to censor political speech. In August 2024, Brazil’s Supreme Federal Court ordered a nationwide suspension of social media platform X, after Elon Musk refused to appoint a legal representative in the country.
+
+The investigation marks the most recent escalation in tensions between the two countries. On July 7, Trump took to social media to call on Brazilian authorities to drop the prosecution of former President Jair Bolsonaro, which he called a “witch hunt.”
+
+A few days later, Trump threatened the probe in a letter to Brazilian President Luiz Inácio Lula da Silva, along with a 50% tariff on Brazilian imports starting Aug. 1.
+
+Related: Brazil fintech gets approval to become a Bitcoin treasury company
+
+Pix and Brazil’s financial system
+
+Launched in 2020 by Brazil’s Central Bank, Pix is a government-run instant payment system that allows people to send and receive money instantly, 24/7, at no or very low cost. Unlike traditional payment systems, Pix lets users bypass credit card networks entirely, enabling direct transfers through mobile apps, QR codes, or account keys.
+
+With over 150 million users and acceptance at more than 60 million businesses, Pix has quickly become the backbone of Brazil’s digital economy. In only five years, it has become the default payment method for everything from street vendors to utility bills, transforming how money moves in the country.
+
+The US probe will investigate whether Brazil has been favoring its local payment system over established American alternatives such as Mastercard, Visa, and other US-based fintech companies.
+
+Related: Brazil’s 17.5% crypto tax: How the new rules hurt small investors most
+
+The intersection of domestic payments and global finance
+
+Although Pix is only available domestically, it’s part of a broader shift that has Trump and US officials concerned.
+
+Crypto-fintech bridges like Truther allow people worldwide to send stablecoins and settle instantly into bank accounts via Pix. This enables individuals and businesses to bypass traditional finance rails such as the SWIFT system, PayPal and US remittance services like Western Union.
+
+For Trump, the concern goes beyond the Pix payment system. As a member of the BRICS economic bloc — alongside Russia, India, China and South Africa — Brazil is part of a coordinated effort to reduce dependence on the US dollar and Western financial infrastructure.
+
+In 2024, leaders adopted “BRICS Pay,” a cross-border payments platform to bypass SWIFT and facilitate local‑currency transactions. At a recent BRICS Summit in Rio de Janeiro, the bloc discussed creating a joint reserve currency as a US dollar alternative, a move that reportedly drew the ire of the US president.
+
+--------------------------------------------------------------------------------
+
+## 300% DOGE price rally expected if this key price level is reclaimed
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/300percent-doge-price-rally-expected-if-this-key-price-level-is-reclaimed?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/300percent-doge-price-rally-expected-if-this-key-price-level-is-reclaimed?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/300percent-doge-price-rally-expected-if-this-key-price-level-is-reclaimed?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 23:15:00 +0100
+
+### Content
+Key takeaways:
+
+DOGE formed a double bottom after breaking a long-term downtrend, hinting at a rally to new year-to-date highs.
+
+DOGE’s futures open interest, spot volumes, and holders’ profit show rising demand and reduced sell pressure.
+
+Dogecoin (DOGE) shows strong signs of rallying higher as technical indicators and onchain metrics align to support bullish continuation. Currently trading above $0.21, DOGE is forming a textbook double bottom pattern on the daily chart, a historically reliable reversal formation. This bullish structure is developing after DOGE decisively broke out of a long-standing descending channel, further confirming a shift in momentum.
+
+Following the breakout, the memecoin has entered a consolidation phase between $0.19 and $0.21, which could be viewed as a healthy retest and hold after a breakout. An immediate break above $0.21 would likely pave the way to $0.25, a key level that completes the double bottom pattern. This would open a path toward $0.48, a level last seen in December 2024.
+
+Notably, DOGE’s larger structure on the weekly chart adds further weight to its bullish case. Crypto analyst Trader Tardigrade noted that the crypto asset trades within an ascending broadening wedge, a technical formation known for its parabolic breakout potential. The price action suggests that DOGE is gearing up to test and potentially breach this upper boundary.
+
+Based on historical precedents and structural analysis, such a move could lay the foundation for a 300% rally once $0.25 is reclaimed, with the $1 level emerging as a realistic long-term target once DOGE clears the $0.47 resistance.
+
+Related: Crypto spot trading down 22% in Q2 despite Bitcoin rally: Report
+
+Onchain DOGE data supports a bullish bias
+
+From an onchain data perspective, DOGE’s metrics reflect this bullish setup. Open Interest (OI) in DOGE futures markets has seen a massive jump in July, rising from $1.70 billion to $2.85 billion, i.e., a 67% increase, indicating renewed speculative activity.
+
+Despite the rise in OI, funding rates remain neutral, signaling that leveraged longs have not yet overheated the market. In parallel, the spot cumulative volume delta (CVD) continues to rise slowly, revealing net buying pressure in the spot market, a healthy sign of real demand underpinning price action.
+
+Adding further weight is the Long-Term Holder Net Unrealized Profit/Loss (LTH-NUPL), which has now entered the Optimism-Anxiety zone. This psychological zone implies that long-term DOGE holders are sitting on moderate profits and shifting sentiment from uncertainty (Hope-Fear) toward cautious confidence.
+
+Historically, every major DOGE breakout, including the 2021 and 2024 breakouts, began once LTH-NUPL moved into this zone. It reflects a market where long-term holders begin to reduce selling pressure and allow short to mid-term capital inflows to drive price action.
+
+Related: Ethereum open interest hits all-time high as trader predicts $30K price top
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Here’s what happened in crypto today
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 23:12:14 +0100
+
+### Content
+Today in crypto, the total crypto market cap is nearing $4 trillion, US lawmakers advanced three major crypto bills, and the Securities and Exchange Commission delayed its decision on whether to allow in-kind redemptions for Bitwise’s Bitcoin and Ether spot ETFs.
+
+Crypto market cap closes in on $4 trillion
+
+The total value of the crypto market hit an all-time high on Thursday, as a price surge from major cryptocurrencies drove the market’s total worth near $4 trillion.
+
+The exact figure is hard to pin down due to differences in how platforms track the crypto market, but crypto data providers CoinMarketCap and TradingView show the crypto market peaking between $3.8 trillion and $3.9 trillion, respectively, while CoinGecko reported that the market crossed the $4 trillion milestone.
+
+Regardless of the exact figure, the crypto market’s value is now just behind computer chip maker Nvidia, the most valuable publicly-listed company in the world which was the first-ever to hit a market cap of $4 trillion on July 9, which has since grown to $4.2 trillion.
+
+Bitcoin (BTC), Ether (ETH) and XRP (XRP) — currently the top three cryptocurrencies by market cap — drove the market value surge. Bitcoin is again above $120,000 while ETH rose 8% to around $3,600 for the first time since early January.
+
+XRP, meanwhile, jumped almost 20% to a 2025 high of $3.64 in early trading on Friday. XRP has close ties to Ripple Labs, which traders think could benefit from a sweeping stablecoin bill the US House passed on Thursday.
+
+US House passes three key crypto bills ahead of August recess
+
+After delays in Congress over Republican concerns with central bank digital currencies (CBDCs), the US House of Representatives has passed three pieces of crypto legislation.
+
+In a Thursday House session, lawmakers voted 294-134 to pass the Digital Asset Market Clarity (CLARITY) Act, a bill aimed at establishing a market structure for cryptocurrencies, 308-122 in favor of the Guiding and Establishing National Innovation for US Stablecoins (GENIUS) Act, and 219-210 for the Anti-CBDC Surveillance State Act.
+
+Almost 80 Democrats voted yes for the CLARITY Act and more than 100 for the GENIUS Act, with the bills having been expected to move through the chamber before Congress breaks for its August recess.
+
+Republicans had been calling for everyone in their party to support the bills as part of their “crypto week” plans — a nod to US President Donald Trump’s stated intention to enact his crypto agenda quickly.
+
+However, on Wednesday, voting on consideration of a package, including the three bills, stalled for hours after some Republicans held out for a carve-out to ban the development of a CBDC in the US.
+
+SEC delays in-kind redemption decision for Bitwise crypto ETFs
+
+The US Securities and Exchange Commission (SEC) extended its deadline to decide on whether to allow in-kind redemptions for Bitwise’s Bitcoin and Ether spot ETFs on NYSE Arca.
+
+While the SEC did not exceed its maximum 90-day review limit, it stated that more time is needed to fully consider the implications of the proposed rule change. If approved, in-kind redemptions would let investors receive Bitcoin or Ether directly instead of cash, potentially offering tax benefits.
+
+SEC's deadline extension filing. Source: SEC
+
+The move comes amid growing criticism that the SEC is delaying key crypto decisions. Grayscale recently challenged the agency’s handling of its Digital Large Cap ETF, accusing it of violating statutory deadlines. However, the SEC appears to be shifting its stance under Chair Paul Atkins, appointed under the Trump administration, who has pledged a more transparent and innovation-friendly approach.
+
+--------------------------------------------------------------------------------
+
+## Canary Capital bets on Injective with staked ETF filing
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/canary-capital-injective-staked-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/canary-capital-injective-staked-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/canary-capital-injective-staked-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 23:07:03 +0100
+
+### Content
+Investment company Canary Capital filed an S-1 application for a staked INJ (INJ) exchange-traded fund (ETF) with the United States Securities and Exchange Commission (SEC) on Thursday.
+
+INJ is the governance, staking and utility token for the Injective Protocol, a layer-1 blockchain network focused on decentralized finance (DeFi) operations.
+
+One of the main objectives of the fund is to accrue staking rewards through providing validation services using an “approved staking platform,” the filing reads.
+
+Canary Capital formed a Delaware Trust for its staked Injective ETF in June, tipping plans for the altcoin investment vehicle. The application marks the latest altcoin ETF filing in the US.
+
+The application also reflects the convergence of traditional and decentralized finance (DeFi). This trend accelerated following guidance from the SEC classifying staking rewards as income and not securities transactions subject to capital gains, opening the door for asset managers to act as validators through delegated staking.
+
+Related: SEC delays in-kind redemption decision for Bitwise crypto ETFs
+
+The line between TradFi and DeFi blurs, polarizing the crypto community
+
+Traditional and decentralized finance are converging into a unified sector, according to Nelli Zaltsman, the head of blockchain payments innovation at Kinexys, a real-world asset tokenization platform launched by banking giant JPMorgan.
+
+Zaltzman told the audience at the RWA Summit 2025 in Cannes, France, that the separation between the two areas of finance may disappear within a few years.
+
+This convergence between digital and traditional finance also opens up opportunities for retail investors to access previously inaccessible investments, including private equity, blurring the line between accredited and retail investors, CoinFund President Christopher Perkins told Cointelegraph.
+
+Other crypto investors have argued that merging the two sectors was inevitable and that mass adoption will come through the merger of the two worlds. Not everyone in the crypto community is convinced by this positive outlook, however.
+
+“Institutions and ETFs are bad for crypto,” investor Nick Rose wrote on X. “Everyone cheers inflows like it’s free money, but Wall Street doesn’t HODL, they hedge, rotate, and dump when risk models say ‘exit’”
+
+“Institutions manage exposure, take profits, rebalance portfolios, etc. Crypto wasn’t built for quarterly reports,” he said.
+
+--------------------------------------------------------------------------------
+
+## US prosecutors expect to close case against Roman Storm by July 25
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/roman-storm-trial-prosecution-july?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/roman-storm-trial-prosecution-july?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/roman-storm-trial-prosecution-july?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 22:30:26 +0100
+
+### Content
+US Attorneys in New York’s Southern District continued presenting their case against Tornado Cash co-founder and developer Roman Storm, expected to last about a month.
+
+According to reporting from Inner City Press inside the courtroom on Thursday, Assistant US Attorney Thane Rehn said the prosecution expected to close its case against Storm by the end of next week, leading to the Tornado Cash co-founder’s lawyers calling their own witnesses.
+
+Storm said he expected the trial to last “3-4 weeks due to complex legal arguments and unforeseen witnesses and evidence.”
+
+The prosecution launched its case this week by offering testimony from a variety of witnesses, including individuals connected with hackers who allegedly used Tornado Cash to launder funds. On Thursday, the court heard testimony from FBI employees, including a forensic accountant and a special agent who searched Storm’s home near Seattle.
+
+Storm faces charges of money laundering, conspiracy to operate an unlicensed money transmitter and conspiracy to violate US sanctions related to his role at the crypto mixing service, which he founded with Alexey Pertsev and Roman Semenov in 2019. He could serve years in prison if found guilty on all counts.
+
+Related: What you need to know about Roman Storm’s Tornado Cash trial
+
+What will Roman Storm’s defense look like?
+
+Following the prosecution’s expectation to close its case by July 25, Storm’s attorneys have already offered indications of what they will present in court as a defense strategy. Before the trial began, Storm said in an interview that he wasn’t sure whether his legal team would have him take the stand in his defense.
+
+In a Thursday filing, Storm’s lawyers suggested that at least one of their witnesses could offer testimony that included references to high-profile kidnappings of crypto users, as evidence that privacy services like Tornado Cash were necessary.
+
+“The fact that there have been numerous high-profile incidents of criminals seeking to obtain individuals’ cryptocurrency does not in any way suggest that the jury should acquit Mr. Storm out of sympathy for the victims of these crimes,” said his legal team. “Again, one of the key reasons for cryptocurrency privacy is to protect its users from criminals preying on them.”
+
+The prosecution is seeking to preclude any testimony on kidnapping and torture, but the judge overseeing the case had not issued a ruling at the time of publication.
+
+--------------------------------------------------------------------------------
+
+## Wall Street piles into Ethereum as stablecoins are greenlit and RWAs expand
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/wall-street-piles-in-to-ethereum-as-stablecoins-are-greenlit-and-rwas-expand?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/wall-street-piles-in-to-ethereum-as-stablecoins-are-greenlit-and-rwas-expand?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/wall-street-piles-in-to-ethereum-as-stablecoins-are-greenlit-and-rwas-expand?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 22:30:00 +0100
+
+### Content
+Key takeaways:
+
+ETH is increasingly viewed as a reserve asset for the digital dollar economy, with over 54% of stablecoins issued on Ethereum.
+
+Fidelity sees Ethereum as a sovereign digital economy, with ETH acting as both a store of value and a medium of exchange.
+
+Recent reports argue that ETH’s fee drop was a strategic move to scale via L2s, setting the stage for mass adoption and future value accrual.
+
+Ether (ETH) has surged 23% over the last week, outpacing Bitcoin’s 13% gain and the broader crypto market’s 10%. Yet at $3,400, ETH still trades well below its all-time high of $4,855 set in November 2021. While Bitcoin has entered price discovery, Ethereum appears to have far more room to run, if the right narratives take hold.
+
+Every major bull run needs a story that resonates. In 2021, Ethereum rallied on the back of NFTs and DeFi. But today, overpriced JPEGs and decentralized exchanges no longer carry the same market excitement. Instead, Ethereum’s appeal lies in its growing alignment with traditional finance (TradFi), primarily through its role in stablecoins and real-world asset (RWA) tokenization.
+
+These evolving use cases reframe ETH as more than just a utility token. It is increasingly viewed as a reserve asset, a store of value, and even digital oil.
+
+ETH as a reserve asset
+
+A new report by Electric Capital highlights Ethereum’s leadership in stablecoin issuance and settlement.
+
+Despite declining trust in the US dollar, global demand remains strong for both individuals and businesses. And thanks to blockchains, for the first time in history, anyone with internet access can hold and use digital dollars without a bank. Since 2020, stablecoin adoption has seen a 60x increase, now amounting to over $200 billion.
+
+These stablecoins are evolving into financial instruments. Yield-bearing versions, now exceeding $4 billion in market cap according to The Block, are the fastest-growing segment, letting users earn passive income in stable assets.
+
+Ethereum still dominates this space, hosting over 54% of all stablecoins. Electric Capital outlines three key criteria for stablecoin platforms: global accessibility, institutional security, and political neutrality. Ethereum is the only network that consistently meets all three. Tron comes second with 32%, but its low-cost edge is eroding as usage drives fees higher. Meanwhile, Ethereum’s fees have dropped thanks to upgrades and declining congestion, giving it a chance to consolidate its role as the core layer for the onchain dollar economy.
+
+As this ecosystem grows, so does ETH’s function as a reserve asset. Like Treasurys or gold in TradFi, ETH provides collateral, settlement, and yield. It’s scarce, non-custodial, stakable, and deeply embedded in DeFi, already backing over $19 billion in loans. Electric capital believes that in the longer term, ETH could absorb a share of the $500 trillion global store-of-value market. It offers the resilience of Bitcoin, plus yield, a trait favored by US households, who now hold $32 trillion in dividend-paying equities but less than $1 trillion in gold.
+
+ETH as a store of value
+
+Fidelity’s latest report argues that blockchains like Ethereum are better understood as sovereign digital economies than Web2 platforms. Like an open economy, Ethereum enables anyone to consume or produce services, and ETH acts as base money, coordinating decentralized participants.
+
+Fidelity suggests using a GDP-like framework to gauge blockchain economic activity, where “consumption” refers to protocol fees, “government” captures spending by the Ethereum Foundation, “investment” includes ETH staking and changes in DEX liquidity, and “net exports” covers value flows across blockchains, to the physical world via DePIN, and to traditional economies through stablecoin issuance.
+
+To Fidelity analysts, ETH serves as both a medium of exchange and a store of value in this paradigm. As the Ethereum ecosystem expands, so does the demand for ETH. So far, the trend supports this thesis: according to Artemis, daily active wallets on Ethereum now exceed 2.5 million, and transaction counts have reached an all-time high of around 19 million.
+
+Fidelity’s framework can be applied to most blockchains, offering TradFi a more straightforward way to assess smart contract platforms, just as they’ve come to understand Bitcoin. The choice to highlight Ethereum, likely due to its status as the most advanced blockchain economy, signals growing institutional recognition of its potential.
+
+ETH as digital oil
+
+A third perspective is outlined in the recent report by leading Ethereum stakeholders. The authors argue that ETH functions as a productive, yield-bearing commodity at the heart of the onchain economy. As the global financial system shifts toward a fully digital, decentralized infrastructure, Ethereum is emerging as the core settlement layer, security provider, and reserve asset. While Bitcoin embodies the “digital gold” narrative, Ethereum combines value storage with utility, powering computation and decentralized finance, while also offering native yield through staking.
+
+Related: US SEC ‘Crypto Mom’ clarifies: ‘Tokenized securities are still securities’
+
+The “digital oil” analogy reflects ETH’s multiple roles: it is burned as fuel for every transaction, used as collateral (with roughly a third of its supply securing stablecoins, tokenized assets, and DeFi protocols), and remains scarce by design, with issuance capped at around 1.51% annually.
+
+The report also addresses Ethereum’s fees revenue, which has declined dramatically from the peak of $82 million during the 2021 rally to just $3 million today. According to its authors, this wasn’t a failure, but a strategic move to scale. Like Amazon or Tesla in their early growth phases, Ethereum prioritized long-term adoption over short-term revenue, pushing down transaction costs via layer-2 scaling. While this temporarily suppressed fee income, it expanded Ethereum’s total addressable market and will ultimately increase both ETH burn and staking rewards.
+
+While the underlying logic of these three reports can be applied to other smart contract platforms, each one hints—or outright states—that Ethereum holds a clear advantage. This edge often comes down to its “industrial-grade” quality: Ethereum remains the most decentralized blockchain, with the most secure protocol and the most developed ecosystem in the space.
+
+As Ethereum becomes increasingly attractive to TradFi, even its well-known scalability limitations, now mitigated by layer-2 solutions, appear to be less of a barrier to institutional adoption. Just as institutional interest has fueled Bitcoin’s rally this cycle, it is now poised to do the same for Ethereum.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Nasdaq files application to add staking for BlackRock iShares ETH ETF
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/nasdaq-files-application-staked-ishares-eth-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/nasdaq-files-application-staked-ishares-eth-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/nasdaq-files-application-staked-ishares-eth-etf?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 21:59:07 +0100
+
+### Content
+The Nasdaq stock exchange filed an application with the US Securities and Exchange Commission (SEC) on Wednesday on behalf of BlackRock to add staking to the asset manager’s iShares Ether (ETH) exchange-traded fund (ETF).
+
+If the application is approved, the fund would give investors exposure to staking rewards accrued from using the underlying Ether as collateral security for Ethereum’s proof-of-stake consensus algorithm.
+
+In May, the SEC released guidance classifying staking rewards earned from validation services on proof-of-stake blockchain networks as earned income rather than securities transactions subject to capital gains tax.
+
+The SEC staking guidance opened the doors for institutional investors to earn yield on their ETH holdings, a major feature for TradFi institutions that must produce income or cash flow for shareholders.
+
+Related: Ethereum becomes preferred treasury asset for tech-savvy firms: Ray Youssef
+
+Staked Ether supply hits all-time high, fueled by institutional buying
+
+“Ethereum starts to look like a hybrid between tech equity and digital currency,” Ray Youssef, CEO of finance app NoOnes told Cointelegraph in July. “This appeals to treasury strategists looking beyond passive storage.”
+
+Ethereum treasury companies scooped up 540,000 ETH, valued at $1.6 billion using current market prices, in the last month for their corporate reserves.
+
+In June, the amount of staked ETH hit an all-time high, with 28% of the circulating supply dedicated to the network’s security.
+
+The amount of staked ETH reached a new all-time high of 36,036,981 in July, accounting for over 29% of the circulating supply, according to Dune.
+
+Rising demand for ETH is also reflected by Strong ETF flows during June and July, following stunted performance earlier this year due to macroeconomic fears and a flight to safety from risk assets.
+
+Capital flows into Ether investment vehicles were positive for 11 out of the last 12 trading days, according to Farside Investors, with over $726 million flowing into the ETFs on Wednesday.
+
+Attracting institutional interest is a major priority for the revamped Ethereum Foundation, which backed the creation of Etherealize, a marketing firm tasked with exposing institutional investors to the layer-1 smart contract network.
+
+--------------------------------------------------------------------------------
+
+## Bitcoin-backed mortgages debut in Australia amid housing crisis
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/bitcoin-backed-mortgages-australia-housing-crisis?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/bitcoin-backed-mortgages-australia-housing-crisis?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/bitcoin-backed-mortgages-australia-housing-crisis?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 21:21:13 +0100
+
+### Content
+As home prices in Australia continue to outpace incomes, a company is rolling out a Bitcoin-backed mortgage, offering crypto holders a new way to access the property market without selling their assets.
+
+On Wednesday, Block Earner launched the country’s first Bitcoin-backed home loan after fighting with regulators in court for over two years. The product was made possible by an April Federal Court ruling that found that Block Earner’s crypto lending products did not qualify as “financial products” under the Corporations Act.
+
+The decision cleared the company from needing a financial services license in order to offer Bitcoin as collateral in home loans.
+
+Through the product, borrowers’ collateral tokens are secured by custody platform Fireblocks. The Bitcoin is used to secure a cash loan for up to 50% of the property’s value, with a standard mortgage complementing the financing.
+
+In addition to creating new opportunities for Bitcoin holders, the model introduces an alternative approach to assessing creditworthiness, moving beyond traditional loan criteria such as salary, cash savings, and superannuation (Australia’s mandatory retirement program).
+
+Related: Bitcoin loans are back, rewriting the book Celsius burned
+
+Bitcoin-backed loan development in the US
+
+Australia isn’t the only country experimenting with Bitcoin and crypto-backed mortgages. In the US, institutions are also moving to enable crypto-backed financing for home loans.
+
+On June 25, Federal Housing Finance Agency (FHFA) Director William Pulte ordered Fannie Mae and Freddie Mac to explore ways to count crypto holdings on regulated centralized exchanges as reserve assets to underwrite mortgages.
+
+In a letter, he told both government-sponsored enterprises (GSEs) to consider crypto as a reserve asset in mortgage risk assessments.
+
+On Monday, a new bill was introduced in the US House of Representatives seeking to require mortgage agencies to update guidelines, recognizing cryptocurrency holdings on regulated exchanges as part of a borrower’s financial profile.
+
+If passed, the bill would allow crypto to count toward mortgage eligibility without requiring conversion to dollars, expanding access to home loans for digital asset holders.
+
+Australia and the US face deepening housing crises
+
+Australia and the United States, two countries facing a housing crisis, are leading developments in crypto-backed home lending.
+
+Australia has become notorious as one of the least affordable housing markets in the world. Home prices around the country average nearly 10 times the typical household income. In Sydney, homes cost nearly 14 times the median income, second only to Hong Kong.
+
+In the US, median home prices reached over $420,000 in 2024–2025, roughly seven times the median household income. The situation has led to dire consequences for the population, with US homelessness surpassing record levels in recent years.
+
+According to a report from the Annual Homelessness Assessment Report (AHAR) from the US Department of Housing and Urban Development, there were over 653,000 unhoused people recorded in a single night in January 2023, the highest since the US started tracking the numbers in 2007.
+
+But while soaring home prices have made homeownership increasingly out of reach for many citizens of both countries, prices have declined relative to Bitcoin; the cryptocurrency is up nearly 87% over the past twelve months.
+
+--------------------------------------------------------------------------------
+
+## SUI’s next ‘altcoin season’ stop could be $5: Here’s why
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/sui-s-next-altcoin-season-stop-could-be-dollar5-here-s-why?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/sui-s-next-altcoin-season-stop-could-be-dollar5-here-s-why?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/sui-s-next-altcoin-season-stop-could-be-dollar5-here-s-why?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 21:06:52 +0100
+
+### Content
+Key point:
+
+Growing interest in altcoins could push SUI above the stiff overhead resistance at $4.30, setting up a rally to $5.
+
+Bitcoin (BTC) has been consolidating after hitting the all-time high of $123,218. Although BTC has not given up much ground, its falling dominance of the total crypto market capitalization shows that money is flowing into altcoins.
+
+Will Sui (SUI) be one of the beneficiaries this altseason? Let’s analyze the charts to find out.
+
+SUI price prediction
+
+SUI picked up momentum after breaking above the 50-day simple moving average (SMA) ($3.10) on July 10.
+
+The up move has reached near the overhead resistance of $4.30, where the sellers are expected to mount a strong defense. There is support at $3.81 and then at the 20-day exponential moving average (EMA) ($3.37). If the price rebounds off the 20-day EMA, the bulls will again attempt to drive the SUI/USDT pair above $4.30. If they manage to do that, the pair could surge to $5 and eventually to $5.37.
+
+This optimistic view will be negated in the near term if the price turns down and breaks below the 20-day EMA. That suggests the bulls are losing their grip. The pair may then drop to the 50-day SMA.
+
+Related: 3 charts scream ‘It’s altcoin season’ as Bitcoin dominance hits 8-week lows
+
+The pair completed a bullish inverse head-and-shoulders pattern on a close above the $3.55 level. Sellers are trying to halt the rally at $4.10, but the bounce off the 20-EMA on the 4-hour chart indicates a positive sentiment. The pair could rally to $4.30, which may act as stiff resistance.
+
+Sellers will have to tug the price below the breakout level of $3.55 to gain the upper hand. The pair may then tumble to $3.30 and later to $3.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Semler Scientific adds $25M in Bitcoin, but stock slides 22% YTD
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/semler-scientific-adds-25m-bitcoin-stock-slides-ytd?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/semler-scientific-adds-25m-bitcoin-stock-slides-ytd?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/semler-scientific-adds-25m-bitcoin-stock-slides-ytd?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 20:52:37 +0100
+
+### Content
+Semler Scientific bought another $25 million in Bitcoin to push its holdings to nearly 5,000 BTC, but investors aren’t buying into the buzz. Even with its treasury strategy and big gains on its crypto investments, the medical technology company’s shares are down 22% year-to-date.
+
+Semler bought 210 Bitcoin (BTC) in the first week of July at an average price of $118,974 per coin, according to a filing with the US Securities and Exchange Commission (SEC). The company now holds 4,846 Bitcoin, acquired for almost $455 million and now worth $577.9 million.
+
+The shift from a medical technology business to a Bitcoin treasury company is backed by a $175 million capital raise through an at-the-market (ATM) offering in April. The company plans to hold 105,000 BTC by 2027. If Semler achieves its goal, it would hold 0.05% of all BTC that would ever be produced.
+
+The company’s share price has not responded positively to the aggressive crypto move. According to Google Finance, the share price is down 18.7% year to date, up 2.7% on the day at time of writing.
+
+“The lackluster price performance of Semler Scientific shows that simply pivoting to a Bitcoin strategy isn’t a panacea for all business troubles,” crypto analyst Nic Puckrin told Cointelegraph.
+
+According to the analyst, the company’s reliance on selling shares to finance its BTC buying could be playing a role in investors’ sentiment.
+
+“This dilutes shareholder value, so it makes sense they aren’t that thrilled, especially considering its Q2 earnings report was underwhelming,” Puckrin said. “Not all Bitcoin treasury companies will be able to replicate Strategy’s success.”
+
+Strategy, the first publicly traded company to bet on a Bitcoin corporate reserve, added over $472 million worth of BTC to its growing stash. The company now holds more than 601,550 BTC.
+
+Related: Semler Scientific boosts Bitcoin reserve with $20M BTC top-up
+
+Semler Scientific faces legal inquiries after DOJ settlement
+
+Semler Scientific is facing legal inquiries related to its settlement discussions with the US Department of Justice. At least two law firms, Rosen Law Firm and the Law Offices of Howard G. Smith, have recently issued press releases encouraging investors to reach out for potential claims.
+
+The issue appears to be related to Semler Scientific’s February disclosure of its settlement discussions with the DOJ about a possible violation of anti-fraud law relating to the company’s QuantaFlo product, according to a March report. After the disclosure, Semler’s stock price fell 9.4%, according to the law firms.
+
+In April, the company said it had reached an agreement in principle with the DOJ to settle for $29.8 million.
+
+--------------------------------------------------------------------------------
+
+## US House passes three key crypto bills ahead of August recess
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/crypto-clarity-act-passes-house-crypto-week-continues?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/crypto-clarity-act-passes-house-crypto-week-continues?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/crypto-clarity-act-passes-house-crypto-week-continues?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 20:36:15 +0100
+
+### Content
+After delays in Congress over Republican concerns with central bank digital currencies (CBDCs), the US House of Representatives has passed three pieces of crypto legislation.
+
+In a Thursday House session, lawmakers voted 294-134 to pass the Digital Asset Market Clarity (CLARITY) Act, a bill aimed at establishing a market structure for cryptocurrencies, 308-122 in favor of the Guiding and Establishing National Innovation for US Stablecoins (GENIUS) Act, and 219-210 for the Anti-CBDC Surveillance State Act.
+
+Almost 80 Democrats voted yes for the CLARITY Act and more than 100 for the GENIUS Act, with the bills having been expected to move through the chamber before Congress breaks for its August recess.
+
+Republicans had been calling for everyone in their party to support the bills as part of their “crypto week” plans — a nod to US President Donald Trump’s stated intention to enact his crypto agenda quickly. However, on Wednesday, voting on consideration of a package, including the three bills, stalled for hours after some Republicans held out for a carve-out to ban the development of a CBDC in the US.
+
+Related: US Republicans declare ‘Crypto Week’ to mull 3 crypto bills
+
+Industry reaction is overwhelmingly positive
+
+Many involved with crypto lauded the passage of the three bills as a “win” for the industry, though the anti-CBDC legislation, which received the least support from Democrats, could remain a contentious partisan issue.
+
+Former Commodity Futures Trading Commission member and current Blockchain Association CEO Summer Mersinger said the vote on the Anti-CBDC Surveillance State Act suggested support for “privacy, market competition, and individual financial freedom.”
+
+Prior to Thursday’s vote, California Representative Maxine Waters had been calling for all Democrats to oppose the three bills. In response to Republicans’ “crypto week” branding, Waters held an “anti-crypto corruption week” press conference and issued statements warning of corruption by the Trump administration.
+
+“The Republican crypto bills we will consider will create giant loopholes in our federal financial laws that put consumers and investors at risk, in the name of innovation,” said Waters on Thursday. “These bills would increase the chance of another costly financial crisis, like the one in 2008 that led to trillions of dollars of wealth being wiped out, in the name of innovation.”
+
+Trump reportedly planned to sign the GENIUS Act by Friday, assuming there were no amendments to the bill after it passed the Senate in June. Both the CLARITY and anti-CBDC bills will go to the Senate for debate and possible amendments before returning to the House or the president’s desk.
+
+--------------------------------------------------------------------------------
+
+## Bitcoin smack dab in the middle of its adoption curve: Fidelity analyst
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/bitcoin-smack-dab-in-the-middle-of-its-adoption-curve-fidelity-analyst?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/bitcoin-smack-dab-in-the-middle-of-its-adoption-curve-fidelity-analyst?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/bitcoin-smack-dab-in-the-middle-of-its-adoption-curve-fidelity-analyst?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 20:31:18 +0100
+
+### Content
+Key takeaways:
+
+Fidelity’s Jurrien Timmer says Bitcoin is still mid-cycle in its adoption curve.
+
+125 public companies now hold BTC, with digital asset products witnessing $3.7 billion in weekly inflows last week.
+
+First-time BTC buyers accumulated over 140,000 BTC in just two weeks, signaling renewed FOMO.
+
+Bitcoin (BTC) may be trading near highs around $120,000, but according to the Director of Global Macro at Fidelity, Jurrien Timmer, it’s still early in the broader adoption cycle. Drawing parallels with the internet boom, Timmer emphasized that Bitcoin’s growth trajectory closely resembles the internet’s adoption curve from past decades. Timmer said,
+
+“Bitcoin continues to follow both the Power Law curve of its wallets as well as my demand model based on the internet adoption curve. We are right in the middle.”
+
+The analysis suggests that the current price action, marked by steady stair-step patterns of new highs followed by consolidation phases, still reflects a maturing, not saturated, asset class. The chart shows that the far high end of the BTC model (wallet power curve) lies in the region of $200,000-$300,000.
+
+This perspective gains more weight amid the current wave of corporate Bitcoin adoption. Data from Bitwise suggests that 46 public companies added BTC to their balance sheets, bringing the total to 125 in Q2. These firms collectively hold 847,000 BTC, valued at approximately $91 billion.
+
+Fueling this momentum, crypto digital asset investment products recently recorded their second-largest weekly inflow, a staggering $3.7 billion. This pushed total assets under management (AUM) across crypto products to an all-time high of $211 billion, with Bitcoin-backed products accounting for $179.5 billion, i.e., 85%.
+
+Commenting on this influx, Timmer noted that it remains unclear whether this capital comes from long-term believers or short-term speculators. “Whether these flows are from true believers or ‘momentum renters’ is hard to tell,” noted the Fidelity Analyst.
+
+Related: Michael Saylor’s Strategy hits record market cap amid Bitcoin surge
+
+Volcon joins the Bitcoin treasury movement
+
+Electric powersports company Volcon has become the latest public firm to adopt a Bitcoin treasury strategy. On Thursday, the company announced a $500 million private placement, with 95% of the proceeds earmarked to acquire Bitcoin. Backed by Empery Asset Management and Gemini, Volcon plans to operate a low-cost, capital-efficient BTC strategy as it transitions its EV business into an asset-light model.
+
+Beyond corporate treasuries, Bitcoin’s surge to new all-time highs above $123,000 has also attracted fresh investors. As reported by Cointelegraph, first-time BTC buyers accumulated over 140,000 BTC in just the past two weeks, boosting their total holdings by 2.86%, from 4.77 million to 4.91 million BTC.
+
+The data signals a return of “FOMO” driven behavior, as new and seasoned participants aggressively buy into the rally, further supporting Bitcoin’s latest breakout with strong organic demand.
+
+Related: Bitcoin resistance at $120K normal due to ‘frothy’ open interest near all-time highs
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Bitcoin resistance at $120K hints at consolidation before impulse rally to $135K
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/bitcoin-resistance-at-dollar120k-hints-at-consolidation-before-impulse-rally-to-dollar135k?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/bitcoin-resistance-at-dollar120k-hints-at-consolidation-before-impulse-rally-to-dollar135k?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/bitcoin-resistance-at-dollar120k-hints-at-consolidation-before-impulse-rally-to-dollar135k?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 19:21:51 +0100
+
+### Content
+Key point:
+
+BTC is facing selling near $120,000, signaling an upcoming phase of consolidation.
+
+Bitcoin (BTC) is taking a breather, but a positive sign is that the bulls have not ceded much ground to the bears. That suggests the bulls are holding on to their positions as they anticipate the uptrend to resume.
+
+US-based BTC exchange-traded funds recorded $799.4 million in inflows on Wednesday, the 10th successive day of inflows, according to Farside Investors data. Investors have ploughed in more than $5.2 billion into the BTC ETFs since July 2.
+
+Could BTC’s uptrend resume? What are the target and support levels to watch out for? Let’s analyze the charts to find out.
+
+BTC price prediction
+
+Buyers tried to resume the up move on Wednesday, but the long wick on the candlestick shows that the bears defended the $120,000 level.
+
+Repeated failures to cross above the $120,000 level could start a deeper pullback toward the 20-day exponential moving average (EMA) ($113,528). If the price rebounds off the 20-day EMA, the bulls will again attempt to thrust the BTC/USDT pair above the $120,000 to $123,218 resistance zone. If they succeed, the pair could start the next leg of the uptrend to $135,729 and eventually to the pattern target of $150,000.
+
+The bears will have to yank the price below the $110,530 support to seize control. The pair may then plummet to $105,000.
+
+Related: Is FOMO back? Bitcoin first timers buy 140K BTC in 2 weeks
+
+The 20-EMA has flattened out, and the relative strength index (RSI) is just above the midpoint on the four-hour chart, signaling a possible range formation in the near term. The pair could trade between $115,000 and $123,218 for some time.
+
+If the price turns down and breaks below $115,000, the pair could drop to the neckline and later to the solid support at $110,530. Buyers are expected to fiercely defend the $110,530 level because a break below it may tilt the short-term advantage in favor of the bears.
+
+The first sign of strength on the upside will be a break above $120,064. The pair may then retest the all-time high at $123,218.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## XRP cloud mining in 2025: How much can you really earn?
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/xrp-cloud-mining-in-2025-how-much-can-you-really-earn?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/xrp-cloud-mining-in-2025-how-much-can-you-really-earn?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/xrp-cloud-mining-in-2025-how-much-can-you-really-earn?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 18:12:11 +0100
+
+### Content
+Key takeaways
+
+XRP cloud mining doesn’t mine XRP; it funds BTC or ETH contracts using XRP.
+
+Promised returns (100%-800% APR) are often unsustainable and lack transparency.
+
+High risks include scams, volatility and hidden fees, with little regulatory oversight.
+
+Safer alternatives exist, like wrapped XRP in DeFi or regulated lending platforms.
+
+Can you really earn passive income through XRP mining in 2025? Technically, no, because XRP isn’t mineable in the traditional sense. All 100 billion XRP tokens were pre-mined at launch, meaning there’s no direct way to mine XRP like you would Bitcoin (BTC) or Ether (ETH).
+
+“XRP cloud mining” is mostly a marketing hook for XRP holders chasing passive income. It doesn’t mine XRP (XRP); it just lets you fund BTC or ETH mining contracts with XRP.
+
+However, funding these contracts with XRP comes with unique benefits.
+
+In mid-2025, a wave of XRP mining platforms entered the scene with daily-payout XRP mining contracts starting from as little as $10. The promises are bold: high return on investment (ROI), fast settlements and frictionless entry.
+
+This article breaks down how XRP cloud mining contracts work, what you can actually earn and whether these sky-high returns are too good to be true.
+
+Did you know? XRP primarily serves as a bridge currency for cross-border payments, enabling banks to clear transactions without pre-funding accounts in destination currencies.
+
+How XRP cloud mining works
+
+Here’s how XRP mining contracts function in practice.
+
+You deposit XRP to rent hash power, usually for mining BTC or ETH. The platform takes care of the hardware, electricity and maintenance. In return, you receive daily crypto payouts, often in XRP or Bitcoin — a model that allows users to earn passively without ever buying mining equipment.
+
+This process is made attractive by XRP Ledger’s ultra-low fees ($0.0002) and three to five second settlement speed, making it ideal for fast, low-friction transactions — especially useful when funding or withdrawing from XRP mining platforms.
+
+There’s no technical setup required. Just:
+
+Choose a contract (e.g., two, five or 32 days)
+
+Deposit as little as $10 in XRP
+
+Start receiving daily rewards instantly.
+
+These platforms pitch XRP passive income opportunities with a low entry barrier and flexible durations, but the devil’s in the details.
+
+XRP cloud mining earnings and XRP mining ROI
+
+Let’s take a look at what XRP mining returns really look like, as advertised. Company names have been redacted for safety reasons. However, the following statistics were gathered from active platforms as of July 17, 2025.
+
+XRP cloud miner 1
+
+Start with a $10 bonus. A $100 contract yields around $3/day for five days, netting you $15 in total.
+
+That’s a 15% return in under a week or an annualized ROI of over 1,000%.
+
+XRP cloud miner 2
+
+XRP mining example 2 offers:
+
+$100-$12,000 contract sizes
+
+$6-$8 per day for two-day plans
+
+around $6,528 return on a $12,000, 32-day contract.
+
+Another platform goes even further, claiming up to $50,000/day payouts on its top-tier packages.
+
+Snapshot of estimated ROI:
+
+$100 over 2 days → +6%-8% (110%-150% APR)
+
+$500 for 5 days → +20%-25% (1,500% APR)
+
+High-tier plans → +50%+ in weeks (800% APR)
+
+Compare that to traditional cloud mining, which typically yields 5%-10% APR, and it’s easy to see why users are drawn in.
+
+But, beware: Payouts are fixed in crypto, and XRP’s price volatility means fiat-equivalent value could drop drastically — a hidden risk of XRP cloud mining in 2025.
+
+Key risks of XRP cloud mining
+
+Before diving into any XRP cloud mining platform, it’s crucial to assess the risks.
+
+Counterparty risk is high: Many XRP mining platforms are newly launched, lack transparency and offer no verifiable credentials. Community threads often flag these operations as potential Ponzi schemes or scams dressed up as cloud contracts.
+
+The promised returns: 100%-800% APRs are a major red flag. These unsustainable yields usually depend on new user deposits to fund payouts, a structure more in line with pyramid-style crypto investment schemes than real XRP passive income.
+
+Another concern, already touched upon, is asset volatility. Since payouts are in XRP or BTC, the fiat value of your earnings can drop sharply with market swings. Even if your XRP mining returns are stable in token terms, their real-world value may evaporate overnight.
+
+Lockups and hidden fees also eat into earnings. Some XRP cloud mining contracts include undisclosed management or withdrawal charges that cut deeply into net ROI.
+
+Finally, regulation is scarce. Despite claims of “bank-grade security,” most of these platforms lack audits or legal backing. Without oversight, users are exposed to custodial risk, platform failure and outright fraud.
+
+Did you know? Crypto-mining scams cost investors around $500 million in 2024 alone, and most “cloud mining” schemes have been flagged as Ponzi-style fraud.
+
+Getting started with XRP cloud mining in 2025? Navigate the risks, not just the rewards
+
+Getting involved with XRP mining in 2025 requires caution. Many platforms offer attractive yields, but the landscape is filled with noise and risk.
+
+Here’s what you need to know:
+
+Smarter users begin with smaller XRP deposits, testing how platforms handle withdrawals and contract maturity.
+
+Look for verifiable feedback from other users and dig into fees. Even some of the best XRP mining sites quietly deduct a percentage of profits on exit, eroding the actual ROI.
+
+A strategic approach involves spreading risk across multiple XRP mining contracts, durations and providers.
+
+Some users compare this model with traditional Bitcoin mining or staking platforms, which offer lower but more stable returns. Others explore wrapped XRP in decentralized finance (DeFi) ecosystems, where protocols offer modest but verified yields.
+
+Alternatively, long-term holders may find better risk-adjusted value in XRP price appreciation itself or by using regulated crypto savings accounts that offer 5%-15% APY under clearer terms.
+
+Whichever path you take, remember: XRP cloud mining earnings can fluctuate wildly, and flashy returns often come with buried trade-offs.
+
+Is XPR cloud mining profitable in 2025?
+
+XRP cloud mining is easy to access, but promised 100%-800% APRs are often unsustainable. These aggressive returns tend to rely on constant new user inflow, and actual performance rarely matches marketing claims.
+
+If you’re determined to try, start with under $100, confirm payouts early and treat the process like a high-risk crypto experiment — not a reliable income stream.
+
+For XRP holders seeking safer yield options, explore lending via regulated exchanges or deploying wrapped XRP in DeFi. These may come with far lower yields but are more realistic and typically backed by audits, not sketchy on-site success stories.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Crypto Week Day 4: US lawmakers remain divided on key bills
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/crypto-week-day-4-us-lawmakers-divided-key-bills?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/crypto-week-day-4-us-lawmakers-divided-key-bills?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/crypto-week-day-4-us-lawmakers-divided-key-bills?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 17:28:13 +0100
+
+### Content
+As day four of “Crypto Week” kicks off, US Democratic and Republican lawmakers remain divided on the future of key legislation that will shape the country's regulatory approach to digital assets.
+
+Votes were anticipated on the Clarity Act, the GENIUS stablecoin bill and the Anti-CBDC Surveillance State Act, but progress has been slowed by political gridlock on amendments, including proposals to bar government officials from trading cryptocurrencies.
+
+The fourth day of the so-called Crypto Week started on Thursday with US lawmakers in the House of Representatives debating consumer protections, anti-money laundering provisions, the development of a central bank digital currency, banking protections and preventing conflicts of interest in the executive branch.
+
+“This is a multi-congress priority item, and it ensures American competitiveness,” Representative French Hill said about the GENIUS stablecoin bill, while arguing that the revised version of the bill included robust consumer protections and anti-money laundering provisions.
+
+Democratic Representative Maxine Waters, an outspoken critic of US President Donald Trump and his family’s involvement in the crypto sector, argued that the bills do not address conflicts of interest regarding the family’s digital asset ventures. Waters said:
+
+“This bill has a policy statement that elected officials like members of Congress and senators, as well as government officials, cannot issue their own stablecoin, but do you know who Republicans did not ban? The president and the vice president are the only elected officials who can have a crypto business.”
+
+Barring the executive branch from issuing, endorsing and promoting cryptocurrencies has become a major pain point for Democratic lawmakers, who initially supported comprehensive digital asset regulation. The loss of Democratic support could threaten the passage of the bills or force concessions that are unfavorable to the crypto industry.
+
+Related: CLARITY Act isn’t perfect, but it’s the bill US Congress must pass this summer
+
+Secondary issues argued by US lawmakers
+
+Although limiting the Executive Branch’s involvement in the sector was the most common issue cited by opposing Democratic lawmakers, and is the subject of Senator Adam Schiff’s Curbing Officials’ Income and Nondisclosure Act (COIN), national security and financial stability were also debated.
+
+“While some of the [stablecoin] reserves are cash and short-term Treasury Securities, this bill allows for uninsured deposits,” Waters said.
+
+The California lawmaker added that backing stablecoins with other digital assets destabilizes the financial system and can lead to a bank run, where the cost of bailing out institutions is borne by the US taxpayer.
+
+--------------------------------------------------------------------------------
+
+## LINK news update: Pro crypto convergence in TradFi and DeFi may start rally to $18
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/link-news-update-pro-crypto-convergence-in-tradfi-and-defi-may-start-rally-to-dollar18?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/link-news-update-pro-crypto-convergence-in-tradfi-and-defi-may-start-rally-to-dollar18?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/link-news-update-pro-crypto-convergence-in-tradfi-and-defi-may-start-rally-to-dollar18?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 16:21:10 +0100
+
+### Content
+Key point:
+
+Convergence of TradFi and DeFi could propel LINK past $18 and start a new uptrend.
+
+At the RWA Summit Cannes, Nelli Zaltsman, JPMorgan Kinexys’ head of blockchain payments innovation, said that decentralized finance and traditional finance are converging rapidly. The banking giant, Chainlink (LINK), and Ondo Finance (ONDO) recently completed a crosschain Delivery versus Payment (DvP) test transaction, involving a permissioned payment network and a public testnet.
+
+Could traditional institutions moving onchain propel LINK higher? Let’s analyze the charts to find out.
+
+LINK price prediction
+
+LINK has been consolidating inside a large range between $10.94 and $18 for the past several months.
+
+The LINK/USDT pair has risen close to the $18 overhead resistance, which is likely to attract strong selling by the bears. If the price turns down from $18 but finds support at the 20-day exponential moving average ($14.85), it shows a positive sentiment. That increases the possibility of a break above the $18 level. If that happens, the pair will complete a double-bottom pattern, which has a target objective of $25.06.
+
+Instead, if the price turns down sharply from $18 and breaks below the 20-day EMA, it signals that the range-bound action may continue for a few more days.
+
+Related: XRP is about to hit $200B market cap for first time; price nears record
+
+The bulls have been arresting the pullback at the 20-EMA on the 4-hour chart, indicating that every minor dip is being purchased. The pair could turn down from $18, but a rebound off the 20-EMA suggests that buyers remain in control. That enhances the prospects of a break above the overhead resistance.
+
+This positive view will be invalidated in the near term if the price turns down sharply and breaks below the 50-simple moving average. The pair may then slump to $14.70 and later to $14.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## Bhutan should embrace decentralized identity systems
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/bhutan-decentralized-identity?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/bhutan-decentralized-identity?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/bhutan-decentralized-identity?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 16:00:00 +0100
+
+### Content
+Opinion by: Ezra Reguerra, journalist at Cointelegraph
+
+The Kingdom of Bhutan’s openness to dive into Web3 technology creates an opportunity to build a blockchain-based identity infrastructure and modernize the nation’s approach to digital identity.
+
+Bhutan is a Himalayan country where modernization is paced and driven by its culture and values. Its Gross National Happiness (GNH) development philosophy pushes the country to take a cautious approach to tourism and technology. Because of this, Bhutan has historically chosen sovereignty over scale.
+
+The country has already made headlines for its hydro-powered Bitcoin mining project, its crypto reserve initiative for its Gelephu Mindfulness City and its recent rollout of crypto payments through its Binance partnership.
+
+As the country experiments with crypto, the next logical step is to explore blockchain-based digital identity solutions — a critical infrastructure layer that complements its broader crypto ambitions.
+
+Bhutan’s unique naming culture and ID infrastructure
+
+Bhutan is uniquely positioned to benefit from decentralized identity systems. A recent trip to Bhutan allowed Cointelegraph to witness Bhutan’s unique naming culture and current identification infrastructure.
+
+Bhutanese naming culture works differently from many Western or Asian naming systems. In the country, people do not use surnames or family names. Instead, most people are given one or two names that are not inherited from their parents or relatives.
+
+A local tour guide told Cointelegraph that children would visit monasteries and ask monks to bestow names upon them. Because of this, many Bhutanese citizens can share similar names. At times, even men and women in Bhutan can share similar names. Names like “Karma,” “Tashi” and “Sonam” are gender neutral.
+
+The guide also told Cointelegraph that because of their naming culture, there are difficulties in finding people online. He said writing a Bhutanese name on social media platforms like Facebook or Instagram would often show thousands of results.
+
+In formal settings like schools, offices or legal documents, Bhutanese citizens identify people using their full name and place of origin. For example, “Kuenly Dorjee from Paro” may distinguish another Kuenly Dorjee from a different area.
+
+Related: How Bhutan plans to boost its local economy with crypto tourism
+
+Multiple Kuenly Dorjees can exist, however, from the same place. In such cases, officials would use a person’s national identification number to distinguish people with the same names.
+
+While the current identity infrastructure works for the Himalayan country, a future reliant on digital systems would require a different approach, especially as the nation is beginning to implement crypto technology within its ecosystem.
+
+Modernizing infrastructure with blockchain-based digital identity
+
+Decentralized digital identity may seem like a thing for the future, but it’s already being tested in some parts of the world. The European Union is trialing blockchain-based tamper-proof diplomas, while Germany and South Korea are piloting blockchain-based digital identification systems. Bhutan can follow in their footsteps.
+
+Blockchain-based digital identity solutions can provide many benefits to the Himalayan kingdom. Since Bhutan values self-reliance and sovereignty, adopting a decentralized identity infrastructure makes sense. With this, Bhutan can modernize local identification processes and allow citizens to retain control over their data.
+
+The country can also create a national identity program without foreign interference, retaining its sovereignty while upgrading its infrastructure. This could streamline access to payment services, reduce fraud, allow easier access to public services and preserve lineage in a way that aligns with the country’s cultural and spiritual values.
+
+With a blockchain-based ID, people can connect educational certificates, professional licenses and training credentials all in one place. These can be globally verifiable, immutable and digitally portable for citizens aiming to work abroad.
+
+The World Health Organization confirmed that Bhutan’s healthcare system is predominantly publicly financed. According to a local tour guide, the government would even fly patients abroad and shoulder the expenses if the required treatments are unavailable in the country.
+
+With blockchain-based digital identity infrastructure, Bhutan can optimize its medical records management. It can be streamlined and connected to the identity infrastructure, which can help medical professionals better track the history and conditions of Bhutanese patients locally and abroad.
+
+A decentralized digital identity can also help unbanked users in Bhutan to have their own digital records.
+
+This will enable them to access financial services and better comply with Know Your Customer (KYC) and Anti-Money Laundering (AML) requirements.
+
+With Bhutan also attempting to boost its economy through crypto tourism, it can use decentralized ID systems to better track the records of tourists coming into the country.
+
+Apart from a technical upgrade, decentralized identities would be a natural extension of Bhutan’s commitment to national sovereignty and well-being, showing a powerful example of ethical digital governance.
+
+Roadblocks to implementing decentralized identity
+
+While Bhutan can significantly benefit from such infrastructure, it must also navigate some roadblocks before implementation becomes viable. This includes digital literacy and connectivity in rural areas. Deploying a nationwide digital identity system rooted in emerging technologies will require user education campaigns and intuitive interfaces.
+
+Another thing to consider is Bhutan’s environmental ethos. As a carbon-negative nation, blockchain energy consumption is a concern. As the country is powered by hydroelectricity, however, it could get clean and cheap power for the infrastructure.
+
+Another concern for the government may be data control and efficiency. Complete decentralization and transparency through public chains may limit the government’s control over the infrastructure. However, it can opt to create a permissioned blockchain that offers more control but is more centralized.
+
+Striking a balance might be the key for Bhutan to modernize its identity infrastructure without sacrificing its values.
+
+Opinion by: Ezra Reguerra, journalist at Cointelegraph.
+
+This article is for general information purposes and is not intended to be and should not be taken as legal or investment advice. The views, thoughts, and opinions expressed here are the author’s alone and do not necessarily reflect or represent the views and opinions of Cointelegraph.
+
+--------------------------------------------------------------------------------
+
+## Japan just found a way to let you earn XRP without spending yen
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/explained/japan-just-found-a-way-to-let-you-earnxrp-without-spending-yen?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/explained/japan-just-found-a-way-to-let-you-earnxrp-without-spending-yen?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/explained/japan-just-found-a-way-to-let-you-earnxrp-without-spending-yen?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 15:55:00 +0100
+
+### Content
+How Aplus credit card points can be converted into XRP and other cryptocurrencies
+
+On July 8, 2025, Aplus, a credit card and financial services company under Japan’s Shinsei Bank Group, collaborated with SBI VC Trade, the cryptocurrency exchange division of SBI Holdings, to introduce a pioneering rewards program.
+
+For the first time, cryptocurrencies have been incorporated as redeemable assets within the Aplus Points program. If you are an Aplus credit cardholder, you can now convert your reward points into cryptocurrencies, including XRP (XRP), Bitcoin (BTC) and Ether (ETH). This makes Aplus the first major Japanese loyalty program to enable direct conversion of points to cryptocurrencies.
+
+Before this, Aplus points could be redeemed by consumers for cash, merchandise or airline miles. This new feature connects everyday spending with digital assets. Cardholders can now redeem 2,100 Aplus points for over 2,000 Japanese yen worth of cryptocurrency. This initiative highlights SBI’s commitment to promoting cryptocurrency adoption in Japan, particularly through its support for XRP. The program simplifies access to digital assets, providing an easy, cash-free way for users to acquire cryptocurrencies.
+
+How the Aplus point system works
+
+The Aplus Points system rewards customers based on their monthly credit card spending. For every 200 yen spent with an Aplus credit card, users earn 1 Aplus point.
+
+If you spend 50,000 yen or more monthly, you receive an extra 0.5% bonus on your points, encouraging higher card usage. Points remain valid for two years from the month they’re earned, giving users plenty of time to redeem them.
+
+With the new cryptocurrency integration, you can now convert 2,100 Aplus points into over 2,000 yen worth of cryptocurrency, equivalent to about $13-$15 as of July 15, 2025, depending on exchange rates.
+
+This option applies to three supported digital assets: XRP, BTC and ETH. The process offers a simple, cash-free way for everyday users to enter the cryptocurrency market without needing direct investment or technical knowledge.
+
+Did you know? American Express, Mastercard and Visa have all explored or launched crypto rewards with partners such as Coinbase, BlockFi and Gemini, showing that traditional finance embraces digital perks.
+
+Why XRP is part of the Aplus point redemption program
+
+Including XRP in the Aplus point redemption system aligns with SBI Holdings’ long-standing partnership with Ripple. It is in sync with XRP’s utility in Japan’s growing digital economy.
+
+XRP was the first cryptocurrency offered on SBI VC Trade when it began operations in 2018. Since then, SBI has expanded its XRP-related services to include lending and non-fungible token (NFT) projects on the XRP Ledger (XRPL).
+
+XRP’s fast transaction speeds and low fees make it well-suited for cross-border payments, offering cost advantages over Bitcoin and Ethereum.
+
+Japan’s clear regulatory framework for digital assets, established by the Financial Services Agency (FSA), supports cryptocurrency adoption while ensuring investor protection. This regulatory clarity enables entities like SBI and Aplus to integrate cryptocurrencies into consumer finance smoothly.
+
+Did you know? Even if you don’t buy crypto directly, rewards-based crypto is taxable in many countries once you redeem or sell it. Your “free” Bitcoin could come with a tax bill.
+
+How Aplus point conversion makes crypto more accessible to everyday users
+
+The integration of XRP into the Aplus point system provides consumers with a simple, risk-free way to access cryptocurrency without using cash.
+
+By making everyday purchases with your Aplus credit card, users earn points that can be converted into XRP, BTC or Ether through the Aplus portal or SBI VC Trade.
+
+Although the redemption value of 2,000 yen (for 2,100 points) may seem small, it offers a practical link between regular spending and owning digital assets.
+
+This approach makes cryptocurrency more accessible to everyday users, particularly those cautious about direct investments. The system is ideal for both newcomers to cryptocurrency and those seeking to diversify their loyalty point usage. It simplifies the process of entering the crypto market and supports wider adoption of digital assets within Japan’s regulated financial environment.
+
+Strategic implications of XRP and Aplus integration for SBI
+
+Integrating XRP with Aplus credit points represents a strategic expansion of SBI’s financial ecosystem. It links SBI’s traditional banking services, credit card operations and cryptocurrency exchange (SBI VC Trade) with consumer-focused digital asset rewards.
+
+This initiative strengthens SBI’s interconnected financial services and demonstrates its strong commitment to promoting cryptocurrency adoption in Japan.
+
+By including XRP as a reward option, SBI showcases a clear pro-cryptocurrency stance, setting an example for other banks in Japan and Asia. This move positions SBI as a leader in connecting traditional finance with blockchain technology.
+
+The initiative supports SBI’s goal of integrating XRP into mainstream finance, with company executives describing XRP adoption as a significant opportunity for wealth creation. This integration highlights XRP’s practical value and reinforces SBI’s role in shaping the future of digital finance.
+
+Did you know? Turning credit card points into crypto gamifies personal finance. It makes everyday spending more exciting while introducing people to blockchain tech without the usual risks.
+
+Industry and global context of earning crypto with credit points
+
+The option to earn cryptocurrency through credit card points is part of a global trend to blend digital assets with everyday consumer finance. Partnerships like Amex-Coinbase in the US have already allowed users to convert loyalty rewards into cryptocurrencies.
+
+Japan’s Aplus-XRP integration advances this idea, which is distinguished by clear regulations and strong institutional support. With well-set cryptocurrency laws overseen by the FSA, Japan offers a stable environment for such innovations, serving as a model for other countries exploring regulated crypto adoption.
+
+Unlike speculative trading platforms, the Aplus program is a user-friendly initiative to simplify digital assets for consumers. It prioritizes accessibility and education, enabling everyday users to engage with cryptocurrencies without financial risk.
+
+By incorporating XRP and other digital assets into a familiar rewards system, the program introduces digital finance to a broader audience, potentially encouraging wider global cryptocurrency adoption.
+
+--------------------------------------------------------------------------------
+
+## Ethereum looks to break $3,500 as RSI &#039;buy signal&#039; targets $10K ETH price
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/ethereum-break-3-500-rsi-buy-signal-targets-10k-eth-price?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/ethereum-break-3-500-rsi-buy-signal-targets-10k-eth-price?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/ethereum-break-3-500-rsi-buy-signal-targets-10k-eth-price?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 15:31:22 +0100
+
+### Content
+Key takeaways:
+
+Ether price has climbed to a six-month high, driven by record ETF inflows and rising network activity.
+
+The RSI buy signal at 40 in April, historically tied to major ETH price rallies, suggests a potential price target of $7,000-$10,000 in 2025.
+
+Ether’s (ETH) price rallied toward $3,500 on Thursday, a level not seen since Jan. 7, fueled by increasing network activity and persistent spot Ethereum exchange-traded fund (ETF) inflows.
+
+Record ETFs inflows send ETH price to 6-month highs
+
+Ether climbed more than 10% in the last 24 hours and 25% in seven days, to hit a six-month high of $3,481 on Binance, according to data from Cointelegraph Markets Pro and TradingView.
+
+Ether’s price performance is getting tailwinds from surging institutional demand, with spot ETH ETFs posting record inflows on Wednesday totaling $727 million.
+
+Related: Ethereum open interest hits all-time high as trader predicts $30K price top
+
+“Ethereum smashing through $3,400 isn’t just some degen spike from retail apes,” said pseudonymous crypto analyst Blazey Crypto in a Thursday post on X, adding:
+
+“This is big boy money moving in. Over $726 million poured into ETH ETFs in a single day, with half of that from BlackRock alone. That’s not retail, that’s war.”
+
+“This is huge,” said Mikybull Crypto, noting that Thursday’s inflows are the largest since spot Ethereum ETFs were launched on July 23, 2024.
+
+Spot Ether ETFs have pulled in over $1.76 billion in the last five days, with ETF issuers now holding 4% of the entire ETH supply.
+
+“Spot ETH ETFs with approximately $1.8B over the past five trading days,” said crypto investor Biashara, adding:
+
+“Tell me how this thing won’t skyrocket?”
+
+High Ethereum network activity, increasing TVL
+
+The strength in ETH price is reflected in onchain activity, with Ethereum’s active address count rising by 9.4% over the last 30 days and 2% in the last 24 hours to 1.49 million on Thursday, as per data from Nansen. Daily active addresses have also increased by 6.7% over the last 24 hours to 463,880.
+
+Moreover, weekly network fees on Ethereum increased by 139% to $14 million over the past week. On the daily time frame, fees are up over 475% since July 5 to $3.11 million on Thursday, as shown in the chart below.
+
+Higher network fees not only reflect rising demand for ETH but also drive the need for layer-2 solutions and DApps. This increases total value locked (TVL) on Ethereum as more assets are staked or utilized in DeFi.
+
+Ethereum’s TVL has risen to a three-year high of $78.2 billion on Thursday from $57.2 billion on June 23, an increase of over 36% in three weeks, according to DefiLlama.
+
+Ethereum remains the undisputed leader by TVL with a market dominance of 58%. In comparison, Solana’s share is 7.2%, and BNB Chain’s is 5% among layer-1 chains.
+
+Ether’s RSI signals ETH price rally to $10K
+
+Ether’s three-week chart shows that the relative strength index, or RSI, flashed a “buy” signal back in April when it reached 40.
+
+Historically, the RSI has bottomed around this level, preceding massive rallies in ETH price.
+
+Previous confirmations from the indicator were followed by a 1,360% and 350% rally in Ether’s price in 2021 and 2023-2024, respectively.
+
+Flagging this signal back in April, popular crypto analyst Mikybull Crypto said that “this rare buy signal isn’t something to be ignored.”
+
+“2X right now if you heed the call,” the analyst said on Thursday, referring to his earlier call.
+
+According to Mikybull Crypto, Ether’s price could top between $7,000 and $10,000 by the time the RSI reaches the upper band.
+
+“$7K-$10K upper band target.”
+
+Other analysts believe that ETH has the ability to rise toward $10,000 and higher this year, citing technical chart fractals, a bullish breakout in the ETH/BTC pair, and increasing institutional demand via ETFs and Ethereum treasury companies.
+
+This article does not contain investment advice or recommendations. Every investment and trading move involves risk, and readers should conduct their own research when making a decision.
+
+--------------------------------------------------------------------------------
+
+## USDt market cap hits $160B, cementing its ‘digital dollar’ role: Tether CEO
+
+### Document Metadata
+**Source:** https://cointelegraph.com/rss
+**Category:** news
+**Source URL:** https://cointelegraph.com/news/tether-usdt-market-cap-hits-160b-emerging-markets-growth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound
+**Original Article:** [Cointelegraph.Com](https://cointelegraph.com/news/tether-usdt-market-cap-hits-160b-emerging-markets-growth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound)
+**Direct Link:** <https://cointelegraph.com/news/tether-usdt-market-cap-hits-160b-emerging-markets-growth?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound>
+**Published:** Thu, 17 Jul 2025 15:22:34 +0100
+
+### Content
+The market cap of Tether’s USDt, the world’s largest stablecoin, has surpassed $160 billion for the first time, a “new mind-blowing milestone,” according to Tether CEO Paolo Ardoino.
+
+In a Thursday post on X, Ardoino called the achievement a testament to USDt’s growing role as the digital dollar for “billions of people living in emerging markets and developing countries.” USDt crossed $150 billion in May.
+
+Ardoino has said that USDt (USDT) is used by more than 400 million people worldwide, expanding by 35 million wallets each quarter, especially in emerging markets where it serves as a reliable dollar substitute.
+
+The blockchain distribution of USDt shows that Tron hosts the highest USDt supply, now accounting for about $81 billion, compared to Ethereum’s $65 billion, according to data from DefiLlama. USDt issuance on other networks is significantly smaller, totaling $6.8 billion on BNB Chain, $2.3 billion on Solana and $1.1 billion on Polygon.
+
+Related: First crypto bill vote fails to get 100% Republican support despite Trump’s call
+
+USDt backed by cash and US Treasurys
+
+According to Tether’s attestations, cash and cash equivalents, primarily short-term US Treasurys, constitute 81.5% of USDT’s backing reserves, with Bitcoin (BTC) accounting for 5.1%.
+
+Tether holds over $127 billion in US Treasurys as of Q2 2025, ranking as the 18th largest holder globally, alongside countries like South Korea and Germany. The company posted over $1 billion in operating profit in Q1.
+
+The stablecoin issuer has also been consistently minting new tokens. On Wednesday, Tether minted another $1 billion, with more than $4 billion over the past week alone.
+
+Last week, Tether announced it will stop allowing redemptions of USDt on five legacy blockchains, including Omni Layer, Bitcoin Cash SLP, Kusama, EOS (now Vaulta), and Algorand, starting Sept. 1.
+
+The move aims to let the company focus on blockchains with better scalability, more developer activity and stronger community engagement, according to CEO Ardoino.
+
+Related: Legacy finance discovers stablecoins as JPMorgan, Citigroup consider market entry
+
+Stablecoin market expands amid growing regulatory clarity
+
+The stablecoin market has been expanding quickly, with fiat-pegged digital assets increasingly seen as the internet’s go-to settlement layer. In 2024, stablecoin transaction volumes even surpassed those of Visa and Mastercard combined.
+
+The growing momentum comes as the Trump administration has prioritized stablecoin regulation, with the GENIUS Act leading the charge. The bill gained bipartisan support in the Senate Banking Committee and passed the Senate in June.
+
+However, it stalled in the House of Representatives after a group of lawmakers blocked a key procedural vote on Tuesday. The House is set to vote Thursday on the GENIUS Act as a standalone measure.
+
+--------------------------------------------------------------------------------
+

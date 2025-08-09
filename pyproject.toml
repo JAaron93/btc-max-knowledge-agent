@@ -30,6 +30,7 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["btc_max_knowledge_agent*"]
+exclude = ["examples", "examples.*"]
 
 [tool.black]
 line-length = 88

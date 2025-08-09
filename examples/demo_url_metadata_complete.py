@@ -64,7 +64,7 @@ class URLMetadataDemo:
     def log_operation(self, operation: str, status: str, details: Dict[str, Any]):
         """Log operation for demo tracking."""
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "operation": operation,
             "status": status,
             "details": details,
@@ -192,6 +192,9 @@ class URLMetadataDemo:
         # url_validated should be True only if both URL validation AND metadata extraction succeeded
         url_fully_validated = is_valid and metadata_extraction_successful
 
+        # Generate a single UTC ISO-8601 timestamp and reuse it
+        utc_timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
         data_entry = {
             "id": str(uuid.uuid4()),
             "text": source["content"],
@@ -203,14 +206,6 @@ class URLMetadataDemo:
                 "url_path": url_metadata["path"],
                 "url_protocol": url_metadata["protocol"],
                 "url_validated": url_fully_validated,
-        # Generate a single UTC ISO-8601 timestamp and reuse it
-        utc_timestamp = (
-            datetime.now(timezone.utc)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
-
-        data_entry = {
                 "url_validation_timestamp": utc_timestamp,
                 "url_security_score": validation_result.get("security_score", 0.0),
                 "metadata_version": "2.0",
@@ -220,9 +215,12 @@ class URLMetadataDemo:
             "embedding": self._generate_mock_embedding(),  # Using random module
         }
 
-        # Log successful collection
-        self.logger.log_metadata_creation(
-            metadata=data_entry["metadata"], correlation_id=self.correlation_id
+        # Log successful collection using available logger methods
+        self.logger.log_upload(
+            url=data_entry["metadata"].get("source_url", "unknown"),
+            success=True,
+            metadata_size=len(str(data_entry["metadata"])),
+            duration_ms=None,
         )
 
         self.log_operation(
@@ -288,7 +286,9 @@ class URLMetadataDemo:
                 "url_validated": False,
                 "fallback_processing": True,
                 "metadata_version": "2.0",
-                "collection_timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "collection_timestamp": datetime.now(timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z"),
             },
             "embedding": self._generate_mock_embedding(),
         }
@@ -305,12 +305,12 @@ class URLMetadataDemo:
                 # Simulate processing with URL metadata
                 time.sleep(0.1)  # Simulate work
 
-                # Log concurrent operation
-                self.logger.log_url_operation(
-                    operation="concurrent_processing",
+                # Log concurrent operation using available logger methods
+                self.logger.log_upload(
                     url=item["metadata"].get("source_url", "unknown"),
                     success=True,
-                    correlation_id=self.correlation_id,
+                    metadata_size=len(str(item)),
+                    duration_ms=100,  # Simulated processing time
                 )
 
                 return {
@@ -327,11 +327,43 @@ class URLMetadataDemo:
             futures = {executor.submit(process_data_item, item): item for item in data}
 
             results = []
+            processed_count = 0
+            total_items = len(data)
+
             for future in as_completed(futures):
                 result = future.result()
                 results.append(result)
-                status_icon = "✓" if result["status"] == "processed" else "❌"
-                print(f"  {status_icon} Processed item {result['id'][:8]}...")
+                processed_count += 1
+
+                # Log individual item processing using available logger methods
+                if result["status"] == "processed":
+                    # Use upload logger for successful processing
+                    self.logger.log_upload(
+                        url=result.get("url", "unknown"),
+                        success=True,
+                        metadata_size=len(str(result)),
+                        duration_ms=100,  # Simulated processing time
+                    )
+                else:
+                    # Use upload logger for failed processing
+                    self.logger.log_upload(
+                        url=result.get("url", "unknown"),
+                        success=False,
+                        metadata_size=0,
+                        error=result.get("error", "Unknown error"),
+                        duration_ms=100,
+                    )
+
+                # Throttled progress indicator - only show every 10% or for small datasets every 5 items
+                if (
+                    total_items <= 20
+                    or processed_count % max(1, total_items // 10) == 0
+                    or processed_count == total_items
+                ):
+                    status_icon = "✓" if result["status"] == "processed" else "❌"
+                    print(
+                        f"  Progress: {processed_count}/{total_items} items processed ({processed_count / total_items * 100:.0f}%)"
+                    )
 
         print(f"\n✓ Processed {len(results)} items concurrently")
         return results
@@ -424,14 +456,9 @@ class URLMetadataDemo:
             # Display formatted results
             self._display_formatted_response(formatted_response)
 
-            # Log query operation
-            self.logger.log_query_execution(
-                query=query,
-                result_count=len(mock_results),
-                has_url_metadata=sum(
-                    1 for r in mock_results if "source_url" in r.get("metadata", {})
-                ),
-                correlation_id=self.correlation_id,
+            # Log query operation using available logger methods
+            self.logger.log_retrieval(
+                query=query, results_count=len(mock_results), duration_ms=None
             )
 
             return formatted_response
@@ -468,7 +495,9 @@ class URLMetadataDemo:
                 print(f"    - {error_type}: {count}")
 
         # Demo-specific metrics
-        duration = (datetime.now(timezone.utc) - self.demo_metrics["start_time"]).total_seconds()
+        duration = (
+            datetime.now(timezone.utc) - self.demo_metrics["start_time"]
+        ).total_seconds()
         print("\nDemo Execution Metrics:")
         print(f"  • Duration: {duration:.2f} seconds")
         print(f"  • Total Operations: {len(self.demo_metrics['operations'])}")
@@ -534,10 +563,13 @@ class URLMetadataDemo:
 
         except Exception as e:
             print(f"\n❌ Demo failed: {str(e)}")
-            self.logger.log_critical_error(
-                error=e,
-                context={"phase": "demo_execution"},
-                correlation_id=self.correlation_id,
+            # Log critical error using available logger methods
+            self.logger.log_upload(
+                url="demo_execution",
+                success=False,
+                metadata_size=0,
+                error=str(e),
+                duration_ms=None,
             )
             return {
                 "success": False,

@@ -31,7 +31,9 @@ def set_env_var(
     if not isinstance(key, str):
         raise TypeError(f"Environment variable key must be a string, got {type(key)}")
 
-    if not key or key.strip() == "":
+    # Normalize the key: strip whitespace and convert to uppercase
+    key = key.strip().upper()
+    if not key:
         raise ValueError("Environment variable key cannot be empty")
 
     # Convert value to string
@@ -75,7 +77,9 @@ def get_env_var(key: str, default: Optional[str] = None) -> Optional[str]:
     if not isinstance(key, str):
         raise TypeError(f"Environment variable key must be a string, got {type(key)}")
 
-    if not key or key.strip() == "":
+    # Normalize the key: strip whitespace and convert to uppercase
+    key = key.strip().upper()
+    if not key:
         raise ValueError("Environment variable key cannot be empty")
 
     return os.environ.get(key, default)
@@ -97,7 +101,9 @@ def unset_env_var(key: str) -> bool:
     if not isinstance(key, str):
         raise TypeError(f"Environment variable key must be a string, got {type(key)}")
 
-    if not key or key.strip() == "":
+    # Normalize the key: strip whitespace and convert to uppercase
+    key = key.strip().upper()
+    if not key:
         raise ValueError("Environment variable key cannot be empty")
 
     if key in os.environ:
